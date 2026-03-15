@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package finance;
+
+// Java-specific options
+option java_package = "com.finankal.api.finance";
+option java_outer_classname = "FinanceProtos";
+
+option go_package = "github.com/kaloy/finankal/engine-go/finance;finance";
+
+service FinanceEngine {
+  rpc HealthCheck(HealthRequest) returns (HealthResponse);
+}
+
+message HealthRequest {}
+message HealthResponse {
+  string status = 1;
+}

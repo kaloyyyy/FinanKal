@@ -1,0 +1,34 @@
+# ======================
+# OS
+# ======================
+.DS_Store
+Thumbs.db
+
+# ======================
+# Java / Spring Boot
+# ======================
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+*.tmp
+spring.log
+
+# ======================
+# Go
+# ======================
+*.exe
+*.out
+*.test
+vendor/
+bin/
+
+# ======================
+# Docker
+# ======================
+docker-compose.override.yml
+*.env
+**/Dockerfile*
+**/docker-compose*.yml
