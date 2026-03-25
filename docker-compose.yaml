@@ -59,7 +59,7 @@ services:
     image: redis:8
     container_name: finance_redis
     ports:
-      - "6379:6379"
+      - "6380:6380"
     command: redis-server --requirepass "YourStrongPassword"
 
 volumes:

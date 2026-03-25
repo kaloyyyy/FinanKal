@@ -2,88 +2,102 @@ package main
 
 import (
 	"context"
-	_ "fmt"
+	"fmt"
 	"log"
-	"net"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
-	"github.com/redis/go-redis/v9"
-	"google.golang.org/grpc"
+	"github.com/kaloy/finankal/engine-go/internal/cache"
+	"github.com/kaloy/finankal/engine-go/internal/db"
+	"github.com/kaloy/finankal/engine-go/internal/ledger"
+	"github.com/shopspring/decimal"
+
+	"github.com/google/uuid"
+
+	"github.com/kaloy/finankal/engine-go/internal/model"
+	"github.com/kaloy/finankal/engine-go/internal/repository"
 )
 
 func main() {
-	// ------------------------
-	// 1. Load environment variables
-	// ------------------------
-	log.Println("Starting server...")
+	ctx := context.Background()
 	loadEnvFromRepoRoot()
-
-	databaseURL := os.Getenv("DATABASE_URL")
-	if databaseURL == "" {
-		log.Fatal("DATABASE_URL is not set in environment variables")
-	}
-
-	redisURL := os.Getenv("REDIS_URL")
-	if redisURL == "" {
-		log.Fatal("REDIS_URL is not set in environment variables")
-	}
-
-	// ------------------------
-	// 2. Connect to PostgreSQL using pgx
-	// ------------------------
-	log.Println("Connecting to PostgreSQL ...", databaseURL)
-	pgConn, err := pgx.Connect(context.Background(), databaseURL)
+	dbConn, err := db.NewDB()
 	if err != nil {
-		log.Fatalf("Failed to connect to PostgreSQL: %v", err)
+		log.Fatal(err)
 	}
-	defer pgConn.Close(context.Background())
 
-	var version string
-	if err := pgConn.QueryRow(context.Background(), "SELECT version()").Scan(&version); err != nil {
-		log.Fatalf("Failed to query PostgreSQL: %v", err)
+	redisClient := cache.NewRedis()
+
+	repo := repository.NewLedgerRepository(dbConn)
+	service := ledger.NewService(repo, redisClient)
+	// 🔥 TEST TRANSACTION
+	// 🔹 Replace with actual account IDs from your DB
+	cashID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	expenseID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
+
+	// 🔹 Create transaction (Cash → Expense)
+	entries := []model.Entry{
+		{
+			AccountID: cashID,
+			Amount:    decimal.RequireFromString("500.00"),
+			Type:      model.CREDIT,
+			CreatedAt: time.Now(),
+		},
+		{
+			AccountID: expenseID,
+			Amount:    decimal.RequireFromString("500.00"),
+			Type:      model.DEBIT,
+			CreatedAt: time.Now(),
+		},
 	}
-	log.Println("Connected to PostgreSQL:", version)
 
-	// ------------------------
-	// 3. Connect to Redis using go-redis
-	// ------------------------
-	opt, err := redis.ParseURL(redisURL)
+	err = service.CreateTransaction(ctx, "Test transaction", entries)
 	if err != nil {
-		log.Fatalf("Failed to parse REDIS_URL: %v", err)
+		log.Fatal("CreateTransaction error:", err)
 	}
-	rdb := redis.NewClient(opt)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	fmt.Println("✅ Transaction created")
 
-	if err := rdb.Ping(ctx).Err(); err != nil {
-		log.Fatalf("Failed to connect to Redis: %v", err)
-	}
-	log.Println("Connected to Redis:", redisURL)
-
-	// ------------------------
-	// 4. Start gRPC server
-	// ------------------------
-	lis, err := net.Listen("tcp", ":50051")
+	// 🔹 Get balance
+	balance, err := service.GetBalance(ctx, cashID)
 	if err != nil {
-		log.Fatalf("Failed to listen on port 50051: %v", err)
+		log.Fatal(err)
+	}
+	expenseBalance, err := service.GetBalance(ctx, expenseID)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	s := grpc.NewServer()
-	// TODO: Register your gRPC services here, e.g.
-	// pb.RegisterLedgerServiceServer(s, &ledgerServer{DB: pgConn, Redis: rdb})
+	fmt.Println("💰 Cash Balance:", balance)
+	fmt.Println("💰 Expense Balance:", expenseBalance)
 
-	log.Println("gRPC server running on :50051")
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("Failed to serve gRPC: %v", err)
+	// 🔹 Get account summary
+	summary, err := service.GetAccountSummary(ctx, cashID)
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	fmt.Println("📊 Account Summary:")
+	fmt.Println("Name:", summary.Name)
+	fmt.Println("Type:", summary.Type)
+	fmt.Println("Balance:", summary.Balance)
+	fmt.Println("CreatedAt:", summary.CreatedAt)
+
+	summaryExpense, err := service.GetAccountSummary(ctx, expenseID)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("📊 Account Summary:")
+	fmt.Println("Name:", summaryExpense.Name)
+	fmt.Println("Type:", summaryExpense.Type)
+	fmt.Println("Balance:", summaryExpense.Balance)
+	fmt.Println("CreatedAt:", summaryExpense.CreatedAt)
+	
 }
 
-// loadEnvFromRepoRoot searches up from current directory for .env
 func loadEnvFromRepoRoot() {
 	dir, err := os.Getwd()
 	if err != nil {
