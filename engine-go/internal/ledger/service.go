@@ -24,20 +24,20 @@ func NewService(repo *repository.LedgerRepository, redis *redis.Client) *Service
 	return &Service{repo: repo, redis: redis}
 }
 
-func (s *Service) CreateTransaction(ctx context.Context, description string, entries []model.Entry) error {
+func (s *Service) CreateTransaction(ctx context.Context, description string, entries []model.Entry) (uuid.UUID, error) {
 	if err := validateEntries(entries); err != nil {
-		return err
+		return uuid.UUID{}, err
 	}
 
 	txID, err := s.repo.CreateTransaction(ctx, description)
 	if err != nil {
-		return err
+		return uuid.UUID{}, err
 	}
 
 	for _, e := range entries {
 		err := s.repo.InsertEntry(ctx, txID, e.AccountID, e.Amount, string(e.Type))
 		if err != nil {
-			return err
+			return uuid.UUID{}, err
 		}
 	}
 
@@ -49,7 +49,7 @@ func (s *Service) CreateTransaction(ctx context.Context, description string, ent
 		s.redis.Del(ctx, summaryKey)
 	}
 
-	return nil
+	return txID, nil
 }
 
 func (s *Service) GetBalance(ctx context.Context, accountID uuid.UUID) (decimal.Decimal, error) {

@@ -6,13 +6,51 @@ package finance;
 option java_package = "com.finankal.api.finance";
 option java_outer_classname = "FinanceProtos";
 
-option go_package = "github.com/kaloy/finankal/engine-go/finance;finance";
+option go_package = "github.com/kaloy/finankal/engine-go/finance";
 
 service FinanceEngine {
   rpc HealthCheck(HealthRequest) returns (HealthResponse);
+  rpc CreateTransaction(CreateTransactionRequest) returns (CreateTransactionResponse);
+  rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse);
+  rpc GetAccountSummary(GetAccountSummaryRequest) returns (GetAccountSummaryResponse);
 }
 
 message HealthRequest {}
 message HealthResponse {
   string status = 1;
+}
+
+message CreateTransactionRequest {
+  string description = 1;
+  repeated Entry entries = 2;
+}
+
+message CreateTransactionResponse {
+  string transaction_id = 1;
+}
+
+message Entry {
+  string account_id = 1;
+  string amount = 2;
+  string type = 3; // DEBIT or CREDIT
+}
+
+message GetBalanceRequest {
+  string account_id = 1;
+}
+
+message GetBalanceResponse {
+  string balance = 1;
+}
+
+message GetAccountSummaryRequest {
+  string account_id = 1;
+}
+
+message GetAccountSummaryResponse {
+  string account_id = 1;
+  string name = 2;
+  string type = 3;
+  string balance = 4;
+  string created_at = 5;
 }
