@@ -1,0 +1,285 @@
+openapi: 3.0.0
+info:
+  title: FinanKal Finance API
+  version: 0.0.1
+  description: REST API Gateway for FinanKal Ledger Engine
+  contact:
+    name: FinanKal Team
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Development Server
+  - url: https://api.finankal.com
+    description: Production Server
+
+paths:
+  /api/accounts/{id}:
+    get:
+      summary: Get Account Summary
+      description: Retrieves a summary of an account including balance and account type
+      operationId: getAccount
+      tags:
+        - Accounts
+      parameters:
+        - name: id
+          in: path
+          description: Account UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Account summary retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountDto'
+        '400':
+          description: Invalid account ID
+        '404':
+          description: Account not found
+        '500':
+          description: Server error
+
+  /api/accounts/{id}/balance:
+    get:
+      summary: Get Account Balance
+      description: Retrieves the current balance of an account
+      operationId: getBalance
+      tags:
+        - Accounts
+      parameters:
+        - name: id
+          in: path
+          description: Account UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Account balance retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: number
+                format: decimal
+                example: 1000.50
+        '400':
+          description: Invalid account ID
+        '404':
+          description: Account not found
+        '500':
+          description: Server error
+
+  /api/transactions:
+    post:
+      summary: Create Transaction
+      description: Creates a new transaction with multiple ledger entries
+      operationId: createTransaction
+      tags:
+        - Transactions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRequestDto'
+      responses:
+        '200':
+          description: Transaction created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionDto'
+        '400':
+          description: Invalid request payload
+        '500':
+          description: Server error
+
+  /api/ledger-entries/{accountId}:
+    get:
+      summary: Get Ledger Entries
+      description: Retrieves all ledger entries for a specific account
+      operationId: getLedgerEntries
+      tags:
+        - Ledger Entries
+      parameters:
+        - name: accountId
+          in: path
+          description: Account UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Ledger entries retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LedgerEntryDto'
+        '400':
+          description: Invalid account ID
+        '404':
+          description: Account not found
+        '500':
+          description: Server error
+
+components:
+  schemas:
+    AccountDto:
+      type: object
+      description: Account information with balance
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Account unique identifier
+          example: "11111111-1111-1111-1111-111111111111"
+        name:
+          type: string
+          description: Account name
+          example: "Checking Account"
+        type:
+          type: string
+          description: Account type
+          example: "ASSET"
+        balance:
+          type: number
+          format: decimal
+          description: Current account balance
+          example: 5000.00
+        createdAt:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+          example: "2026-01-15T10:30:00"
+
+    CreateTransactionRequestDto:
+      type: object
+      required:
+        - description
+        - entries
+      description: Request body for creating a transaction
+      properties:
+        description:
+          type: string
+          description: Transaction description
+          example: "Payment for services"
+        entries:
+          type: array
+          minItems: 2
+          description: List of ledger entries for the transaction
+          items:
+            $ref: '#/components/schemas/CreateLedgerEntryDto'
+
+    CreateLedgerEntryDto:
+      type: object
+      required:
+        - accountId
+        - amount
+        - type
+      description: Ledger entry for creating a transaction
+      properties:
+        accountId:
+          type: string
+          format: uuid
+          description: Account UUID
+          example: "11111111-1111-1111-1111-111111111111"
+        amount:
+          type: number
+          format: decimal
+          description: Transaction amount
+          example: 100.00
+        type:
+          type: string
+          enum: [DEBIT, CREDIT]
+          description: Entry type
+          example: "DEBIT"
+
+    TransactionDto:
+      type: object
+      description: Transaction information with entries
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Transaction unique identifier
+          example: "b8d4c031-70de-4ef5-9e83-cc12253951bc"
+        description:
+          type: string
+          description: Transaction description
+          example: "Payment for services"
+        entries:
+          type: array
+          description: List of ledger entries
+          items:
+            $ref: '#/components/schemas/LedgerEntryDto'
+
+    LedgerEntryDto:
+      type: object
+      description: Ledger entry details
+      properties:
+        accountId:
+          type: string
+          format: uuid
+          description: Account UUID
+          example: "11111111-1111-1111-1111-111111111111"
+        amount:
+          type: number
+          format: decimal
+          description: Entry amount
+          example: 100.00
+        type:
+          type: string
+          enum: [DEBIT, CREDIT]
+          description: Entry type
+          example: "DEBIT"
+        description:
+          type: string
+          nullable: true
+          description: Entry description from transaction
+          example: "Payment for services"
+        transactionId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Associated transaction ID
+          example: "b8d4c031-70de-4ef5-9e83-cc12253951bc"
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Entry creation timestamp
+          example: "2026-04-03T18:30:00"
+
+    ErrorResponse:
+      type: object
+      description: Error response
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+
+tags:
+  - name: Accounts
+    description: Account management endpoints
+  - name: Transactions
+    description: Transaction creation endpoints
+  - name: Ledger Entries
+    description: Ledger entry retrieval endpoints
+

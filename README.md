@@ -1,4 +1,3 @@
-
 # FinanKal
 
 FinanKal is a modular financial system project built with:
@@ -112,6 +111,26 @@ Example Go generation:
 ```bash
 protoc --go_out=. --go-grpc_out=. proto/*.proto
 ```
+
+---
+
+## REST API - OpenAPI First Approach
+
+The Spring Boot API follows an **OpenAPI-first** design pattern:
+
+### Key Features
+- **Single Source of Truth**: OpenAPI specification (`api-spring/src/main/resources/openapi.yaml`)
+- **Auto-Generated Code**: Controllers, models, and interfaces are generated from the spec
+- **Swagger UI**: Interactive API documentation at `http://localhost:8080/swagger-ui.html`
+- **Type-Safe Models**: Generated DTOs with validation annotations
+
+### Workflow
+1. **Design**: Update `openapi.yaml` with new endpoints
+2. **Generate**: Run `mvn clean compile` to generate code
+3. **Implement**: Add business logic in controller classes
+4. **Test**: Use Swagger UI or the provided `requests.http` file
+
+For detailed OpenAPI documentation, see [api-spring/OPENAPI.md](api-spring/OPENAPI.md)
 
 ---
 

@@ -21,6 +21,7 @@
         <java.version>21</java.version>
         <grpc.version>1.57.2</grpc.version>
         <protobuf.version>3.24.3</protobuf.version>
+        <openapi-generator.version>7.1.0</openapi-generator.version>
     </properties>
 
     <dependencies>
@@ -79,6 +80,13 @@
             <groupId>javax.annotation</groupId>
             <artifactId>javax.annotation-api</artifactId>
             <version>1.3.2</version>
+        </dependency>
+
+        <!-- Jackson Nullable for OpenAPI Generated classes -->
+        <dependency>
+            <groupId>org.openapitools</groupId>
+            <artifactId>jackson-databind-nullable</artifactId>
+            <version>0.2.6</version>
         </dependency>
     </dependencies>
 
@@ -151,6 +159,7 @@
                         <configuration>
                             <sources>
                                 <source>${project.build.directory}/generated-sources/protobuf/java</source>
+                                <source>${project.build.directory}/generated-sources/openapi/src/main/java</source>
                             </sources>
                         </configuration>
                     </execution>
@@ -177,6 +186,39 @@
                                 <argument>--proto_path=${project.basedir}/../proto</argument>
                                 <argument>${project.basedir}/../proto/finance.proto</argument>
                             </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- OpenAPI Generator Plugin -->
+            <plugin>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <version>${openapi-generator.version}</version>
+                <executions>
+                    <execution>
+                        <id>generate-spring-api</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/src/main/resources/openapi.yaml</inputSpec>
+                            <generatorName>spring</generatorName>
+                            <apiPackage>com.finankal.api.generated</apiPackage>
+                            <modelPackage>com.finankal.api.generated.model</modelPackage>
+                            <generateSupportingFiles>true</generateSupportingFiles>
+                            <configOptions>
+                                <java8>true</java8>
+                                <dateLibrary>java8</dateLibrary>
+                                <useBeanValidation>true</useBeanValidation>
+                                <useSpringBoot3>true</useSpringBoot3>
+                                <serverVariables>false</serverVariables>
+                                <interfaceOnly>true</interfaceOnly>
+                                <delegatePattern>false</delegatePattern>
+                                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                            </configOptions>
                         </configuration>
                     </execution>
                 </executions>
