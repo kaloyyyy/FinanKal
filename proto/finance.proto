@@ -13,6 +13,7 @@ service FinanceEngine {
   rpc CreateTransaction(CreateTransactionRequest) returns (CreateTransactionResponse);
   rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse);
   rpc GetAccountSummary(GetAccountSummaryRequest) returns (GetAccountSummaryResponse);
+  rpc GetLedgerEntries(GetLedgerEntriesRequest) returns (GetLedgerEntriesResponse);
 }
 
 message HealthRequest {}
@@ -53,4 +54,21 @@ message GetAccountSummaryResponse {
   string type = 3;
   string balance = 4;
   string created_at = 5;
+}
+
+message GetLedgerEntriesRequest {
+  string account_id = 1;
+}
+
+message GetLedgerEntriesResponse {
+  repeated LedgerEntry entries = 1;
+}
+
+message LedgerEntry {
+  string transaction_id = 1;
+  string account_id = 2;
+  string amount = 3;
+  string type = 4; // DEBIT or CREDIT
+  string description = 5;
+  string created_at = 6;
 }
