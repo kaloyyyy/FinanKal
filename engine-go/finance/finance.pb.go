@@ -465,6 +465,178 @@ func (x *GetAccountSummaryResponse) GetCreatedAt() string {
 	return ""
 }
 
+type GetLedgerEntriesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetLedgerEntriesRequest) Reset() {
+	*x = GetLedgerEntriesRequest{}
+	mi := &file_finance_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetLedgerEntriesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetLedgerEntriesRequest) ProtoMessage() {}
+
+func (x *GetLedgerEntriesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_finance_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetLedgerEntriesRequest.ProtoReflect.Descriptor instead.
+func (*GetLedgerEntriesRequest) Descriptor() ([]byte, []int) {
+	return file_finance_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *GetLedgerEntriesRequest) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+type GetLedgerEntriesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entries       []*LedgerEntry         `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetLedgerEntriesResponse) Reset() {
+	*x = GetLedgerEntriesResponse{}
+	mi := &file_finance_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetLedgerEntriesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetLedgerEntriesResponse) ProtoMessage() {}
+
+func (x *GetLedgerEntriesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_finance_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetLedgerEntriesResponse.ProtoReflect.Descriptor instead.
+func (*GetLedgerEntriesResponse) Descriptor() ([]byte, []int) {
+	return file_finance_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *GetLedgerEntriesResponse) GetEntries() []*LedgerEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+type LedgerEntry struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TransactionId string                 `protobuf:"bytes,1,opt,name=transaction_id,json=transactionId,proto3" json:"transaction_id,omitempty"`
+	AccountId     string                 `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	Amount        string                 `protobuf:"bytes,3,opt,name=amount,proto3" json:"amount,omitempty"`
+	Type          string                 `protobuf:"bytes,4,opt,name=type,proto3" json:"type,omitempty"` // DEBIT or CREDIT
+	Description   string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LedgerEntry) Reset() {
+	*x = LedgerEntry{}
+	mi := &file_finance_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LedgerEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LedgerEntry) ProtoMessage() {}
+
+func (x *LedgerEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_finance_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LedgerEntry.ProtoReflect.Descriptor instead.
+func (*LedgerEntry) Descriptor() ([]byte, []int) {
+	return file_finance_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *LedgerEntry) GetTransactionId() string {
+	if x != nil {
+		return x.TransactionId
+	}
+	return ""
+}
+
+func (x *LedgerEntry) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *LedgerEntry) GetAmount() string {
+	if x != nil {
+		return x.Amount
+	}
+	return ""
+}
+
+func (x *LedgerEntry) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *LedgerEntry) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *LedgerEntry) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
 var File_finance_proto protoreflect.FileDescriptor
 
 const file_finance_proto_rawDesc = "" +
@@ -498,13 +670,28 @@ const file_finance_proto_rawDesc = "" +
 	"\x04type\x18\x03 \x01(\tR\x04type\x12\x18\n" +
 	"\abalance\x18\x04 \x01(\tR\abalance\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x05 \x01(\tR\tcreatedAt2\xce\x02\n" +
+	"created_at\x18\x05 \x01(\tR\tcreatedAt\"8\n" +
+	"\x17GetLedgerEntriesRequest\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\"J\n" +
+	"\x18GetLedgerEntriesResponse\x12.\n" +
+	"\aentries\x18\x01 \x03(\v2\x14.finance.LedgerEntryR\aentries\"\xc0\x01\n" +
+	"\vLedgerEntry\x12%\n" +
+	"\x0etransaction_id\x18\x01 \x01(\tR\rtransactionId\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x02 \x01(\tR\taccountId\x12\x16\n" +
+	"\x06amount\x18\x03 \x01(\tR\x06amount\x12\x12\n" +
+	"\x04type\x18\x04 \x01(\tR\x04type\x12 \n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x06 \x01(\tR\tcreatedAt2\xa7\x03\n" +
 	"\rFinanceEngine\x12>\n" +
 	"\vHealthCheck\x12\x16.finance.HealthRequest\x1a\x17.finance.HealthResponse\x12Z\n" +
 	"\x11CreateTransaction\x12!.finance.CreateTransactionRequest\x1a\".finance.CreateTransactionResponse\x12E\n" +
 	"\n" +
 	"GetBalance\x12\x1a.finance.GetBalanceRequest\x1a\x1b.finance.GetBalanceResponse\x12Z\n" +
-	"\x11GetAccountSummary\x12!.finance.GetAccountSummaryRequest\x1a\".finance.GetAccountSummaryResponseBV\n" +
+	"\x11GetAccountSummary\x12!.finance.GetAccountSummaryRequest\x1a\".finance.GetAccountSummaryResponse\x12W\n" +
+	"\x10GetLedgerEntries\x12 .finance.GetLedgerEntriesRequest\x1a!.finance.GetLedgerEntriesResponseBV\n" +
 	"\x18com.finankal.api.financeB\rFinanceProtosZ+github.com/kaloy/finankal/engine-go/financeb\x06proto3"
 
 var (
@@ -519,7 +706,7 @@ func file_finance_proto_rawDescGZIP() []byte {
 	return file_finance_proto_rawDescData
 }
 
-var file_finance_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_finance_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_finance_proto_goTypes = []any{
 	(*HealthRequest)(nil),             // 0: finance.HealthRequest
 	(*HealthResponse)(nil),            // 1: finance.HealthResponse
@@ -530,22 +717,28 @@ var file_finance_proto_goTypes = []any{
 	(*GetBalanceResponse)(nil),        // 6: finance.GetBalanceResponse
 	(*GetAccountSummaryRequest)(nil),  // 7: finance.GetAccountSummaryRequest
 	(*GetAccountSummaryResponse)(nil), // 8: finance.GetAccountSummaryResponse
+	(*GetLedgerEntriesRequest)(nil),   // 9: finance.GetLedgerEntriesRequest
+	(*GetLedgerEntriesResponse)(nil),  // 10: finance.GetLedgerEntriesResponse
+	(*LedgerEntry)(nil),               // 11: finance.LedgerEntry
 }
 var file_finance_proto_depIdxs = []int32{
-	4, // 0: finance.CreateTransactionRequest.entries:type_name -> finance.Entry
-	0, // 1: finance.FinanceEngine.HealthCheck:input_type -> finance.HealthRequest
-	2, // 2: finance.FinanceEngine.CreateTransaction:input_type -> finance.CreateTransactionRequest
-	5, // 3: finance.FinanceEngine.GetBalance:input_type -> finance.GetBalanceRequest
-	7, // 4: finance.FinanceEngine.GetAccountSummary:input_type -> finance.GetAccountSummaryRequest
-	1, // 5: finance.FinanceEngine.HealthCheck:output_type -> finance.HealthResponse
-	3, // 6: finance.FinanceEngine.CreateTransaction:output_type -> finance.CreateTransactionResponse
-	6, // 7: finance.FinanceEngine.GetBalance:output_type -> finance.GetBalanceResponse
-	8, // 8: finance.FinanceEngine.GetAccountSummary:output_type -> finance.GetAccountSummaryResponse
-	5, // [5:9] is the sub-list for method output_type
-	1, // [1:5] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	4,  // 0: finance.CreateTransactionRequest.entries:type_name -> finance.Entry
+	11, // 1: finance.GetLedgerEntriesResponse.entries:type_name -> finance.LedgerEntry
+	0,  // 2: finance.FinanceEngine.HealthCheck:input_type -> finance.HealthRequest
+	2,  // 3: finance.FinanceEngine.CreateTransaction:input_type -> finance.CreateTransactionRequest
+	5,  // 4: finance.FinanceEngine.GetBalance:input_type -> finance.GetBalanceRequest
+	7,  // 5: finance.FinanceEngine.GetAccountSummary:input_type -> finance.GetAccountSummaryRequest
+	9,  // 6: finance.FinanceEngine.GetLedgerEntries:input_type -> finance.GetLedgerEntriesRequest
+	1,  // 7: finance.FinanceEngine.HealthCheck:output_type -> finance.HealthResponse
+	3,  // 8: finance.FinanceEngine.CreateTransaction:output_type -> finance.CreateTransactionResponse
+	6,  // 9: finance.FinanceEngine.GetBalance:output_type -> finance.GetBalanceResponse
+	8,  // 10: finance.FinanceEngine.GetAccountSummary:output_type -> finance.GetAccountSummaryResponse
+	10, // 11: finance.FinanceEngine.GetLedgerEntries:output_type -> finance.GetLedgerEntriesResponse
+	7,  // [7:12] is the sub-list for method output_type
+	2,  // [2:7] is the sub-list for method input_type
+	2,  // [2:2] is the sub-list for extension type_name
+	2,  // [2:2] is the sub-list for extension extendee
+	0,  // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_finance_proto_init() }
@@ -559,7 +752,7 @@ func file_finance_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_finance_proto_rawDesc), len(file_finance_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/kaloy/finankal/engine-go/internal/model"
 	"github.com/kaloy/finankal/engine-go/internal/repository"
@@ -44,9 +45,11 @@ func (s *Service) CreateTransaction(ctx context.Context, description string, ent
 	for _, e := range entries {
 		balanceKey := fmt.Sprintf("balance:%s", e.AccountID)
 		summaryKey := fmt.Sprintf("account_summary:%s", e.AccountID)
+		ledgerKey := fmt.Sprintf("ledger_entries:%s", e.AccountID)
 
 		s.redis.Del(ctx, balanceKey)
 		s.redis.Del(ctx, summaryKey)
+		s.redis.Del(ctx, ledgerKey)
 	}
 
 	return txID, nil
@@ -69,7 +72,7 @@ func (s *Service) GetBalance(ctx context.Context, accountID uuid.UUID) (decimal.
 		return decimal.Zero, err
 	}
 
-	s.redis.Set(ctx, key, balance.String(), 0)
+	s.redis.Set(ctx, key, balance.String(), 5*time.Minute)
 
 	return balance, nil
 }
@@ -112,8 +115,38 @@ func (s *Service) GetAccountSummary(ctx context.Context, accountID uuid.UUID) (*
 
 	// 🔹 Cache result (ignore cache error for now)
 	if data, err := json.Marshal(summary); err == nil {
-		s.redis.Set(ctx, key, data, 0)
+		s.redis.Set(ctx, key, data, 10*time.Minute)
 	}
 
 	return summary, nil
+}
+
+func (s *Service) GetLedgerEntries(ctx context.Context, accountID uuid.UUID) ([]model.Entry, error) {
+	key := fmt.Sprintf("ledger_entries:%s", accountID)
+
+	// Try Redis first
+	val, err := s.redis.Get(ctx, key).Result()
+	if err == nil {
+		var entries []model.Entry
+		if err := json.Unmarshal([]byte(val), &entries); err == nil {
+			fmt.Println("Cache hit for ledger entries:", accountID)
+			return entries, nil
+		}
+	} else if !errors.Is(err, redis.Nil) {
+		// real Redis error
+		return nil, err
+	}
+
+	// Fetch from DB
+	entries, err := s.repo.GetLedgerEntries(ctx, accountID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache result
+	if data, err := json.Marshal(entries); err == nil {
+		s.redis.Set(ctx, key, data, 2*time.Minute)
+	}
+
+	return entries, nil
 }

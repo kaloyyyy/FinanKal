@@ -23,6 +23,7 @@ const (
 	FinanceEngine_CreateTransaction_FullMethodName = "/finance.FinanceEngine/CreateTransaction"
 	FinanceEngine_GetBalance_FullMethodName        = "/finance.FinanceEngine/GetBalance"
 	FinanceEngine_GetAccountSummary_FullMethodName = "/finance.FinanceEngine/GetAccountSummary"
+	FinanceEngine_GetLedgerEntries_FullMethodName  = "/finance.FinanceEngine/GetLedgerEntries"
 )
 
 // FinanceEngineClient is the client API for FinanceEngine service.
@@ -33,6 +34,7 @@ type FinanceEngineClient interface {
 	CreateTransaction(ctx context.Context, in *CreateTransactionRequest, opts ...grpc.CallOption) (*CreateTransactionResponse, error)
 	GetBalance(ctx context.Context, in *GetBalanceRequest, opts ...grpc.CallOption) (*GetBalanceResponse, error)
 	GetAccountSummary(ctx context.Context, in *GetAccountSummaryRequest, opts ...grpc.CallOption) (*GetAccountSummaryResponse, error)
+	GetLedgerEntries(ctx context.Context, in *GetLedgerEntriesRequest, opts ...grpc.CallOption) (*GetLedgerEntriesResponse, error)
 }
 
 type financeEngineClient struct {
@@ -83,6 +85,16 @@ func (c *financeEngineClient) GetAccountSummary(ctx context.Context, in *GetAcco
 	return out, nil
 }
 
+func (c *financeEngineClient) GetLedgerEntries(ctx context.Context, in *GetLedgerEntriesRequest, opts ...grpc.CallOption) (*GetLedgerEntriesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetLedgerEntriesResponse)
+	err := c.cc.Invoke(ctx, FinanceEngine_GetLedgerEntries_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // FinanceEngineServer is the server API for FinanceEngine service.
 // All implementations must embed UnimplementedFinanceEngineServer
 // for forward compatibility.
@@ -91,6 +103,7 @@ type FinanceEngineServer interface {
 	CreateTransaction(context.Context, *CreateTransactionRequest) (*CreateTransactionResponse, error)
 	GetBalance(context.Context, *GetBalanceRequest) (*GetBalanceResponse, error)
 	GetAccountSummary(context.Context, *GetAccountSummaryRequest) (*GetAccountSummaryResponse, error)
+	GetLedgerEntries(context.Context, *GetLedgerEntriesRequest) (*GetLedgerEntriesResponse, error)
 	mustEmbedUnimplementedFinanceEngineServer()
 }
 
@@ -112,6 +125,9 @@ func (UnimplementedFinanceEngineServer) GetBalance(context.Context, *GetBalanceR
 }
 func (UnimplementedFinanceEngineServer) GetAccountSummary(context.Context, *GetAccountSummaryRequest) (*GetAccountSummaryResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAccountSummary not implemented")
+}
+func (UnimplementedFinanceEngineServer) GetLedgerEntries(context.Context, *GetLedgerEntriesRequest) (*GetLedgerEntriesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetLedgerEntries not implemented")
 }
 func (UnimplementedFinanceEngineServer) mustEmbedUnimplementedFinanceEngineServer() {}
 func (UnimplementedFinanceEngineServer) testEmbeddedByValue()                       {}
@@ -206,6 +222,24 @@ func _FinanceEngine_GetAccountSummary_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FinanceEngine_GetLedgerEntries_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLedgerEntriesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FinanceEngineServer).GetLedgerEntries(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FinanceEngine_GetLedgerEntries_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FinanceEngineServer).GetLedgerEntries(ctx, req.(*GetLedgerEntriesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // FinanceEngine_ServiceDesc is the grpc.ServiceDesc for FinanceEngine service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -228,6 +262,10 @@ var FinanceEngine_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAccountSummary",
 			Handler:    _FinanceEngine_GetAccountSummary_Handler,
+		},
+		{
+			MethodName: "GetLedgerEntries",
+			Handler:    _FinanceEngine_GetLedgerEntries_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

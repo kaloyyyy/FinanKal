@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kaloy/finankal/engine-go/internal/model"
 	"github.com/shopspring/decimal"
 )
 
@@ -63,4 +64,32 @@ func (r *LedgerRepository) GetAccount(ctx context.Context, accountID uuid.UUID) 
 	).Scan(&name, &accountType, &createAt)
 
 	return name, accountType, createAt, err
+}
+
+func (r *LedgerRepository) GetLedgerEntries(ctx context.Context, accountID uuid.UUID) ([]model.Entry, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT e.transaction_id, e.account_id, e.amount, e.type, t.created_at, t.description
+		FROM entries e
+		JOIN transactions t ON e.transaction_id = t.id
+		WHERE e.account_id = $1
+		ORDER BY t.created_at DESC
+	`, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var entries []model.Entry
+	for rows.Next() {
+		var entry model.Entry
+		var entryType string
+		err := rows.Scan(&entry.TransactionID, &entry.AccountID, &entry.Amount, &entryType, &entry.CreatedAt, &entry.Description)
+		if err != nil {
+			return nil, err
+		}
+		entry.Type = model.EntryType(entryType)
+		entries = append(entries, entry)
+	}
+
+	return entries, rows.Err()
 }

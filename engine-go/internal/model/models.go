@@ -21,6 +21,7 @@ type Entry struct {
 	Amount        decimal.Decimal
 	CreatedAt     time.Time
 	Type          EntryType
+	Description   string
 }
 
 type AccountSummary struct {
