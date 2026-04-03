@@ -1,0 +1,123 @@
+###
+### FinanKal REST API Test Suite
+### Connected to gRPC Backend on localhost:50051
+### ============================================================
+
+### ============================================================
+### ACCOUNT ENDPOINTS
+### ============================================================
+
+### Get Account Summary - Test Account 1
+GET http://localhost:8080/api/accounts/11111111-1111-1111-1111-111111111111
+Accept: application/json
+
+###
+
+### Get Account Summary - Test Account 2
+GET http://localhost:8080/api/accounts/22222222-2222-2222-2222-222222222222
+Accept: application/json
+
+###
+
+### Get Account Balance - Test Account 1
+GET http://localhost:8080/api/accounts/11111111-1111-1111-1111-111111111111/balance
+Accept: application/json
+
+###
+
+### Get Account Balance - Test Account 2
+GET http://localhost:8080/api/accounts/22222222-2222-2222-2222-222222222222/balance
+Accept: application/json
+
+###
+
+### ============================================================
+### TRANSACTION ENDPOINTS
+### ============================================================
+
+### Create Transaction - Simple Debit/Credit
+POST http://localhost:8080/api/transactions
+Content-Type: application/json
+
+{
+  "description": "Simple transaction between two accounts",
+  "entries": [
+    {
+      "accountId": "11111111-1111-1111-1111-111111111111",
+      "amount": 100.00,
+      "type": "DEBIT"
+    },
+    {
+      "accountId": "22222222-2222-2222-2222-222222222222",
+      "amount": 100.00,
+      "type": "CREDIT"
+    }
+  ]
+}
+
+###
+
+### Create Transaction - Multiple Entries
+POST http://localhost:8080/api/transactions
+Content-Type: application/json
+
+{
+  "description": "Multi-party transaction",
+  "entries": [
+    {
+      "accountId": "11111111-1111-1111-1111-111111111111",
+      "amount": 50.00,
+      "type": "DEBIT"
+    },
+    {
+      "accountId": "22222222-2222-2222-2222-222222222222",
+      "amount": 30.00,
+      "type": "CREDIT"
+    },
+    {
+      "accountId": "33333333-3333-3333-3333-333333333333",
+      "amount": 20.00,
+      "type": "CREDIT"
+    }
+  ]
+}
+
+###
+
+### Create Transaction - Large Amount
+POST http://localhost:8080/api/transactions
+Content-Type: application/json
+
+{
+  "description": "Large transaction",
+  "entries": [
+    {
+      "accountId": "22222222-2222-2222-2222-222222222222",
+      "amount": 1000.50,
+      "type": "DEBIT"
+    },
+    {
+      "accountId": "33333333-3333-3333-3333-333333333333",
+      "amount": 1000.50,
+      "type": "CREDIT"
+    }
+  ]
+}
+
+###
+
+### ============================================================
+### LEDGER ENTRIES ENDPOINTS
+### ============================================================
+
+### Get Ledger Entries - Account 1
+GET http://localhost:8080/api/ledger-entries/11111111-1111-1111-1111-111111111111
+Accept: application/json
+
+###
+
+### Get Ledger Entries - Account 2
+GET http://localhost:8080/api/ledger-entries/22222222-2222-2222-2222-222222222222
+Accept: application/json
+
+###

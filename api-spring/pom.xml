@@ -39,6 +39,11 @@
 
         <!-- gRPC -->
         <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>${protobuf.version}</version>
+        </dependency>
+        <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-stub</artifactId>
             <version>${grpc.version}</version>
@@ -122,7 +127,7 @@
                 </configuration>
                 <executions>
                     <execution>
-                        <id>compile</id>
+                        <id>protobuf-compile</id>
                         <goals>
                             <goal>compile</goal>
                         </goals>
@@ -152,6 +157,30 @@
                 </executions>
             </plugin>
 
+            <!-- Exec plugin to generate gRPC -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>generate-grpc</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>protoc</executable>
+                            <arguments>
+                                <argument>--plugin=protoc-gen-grpc-java=${project.basedir}/bin/protoc-gen-grpc-java</argument>
+                                <argument>--grpc-java_out=${project.build.directory}/generated-sources/protobuf/java</argument>
+                                <argument>--proto_path=${project.basedir}/../proto</argument>
+                                <argument>${project.basedir}/../proto/finance.proto</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>
