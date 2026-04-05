@@ -31,3 +31,10 @@ type AccountSummary struct {
 	Balance   decimal.Decimal
 	CreatedAt time.Time
 }
+
+type User struct {
+	ID        uuid.UUID
+	Name      string
+	Username  string
+	CreatedAt time.Time
+}

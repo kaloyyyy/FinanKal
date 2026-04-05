@@ -30,7 +30,13 @@ func (s *Service) CreateTransaction(ctx context.Context, description string, ent
 		return uuid.UUID{}, err
 	}
 
-	txID, err := s.repo.CreateTransaction(ctx, description)
+	// Get user_id from the first account
+	userID, err := s.repo.GetUserIDFromAccount(ctx, entries[0].AccountID)
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+
+	txID, err := s.repo.CreateTransaction(ctx, userID, description)
 	if err != nil {
 		return uuid.UUID{}, err
 	}
@@ -149,4 +155,16 @@ func (s *Service) GetLedgerEntries(ctx context.Context, accountID uuid.UUID) ([]
 	}
 
 	return entries, nil
+}
+
+func (s *Service) GetUserTotalCredit(ctx context.Context, userID uuid.UUID) (decimal.Decimal, error) {
+	return s.repo.GetUserTotalCredit(ctx, userID)
+}
+
+func (s *Service) GetUserTotalDebit(ctx context.Context, userID uuid.UUID) (decimal.Decimal, error) {
+	return s.repo.GetUserTotalDebit(ctx, userID)
+}
+
+func (s *Service) GetUserTotalBalance(ctx context.Context, userID uuid.UUID) (decimal.Decimal, error) {
+	return s.repo.GetUserTotalBalance(ctx, userID)
 }

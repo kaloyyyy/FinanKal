@@ -139,3 +139,73 @@ func (s *server) GetLedgerEntries(ctx context.Context, req *finance.GetLedgerEnt
 
 	return &finance.GetLedgerEntriesResponse{Entries: protoEntries}, nil
 }
+
+func (s *server) GetUserTotalCredit(ctx context.Context, req *finance.GetUserTotalRequest) (*finance.GetUserTotalResponse, error) {
+	log.Printf("Getting user total credit for user: %s", req.UserId)
+	userID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		log.Printf("Invalid user ID: %s", req.UserId)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user_id: %v", err)
+	}
+
+	total, err := s.ledgerService.GetUserTotalCredit(ctx, userID)
+	if err != nil {
+		log.Printf("Failed to get user total credit for user %s: %v", req.UserId, err)
+		return nil, status.Errorf(codes.Internal, "failed to get user total credit: %v", err)
+	}
+
+	log.Printf("Successfully retrieved user total credit for user %s: %s", req.UserId, total.String())
+	return &finance.GetUserTotalResponse{
+		UserId:       req.UserId,
+		TotalCredit:  total.String(),
+		TotalDebit:   "0", // Not requested, but included
+		TotalBalance: "0",
+	}, nil
+}
+
+func (s *server) GetUserTotalDebit(ctx context.Context, req *finance.GetUserTotalRequest) (*finance.GetUserTotalResponse, error) {
+	log.Printf("Getting user total debit for user: %s", req.UserId)
+	userID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		log.Printf("Invalid user ID: %s", req.UserId)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user_id: %v", err)
+	}
+
+	total, err := s.ledgerService.GetUserTotalDebit(ctx, userID)
+	if err != nil {
+		log.Printf("Failed to get user total debit for user %s: %v", req.UserId, err)
+		return nil, status.Errorf(codes.Internal, "failed to get user total debit: %v", err)
+	}
+
+	log.Printf("Successfully retrieved user total debit for user %s: %s", req.UserId, total.String())
+	return &finance.GetUserTotalResponse{
+		UserId:       req.UserId,
+		TotalCredit:  "0",
+		TotalDebit:   total.String(),
+		TotalBalance: "0",
+	}, nil
+}
+
+func (s *server) GetUserTotalBalance(ctx context.Context, req *finance.GetUserTotalRequest) (*finance.GetUserTotalResponse, error) {
+	log.Printf("Getting user total balance for user: %s", req.UserId)
+	userID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		log.Printf("Invalid user ID: %s", req.UserId)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user_id: %v", err)
+	}
+
+	total, err := s.ledgerService.GetUserTotalBalance(ctx, userID)
+	if err != nil {
+		log.Printf("Failed to get user total balance for user %s: %v", req.UserId, err)
+		return nil, status.Errorf(codes.Internal, "failed to get user total balance: %v", err)
+	}
+
+	log.Printf("Successfully retrieved user total balance for user %s: %s", req.UserId, total.String())
+	return &finance.GetUserTotalResponse{
+		UserId:       req.UserId,
+		TotalCredit:  "0",
+		TotalDebit:   "0",
+		TotalBalance: total.String(),
+	}, nil
+}
+

@@ -18,12 +18,12 @@ func NewLedgerRepository(db *pgxpool.Pool) *LedgerRepository {
 	return &LedgerRepository{db: db}
 }
 
-func (r *LedgerRepository) CreateTransaction(ctx context.Context, description string) (uuid.UUID, error) {
+func (r *LedgerRepository) CreateTransaction(ctx context.Context, userID uuid.UUID, description string) (uuid.UUID, error) {
 	var txID uuid.UUID
 
 	err := r.db.QueryRow(ctx,
-		"INSERT INTO transactions (description) VALUES ($1) RETURNING id",
-		description,
+		"INSERT INTO transactions (user_id, description) VALUES ($1, $2) RETURNING id",
+		userID, description,
 	).Scan(&txID)
 
 	return txID, err
@@ -92,4 +92,44 @@ func (r *LedgerRepository) GetLedgerEntries(ctx context.Context, accountID uuid.
 	}
 
 	return entries, rows.Err()
+}
+
+func (r *LedgerRepository) GetUserIDFromAccount(ctx context.Context, accountID uuid.UUID) (uuid.UUID, error) {
+	var userID uuid.UUID
+	err := r.db.QueryRow(ctx,
+		`SELECT user_id FROM accounts WHERE id = $1`,
+		accountID,
+	).Scan(&userID)
+	return userID, err
+}
+
+func (r *LedgerRepository) GetUserTotalCredit(ctx context.Context, userID uuid.UUID) (decimal.Decimal, error) {
+	var total decimal.Decimal
+	err := r.db.QueryRow(ctx, `
+		SELECT COALESCE(SUM(amount), 0) FROM entries e
+		JOIN accounts a ON e.account_id = a.id
+		WHERE a.user_id = $1 AND e.type = 'CREDIT'
+	`, userID).Scan(&total)
+	return total, err
+}
+
+func (r *LedgerRepository) GetUserTotalDebit(ctx context.Context, userID uuid.UUID) (decimal.Decimal, error) {
+	var total decimal.Decimal
+	err := r.db.QueryRow(ctx, `
+		SELECT COALESCE(SUM(amount), 0) FROM entries e
+		JOIN accounts a ON e.account_id = a.id
+		WHERE a.user_id = $1 AND e.type = 'DEBIT'
+	`, userID).Scan(&total)
+	return total, err
+}
+
+func (r *LedgerRepository) GetUserTotalBalance(ctx context.Context, userID uuid.UUID) (decimal.Decimal, error) {
+	var total decimal.Decimal
+	err := r.db.QueryRow(ctx, `
+		SELECT COALESCE(SUM(CASE WHEN e.type = 'DEBIT' THEN amount ELSE -amount END), 0)
+		FROM entries e
+		JOIN accounts a ON e.account_id = a.id
+		WHERE a.user_id = $1
+	`, userID).Scan(&total)
+	return total, err
 }
