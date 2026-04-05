@@ -58,6 +58,14 @@ func (s *Service) CreateTransaction(ctx context.Context, description string, ent
 		s.redis.Del(ctx, ledgerKey)
 	}
 
+	// Invalidate user total caches
+	userCreditKey := fmt.Sprintf("user_total_credit:%s", userID)
+	userDebitKey := fmt.Sprintf("user_total_debit:%s", userID)
+	userBalanceKey := fmt.Sprintf("user_total_balance:%s", userID)
+	s.redis.Del(ctx, userCreditKey)
+	s.redis.Del(ctx, userDebitKey)
+	s.redis.Del(ctx, userBalanceKey)
+
 	return txID, nil
 }
 
@@ -158,13 +166,67 @@ func (s *Service) GetLedgerEntries(ctx context.Context, accountID uuid.UUID) ([]
 }
 
 func (s *Service) GetUserTotalCredit(ctx context.Context, userID uuid.UUID) (decimal.Decimal, error) {
-	return s.repo.GetUserTotalCredit(ctx, userID)
+	key := fmt.Sprintf("user_total_credit:%s", userID)
+
+	val, err := s.redis.Get(ctx, key).Result()
+	if err == nil {
+		total, err := decimal.NewFromString(val)
+		if err != nil {
+			return decimal.Zero, err
+		}
+		return total, nil
+	}
+
+	total, err := s.repo.GetUserTotalCredit(ctx, userID)
+	if err != nil {
+		return decimal.Zero, err
+	}
+
+	s.redis.Set(ctx, key, total.String(), 5*time.Minute)
+
+	return total, nil
 }
 
 func (s *Service) GetUserTotalDebit(ctx context.Context, userID uuid.UUID) (decimal.Decimal, error) {
-	return s.repo.GetUserTotalDebit(ctx, userID)
+	key := fmt.Sprintf("user_total_debit:%s", userID)
+
+	val, err := s.redis.Get(ctx, key).Result()
+	if err == nil {
+		total, err := decimal.NewFromString(val)
+		if err != nil {
+			return decimal.Zero, err
+		}
+		return total, nil
+	}
+
+	total, err := s.repo.GetUserTotalDebit(ctx, userID)
+	if err != nil {
+		return decimal.Zero, err
+	}
+
+	s.redis.Set(ctx, key, total.String(), 5*time.Minute)
+
+	return total, nil
 }
 
 func (s *Service) GetUserTotalBalance(ctx context.Context, userID uuid.UUID) (decimal.Decimal, error) {
-	return s.repo.GetUserTotalBalance(ctx, userID)
+	key := fmt.Sprintf("user_total_balance:%s", userID)
+
+	val, err := s.redis.Get(ctx, key).Result()
+	if err == nil {
+		total, err := decimal.NewFromString(val)
+		if err != nil {
+			return decimal.Zero, err
+		}
+		return total, nil
+	}
+
+	total, err := s.repo.GetUserTotalBalance(ctx, userID)
+	if err != nil {
+		return decimal.Zero, err
+	}
+
+	s.redis.Set(ctx, key, total.String(), 5*time.Minute)
+
+	return total, nil
 }
