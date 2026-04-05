@@ -174,6 +174,7 @@ func (s *Service) GetUserTotalCredit(ctx context.Context, userID uuid.UUID) (dec
 		if err != nil {
 			return decimal.Zero, err
 		}
+		fmt.Println("Cache hit for user total credit:", userID)
 		return total, nil
 	}
 
@@ -196,6 +197,7 @@ func (s *Service) GetUserTotalDebit(ctx context.Context, userID uuid.UUID) (deci
 		if err != nil {
 			return decimal.Zero, err
 		}
+		fmt.Println("Cache hit for user total debit:", userID)
 		return total, nil
 	}
 
@@ -218,6 +220,7 @@ func (s *Service) GetUserTotalBalance(ctx context.Context, userID uuid.UUID) (de
 		if err != nil {
 			return decimal.Zero, err
 		}
+		fmt.Println("Cache hit for user total balance:", userID)
 		return total, nil
 	}
 
