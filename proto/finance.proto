@@ -14,6 +14,9 @@ service FinanceEngine {
   rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse);
   rpc GetAccountSummary(GetAccountSummaryRequest) returns (GetAccountSummaryResponse);
   rpc GetLedgerEntries(GetLedgerEntriesRequest) returns (GetLedgerEntriesResponse);
+  rpc GetUserTotalCredit(GetUserTotalRequest) returns (GetUserTotalResponse);
+  rpc GetUserTotalDebit(GetUserTotalRequest) returns (GetUserTotalResponse);
+  rpc GetUserTotalBalance(GetUserTotalRequest) returns (GetUserTotalResponse);
 }
 
 message HealthRequest {}
@@ -71,4 +74,15 @@ message LedgerEntry {
   string type = 4; // DEBIT or CREDIT
   string description = 5;
   string created_at = 6;
+}
+
+message GetUserTotalRequest {
+  string user_id = 1;
+}
+
+message GetUserTotalResponse {
+  string user_id = 1;
+  string total_credit = 2;
+  string total_debit = 3;
+  string total_balance = 4;
 }

@@ -44,13 +44,13 @@ Content-Type: application/json
   "entries": [
     {
       "accountId": "11111111-1111-1111-1111-111111111111",
-      "amount": 100.00,
-      "type": "DEBIT"
+      "amount": 60.00,
+      "type": "CREDIT"
     },
     {
       "accountId": "22222222-2222-2222-2222-222222222222",
-      "amount": 100.00,
-      "type": "CREDIT"
+      "amount": 60.00,
+      "type": "DEBIT"
     }
   ]
 }
@@ -66,17 +66,17 @@ Content-Type: application/json
   "entries": [
     {
       "accountId": "11111111-1111-1111-1111-111111111111",
-      "amount": 50.00,
+      "amount": 1000.00,
       "type": "DEBIT"
     },
     {
       "accountId": "22222222-2222-2222-2222-222222222222",
-      "amount": 30.00,
+      "amount": 500.00,
       "type": "CREDIT"
     },
     {
       "accountId": "33333333-3333-3333-3333-333333333333",
-      "amount": 20.00,
+      "amount": 500.00,
       "type": "CREDIT"
     }
   ]
@@ -93,12 +93,12 @@ Content-Type: application/json
   "entries": [
     {
       "accountId": "22222222-2222-2222-2222-222222222222",
-      "amount": 1000.50,
+      "amount": 1000.00,
       "type": "DEBIT"
     },
     {
       "accountId": "33333333-3333-3333-3333-333333333333",
-      "amount": 1000.50,
+      "amount": 1000.00,
       "type": "CREDIT"
     }
   ]
@@ -118,6 +118,34 @@ Accept: application/json
 
 ### Get Ledger Entries - Account 2
 GET http://localhost:8080/api/ledger-entries/22222222-2222-2222-2222-222222222222
+Accept: application/json
+
+###
+
+### ============================================================
+### USER ENDPOINTS
+### ============================================================
+
+### Get User Total Credit - Test User 1
+GET http://localhost:8080/api/users/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/total-credit
+Accept: application/json
+
+###
+
+### Get User Total Debit - Test User 1
+GET http://localhost:8080/api/users/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/total-debit
+Accept: application/json
+
+###
+
+### Get User Total Balance - Test User 1
+GET http://localhost:8080/api/users/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/total-balance
+Accept: application/json
+
+###
+
+### Get User Total Credit - Test User 2
+GET http://localhost:8080/api/users/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb/total-credit
 Accept: application/json
 
 ###

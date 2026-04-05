@@ -131,6 +131,99 @@ paths:
         '500':
           description: Server error
 
+  /api/users/{id}/total-credit:
+    get:
+      summary: Get User Total Credit
+      description: Retrieves the total credit amount for a user across all accounts
+      operationId: getUserTotalCredit
+      tags:
+        - Users
+      parameters:
+        - name: id
+          in: path
+          description: User UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User total credit retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: number
+                format: decimal
+                example: 1500.00
+        '400':
+          description: Invalid user ID
+        '404':
+          description: User not found
+        '500':
+          description: Server error
+
+  /api/users/{id}/total-debit:
+    get:
+      summary: Get User Total Debit
+      description: Retrieves the total debit amount for a user across all accounts
+      operationId: getUserTotalDebit
+      tags:
+        - Users
+      parameters:
+        - name: id
+          in: path
+          description: User UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User total debit retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: number
+                format: decimal
+                example: 1200.00
+        '400':
+          description: Invalid user ID
+        '404':
+          description: User not found
+        '500':
+          description: Server error
+
+  /api/users/{id}/total-balance:
+    get:
+      summary: Get User Total Balance
+      description: Retrieves the total balance for a user across all accounts
+      operationId: getUserTotalBalance
+      tags:
+        - Users
+      parameters:
+        - name: id
+          in: path
+          description: User UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User total balance retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: number
+                format: decimal
+                example: 300.00
+        '400':
+          description: Invalid user ID
+        '404':
+          description: User not found
+        '500':
+          description: Server error
+
 components:
   schemas:
     AccountDto:
@@ -282,4 +375,5 @@ tags:
     description: Transaction creation endpoints
   - name: Ledger Entries
     description: Ledger entry retrieval endpoints
-
+  - name: Users
+    description: User-related endpoints
