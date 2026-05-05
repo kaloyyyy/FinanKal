@@ -18,26 +18,36 @@ import (
 
 func main() {
 	loadEnvFromRepoRoot()
+
 	dbConn, err := db.NewDB()
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Println("✓ Connected to PostgreSQL database")
 
 	redisClient := cache.NewRedis()
+
+	if err := redisClient.Ping(cache.Ctx).Err(); err != nil {
+		log.Fatalf("✗ Failed to connect to Redis: %v", err)
+	}
+	log.Println("✓ Connected to Redis cache")
 
 	repo := repository.NewLedgerRepository(dbConn)
 	ledgerService := ledger.NewService(repo, redisClient)
 
 	financeServer := NewServer(ledgerService)
+	log.Println("✓ Initialized Finance Server")
 
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
+	log.Println("✓ TCP listener initialized on :50051")
 
 	s := grpc.NewServer()
 	finance.RegisterFinanceEngineServer(s, financeServer)
 	reflection.Register(s)
+	log.Println("✓ gRPC server configured with Finance Engine and reflection enabled")
 
 	log.Println("gRPC server listening on :50051")
 	if err := s.Serve(lis); err != nil {
