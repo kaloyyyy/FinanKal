@@ -96,7 +96,38 @@ func (s *Service) GetCreditCard(
 	cardID uuid.UUID,
 ) (*CreditCard, error) {
 
-	return s.cardRepo.GetCreditCard(ctx, cardID)
+	// Try Redis cache first
+	card, err := s.GetCreditCardCache(
+		ctx,
+		cardID,
+	)
+
+	if err == nil && card != nil {
+		return card, nil
+	}
+
+	// Cache miss -> database
+	card, err = s.cardRepo.GetCreditCard(
+		ctx,
+		cardID,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Store in Redis
+	err = s.SetCreditCardCache(
+		ctx,
+		card,
+	)
+
+	if err != nil {
+		// Cache failure should not fail request
+		return card, nil
+	}
+
+	return card, nil
 }
 
 func (s *Service) ListCreditCards(
@@ -104,7 +135,39 @@ func (s *Service) ListCreditCards(
 	userID uuid.UUID,
 ) ([]CreditCard, error) {
 
-	return s.cardRepo.ListCreditCards(ctx, userID)
+	// Try Redis cache first
+	cards, err := s.GetUserCreditCardsCache(
+		ctx,
+		userID,
+	)
+
+	if err == nil && cards != nil {
+		return cards, nil
+	}
+
+	// Cache miss -> database
+	cards, err = s.cardRepo.ListCreditCards(
+		ctx,
+		userID,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Store in Redis
+	err = s.SetUserCreditCardsCache(
+		ctx,
+		userID,
+		cards,
+	)
+
+	if err != nil {
+		// Cache failure should not fail request
+		return cards, nil
+	}
+
+	return cards, nil
 }
 
 func (s *Service) UpdateCreditCard(
@@ -147,12 +210,12 @@ func (s *Service) UpdateCreditCard(
 		return err
 	}
 
-	s.InvalidateUserCreditCardsCache(
+	_ = s.InvalidateUserCreditCardsCache(
 		ctx,
 		userID,
 	)
 
-	s.InvalidateCreditCardCache(
+	_ = s.InvalidateCreditCardCache(
 		ctx,
 		cardID,
 	)
@@ -181,12 +244,12 @@ func (s *Service) DeleteCreditCard(
 		return err
 	}
 
-	s.InvalidateUserCreditCardsCache(
+	_ = s.InvalidateUserCreditCardsCache(
 		ctx,
 		userID,
 	)
 
-	s.InvalidateCreditCardCache(
+	_ = s.InvalidateCreditCardCache(
 		ctx,
 		cardID,
 	)
