@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/kaloy/finankal/engine-go/finance"
 	"github.com/kaloy/finankal/engine-go/internal/ledger"
-	"github.com/kaloy/finankal/engine-go/internal/model"
 	"github.com/shopspring/decimal"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -30,7 +29,7 @@ func (s *server) HealthCheck(ctx context.Context, req *finance.HealthRequest) (*
 
 func (s *server) CreateTransaction(ctx context.Context, req *finance.CreateTransactionRequest) (*finance.CreateTransactionResponse, error) {
 	log.Printf("Creating transaction with description: %s", req.Description)
-	entries := make([]model.Entry, len(req.Entries))
+	entries := make([]ledger.Entry, len(req.Entries))
 	accountIDs := make([]string, len(req.Entries))
 	for i, e := range req.Entries {
 		accountID, err := uuid.Parse(e.AccountId)
@@ -41,15 +40,15 @@ func (s *server) CreateTransaction(ctx context.Context, req *finance.CreateTrans
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "invalid amount: %v", err)
 		}
-		var entryType model.EntryType
+		var entryType ledger.EntryType
 		if e.Type == "DEBIT" {
-			entryType = model.DEBIT
+			entryType = ledger.DEBIT
 		} else if e.Type == "CREDIT" {
-			entryType = model.CREDIT
+			entryType = ledger.CREDIT
 		} else {
 			return nil, status.Errorf(codes.InvalidArgument, "invalid type: must be DEBIT or CREDIT")
 		}
-		entries[i] = model.Entry{
+		entries[i] = ledger.Entry{
 			AccountID: accountID,
 			Amount:    amount,
 			Type:      entryType,
@@ -208,4 +207,3 @@ func (s *server) GetUserTotalBalance(ctx context.Context, req *finance.GetUserTo
 		TotalBalance: total.String(),
 	}, nil
 }
-

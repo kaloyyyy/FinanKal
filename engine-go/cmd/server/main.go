@@ -11,7 +11,6 @@ import (
 	"github.com/kaloy/finankal/engine-go/internal/cache"
 	"github.com/kaloy/finankal/engine-go/internal/db"
 	"github.com/kaloy/finankal/engine-go/internal/ledger"
-	"github.com/kaloy/finankal/engine-go/internal/repository"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -32,7 +31,7 @@ func main() {
 	}
 	log.Println("✓ Connected to Redis cache")
 
-	repo := repository.NewLedgerRepository(dbConn)
+	repo := ledger.NewLedgerRepository(dbConn)
 	ledgerService := ledger.NewService(repo, redisClient)
 
 	financeServer := NewServer(ledgerService)

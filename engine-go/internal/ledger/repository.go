@@ -1,12 +1,12 @@
-package repository
+package ledger
 
 import (
 	"context"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/kaloy/finankal/engine-go/internal/model"
 	"github.com/shopspring/decimal"
 )
 
@@ -29,15 +29,27 @@ func (r *LedgerRepository) CreateTransaction(ctx context.Context, userID uuid.UU
 	return txID, err
 }
 
-func (r *LedgerRepository) InsertEntry(ctx context.Context, txID uuid.UUID, accountID uuid.UUID, amount decimal.Decimal,
-	entryType string) error {
-	_, err := r.db.Exec(ctx,
-		`INSERT INTO entries (transaction_id, account_id, amount, type)
-		 VALUES ($1, $2, $3, $4)`,
-		txID, accountID, amount, entryType,
-	)
+func (r *LedgerRepository) InsertEntry(
+	ctx context.Context,
+	txID uuid.UUID,
+	accountID uuid.UUID,
+	amount decimal.Decimal,
+	entryType string,
+) (uuid.UUID, error) {
 
-	return err
+	var entryID uuid.UUID
+
+	err := r.db.QueryRow(ctx,
+		`INSERT INTO entries (transaction_id, account_id, amount, type)
+		 VALUES ($1, $2, $3, $4)
+		 RETURNING id`,
+		txID,
+		accountID,
+		amount,
+		entryType,
+	).Scan(&entryID)
+
+	return entryID, err
 }
 
 func (r *LedgerRepository) GetBalance(ctx context.Context, accountID uuid.UUID) (decimal.Decimal, error) {
@@ -66,7 +78,7 @@ func (r *LedgerRepository) GetAccount(ctx context.Context, accountID uuid.UUID) 
 	return name, accountType, createAt, err
 }
 
-func (r *LedgerRepository) GetLedgerEntries(ctx context.Context, accountID uuid.UUID) ([]model.Entry, error) {
+func (r *LedgerRepository) GetLedgerEntries(ctx context.Context, accountID uuid.UUID) ([]Entry, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT e.transaction_id, e.account_id, e.amount, e.type, t.created_at, t.description
 		FROM entries e
@@ -79,15 +91,15 @@ func (r *LedgerRepository) GetLedgerEntries(ctx context.Context, accountID uuid.
 	}
 	defer rows.Close()
 
-	var entries []model.Entry
+	var entries []Entry
 	for rows.Next() {
-		var entry model.Entry
+		var entry Entry
 		var entryType string
 		err := rows.Scan(&entry.TransactionID, &entry.AccountID, &entry.Amount, &entryType, &entry.CreatedAt, &entry.Description)
 		if err != nil {
 			return nil, err
 		}
-		entry.Type = model.EntryType(entryType)
+		entry.Type = EntryType(entryType)
 		entries = append(entries, entry)
 	}
 
@@ -132,4 +144,69 @@ func (r *LedgerRepository) GetUserTotalBalance(ctx context.Context, userID uuid.
 		WHERE a.user_id = $1
 	`, userID).Scan(&total)
 	return total, err
+}
+
+func (r *LedgerRepository) BeginTx(
+	ctx context.Context,
+) (pgx.Tx, error) {
+
+	return r.db.Begin(ctx)
+}
+
+func (r *LedgerRepository) CreateTransactionTx(
+	ctx context.Context,
+	tx pgx.Tx,
+	userID uuid.UUID,
+	description string,
+) (uuid.UUID, error) {
+
+	var transactionID uuid.UUID
+
+	err := tx.QueryRow(
+		ctx,
+		`
+		INSERT INTO transactions (
+			user_id,
+			description
+		)
+		VALUES ($1,$2)
+		RETURNING id
+		`,
+		userID,
+		description,
+	).Scan(&transactionID)
+
+	return transactionID, err
+}
+
+func (r *LedgerRepository) InsertEntryTx(
+	ctx context.Context,
+	tx pgx.Tx,
+	transactionID uuid.UUID,
+	accountID uuid.UUID,
+	amount decimal.Decimal,
+	entryType EntryType,
+) (uuid.UUID, error) {
+
+	var entryID uuid.UUID
+
+	err := tx.QueryRow(
+		ctx,
+		`
+		INSERT INTO entries (
+			transaction_id,
+			account_id,
+			amount,
+			type
+		)
+		VALUES ($1,$2,$3,$4)
+		RETURNING id
+		`,
+		transactionID,
+		accountID,
+		amount,
+		entryType,
+	).Scan(&entryID)
+
+	return entryID, err
 }

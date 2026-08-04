@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kaloy/finankal/engine-go/internal/model"
-	"github.com/kaloy/finankal/engine-go/internal/repository"
 	"github.com/shopspring/decimal"
 
 	"github.com/google/uuid"
@@ -17,15 +15,15 @@ import (
 )
 
 type Service struct {
-	repo  *repository.LedgerRepository
+	repo  *LedgerRepository
 	redis *redis.Client
 }
 
-func NewService(repo *repository.LedgerRepository, redis *redis.Client) *Service {
+func NewService(repo *LedgerRepository, redis *redis.Client) *Service {
 	return &Service{repo: repo, redis: redis}
 }
 
-func (s *Service) CreateTransaction(ctx context.Context, description string, entries []model.Entry) (uuid.UUID, error) {
+func (s *Service) CreateTransaction(ctx context.Context, description string, entries []Entry) (uuid.UUID, error) {
 	if err := validateEntries(entries); err != nil {
 		return uuid.UUID{}, err
 	}
@@ -91,13 +89,13 @@ func (s *Service) GetBalance(ctx context.Context, accountID uuid.UUID) (decimal.
 	return balance, nil
 }
 
-func (s *Service) GetAccountSummary(ctx context.Context, accountID uuid.UUID) (*model.AccountSummary, error) {
+func (s *Service) GetAccountSummary(ctx context.Context, accountID uuid.UUID) (*AccountSummary, error) {
 	key := fmt.Sprintf("account_summary:%s", accountID)
 
 	// 🔹 Try Redis first
 	val, err := s.redis.Get(ctx, key).Result()
 	if err == nil {
-		var summary model.AccountSummary
+		var summary AccountSummary
 		if err := json.Unmarshal([]byte(val), &summary); err == nil {
 			fmt.Println("Cache hit for account summary:", accountID)
 			return &summary, nil
@@ -119,7 +117,7 @@ func (s *Service) GetAccountSummary(ctx context.Context, accountID uuid.UUID) (*
 		return nil, err
 	}
 
-	summary := &model.AccountSummary{
+	summary := &AccountSummary{
 		AccountID: accountID,
 		Name:      name,
 		Type:      accountType,
@@ -135,13 +133,13 @@ func (s *Service) GetAccountSummary(ctx context.Context, accountID uuid.UUID) (*
 	return summary, nil
 }
 
-func (s *Service) GetLedgerEntries(ctx context.Context, accountID uuid.UUID) ([]model.Entry, error) {
+func (s *Service) GetLedgerEntries(ctx context.Context, accountID uuid.UUID) ([]Entry, error) {
 	key := fmt.Sprintf("ledger_entries:%s", accountID)
 
 	// Try Redis first
 	val, err := s.redis.Get(ctx, key).Result()
 	if err == nil {
-		var entries []model.Entry
+		var entries []Entry
 		if err := json.Unmarshal([]byte(val), &entries); err == nil {
 			fmt.Println("Cache hit for ledger entries:", accountID)
 			return entries, nil

@@ -1,4 +1,4 @@
-package model
+package ledger
 
 import (
 	"time"
@@ -14,6 +14,17 @@ const (
 	CREDIT EntryType = "CREDIT"
 )
 
+type AccountType string
+
+const (
+	ASSET       AccountType = "ASSET"
+	LIABILITY   AccountType = "LIABILITY"
+	EXPENSE     AccountType = "EXPENSE"
+	INCOME      AccountType = "INCOME"
+	EQUITY      AccountType = "EQUITY"
+	CREDIT_CARD AccountType = "CREDIT_CARD"
+)
+
 type Entry struct {
 	ID            uuid.UUID
 	TransactionID uuid.UUID
@@ -27,7 +38,7 @@ type Entry struct {
 type AccountSummary struct {
 	AccountID uuid.UUID
 	Name      string
-	Type      string
+	Type      AccountType
 	Balance   decimal.Decimal
 	CreatedAt time.Time
 }
