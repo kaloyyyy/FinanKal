@@ -128,95 +128,51 @@ message GetUserTotalResponse {string user_id = 1;
 // =========================
 
 
-message CreateCreditCardRequest {
-
-  string account_id = 1;
-
-  string credit_limit = 2;
-
-  int32 billing_day = 3;
-
-  int32 payment_due_days = 4;
-
-}
+message CreateCreditCardRequest {string account_id = 1;      // optional
+  string account_name = 2;    // used when creating one
+  string credit_limit = 3;
+  int32 billing_day = 4;
+  int32 payment_due_days = 5;}
 
 
-message CreateCreditCardResponse {
-
-  string credit_card_id = 1;
-
-}
+message CreateCreditCardResponse {string credit_card_id = 1;}
 
 
 
-message RecordCreditCardTransactionRequest {
-
-  string card_id = 1;
-
+message RecordCreditCardTransactionRequest {string card_id = 1;
   string amount = 2;
-
   string description = 3;
-
   google.protobuf.Timestamp purchase_date = 4;}
 
 
 
-message RecordCreditCardTransactionResponse {
-
-  string transaction_id = 1;
-
-}
+message RecordCreditCardTransactionResponse {string transaction_id = 1;}
 
 
 
-message PayCreditCardStatementRequest {
-
-  string statement_id = 1;
-
+message PayCreditCardStatementRequest {string statement_id = 1;
   string card_id = 2;
-
   string payment_account_id = 3;
-
   string amount = 4;
-
   string description = 5;
 
 }
 
 
 
-message PayCreditCardStatementResponse {
-
-  string transaction_id = 1;
-
-}
+message PayCreditCardStatementResponse {string transaction_id = 1;}
 
 
 
-message GetCreditCardStatementRequest {
-
-  string statement_id = 1;
-
-}
+message GetCreditCardStatementRequest {string statement_id = 1;}
 
 
 
-message GetCreditCardStatementResponse {
-
-  string statement_id = 1;
-
+message GetCreditCardStatementResponse {string statement_id = 1;
   string credit_card_id = 2;
-
   string start_date = 3;
-
   string end_date = 4;
-
   string statement_date = 5;
-
   string due_date = 6;
-
   string total_amount = 7;
-
-  string status = 8;
-
-}
+  string status = 8;}

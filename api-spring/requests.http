@@ -1,155 +1,268 @@
 ###
 ### FinanKal REST API Test Suite
-### Connected to gRPC Backend on localhost:50051
-### ============================================================
+### Spring Boot REST -> gRPC -> Go Finance Engine
+### Base URL: http://localhost:8080
+###
 
-### ============================================================
-### ACCOUNT ENDPOINTS
-### ============================================================
+###########################################################
+# HEALTH
+###########################################################
 
-### Get Account Summary - Test Account 1
+###
+GET http://localhost:8080/actuator/health
+Accept: application/json
+
+###########################################################
+# ACCOUNTS
+###########################################################
+
+###
+### Get Account Summary
 GET http://localhost:8080/api/accounts/11111111-1111-1111-1111-111111111111
 Accept: application/json
 
 ###
 
-### Get Account Summary - Test Account 2
-GET http://localhost:8080/api/accounts/22222222-2222-2222-2222-222222222222
-Accept: application/json
-
-###
-
-### Get Account Balance - Test Account 1
+### Get Account Balance
 GET http://localhost:8080/api/accounts/11111111-1111-1111-1111-111111111111/balance
 Accept: application/json
 
-### Get Account Balance - Test Account 1
-GET http://localhost:8080/api/accounts/44444444-aaaa-aaaa-aaaa-aaaaaaaaaaaa/balance
+###
+
+### Get Credit Card Account Summary
+GET http://localhost:8080/api/accounts/44444444-4444-4444-4444-444444444444
 Accept: application/json
 
 ###
 
-### Get Account Balance - Test Account 2
-GET http://localhost:8080/api/accounts/22222222-2222-2222-2222-222222222222/balance
-Accept: application/json
-
-###
-
-### ============================================================
-### TRANSACTION ENDPOINTS
-### ============================================================
-
-### Create Transaction - Simple Debit/Credit
-POST http://localhost:8080/api/transactions
-Content-Type: application/json
-
-{
-  "description": "Simple transaction between two accounts",
-  "entries": [
-    {
-      "accountId": "11111111-1111-1111-1111-111111111111",
-      "amount": 60.00,
-      "type": "CREDIT"
-    },
-    {
-      "accountId": "22222222-2222-2222-2222-222222222222",
-      "amount": 60.00,
-      "type": "DEBIT"
-    }
-  ]
-}
-
-###
-
-### Create Transaction - Multiple Entries
-POST http://localhost:8080/api/transactions
-Content-Type: application/json
-
-{
-  "description": "Multi-party transaction",
-  "entries": [
-    {
-      "accountId": "11111111-1111-1111-1111-111111111111",
-      "amount": 1000.00,
-      "type": "DEBIT"
-    },
-    {
-      "accountId": "22222222-2222-2222-2222-222222222222",
-      "amount": 500.00,
-      "type": "CREDIT"
-    },
-    {
-      "accountId": "33333333-3333-3333-3333-333333333333",
-      "amount": 500.00,
-      "type": "CREDIT"
-    }
-  ]
-}
-
-###
-
-### Create Transaction - Large Amount
-POST http://localhost:8080/api/transactions
-Content-Type: application/json
-
-{
-  "description": "Large transaction",
-  "entries": [
-    {
-      "accountId": "22222222-2222-2222-2222-222222222222",
-      "amount": 1000.00,
-      "type": "DEBIT"
-    },
-    {
-      "accountId": "33333333-3333-3333-3333-333333333333",
-      "amount": 1000.00,
-      "type": "CREDIT"
-    }
-  ]
-}
-
-###
-
-### ============================================================
-### LEDGER ENTRIES ENDPOINTS
-### ============================================================
-
-### Get Ledger Entries - Account 1
+### Get Ledger Entries
 GET http://localhost:8080/api/ledger-entries/11111111-1111-1111-1111-111111111111
 Accept: application/json
 
-###
-
-### Get Ledger Entries - Account 2
-GET http://localhost:8080/api/ledger-entries/22222222-2222-2222-2222-222222222222
-Accept: application/json
+###########################################################
+# USERS
+###########################################################
 
 ###
-
-### ============================================================
-### USER ENDPOINTS
-### ============================================================
-
-### Get User Total Credit - Test User 1
 GET http://localhost:8080/api/users/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/total-credit
 Accept: application/json
 
 ###
 
-### Get User Total Debit - Test User 1
 GET http://localhost:8080/api/users/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/total-debit
 Accept: application/json
 
 ###
 
-### Get User Total Balance - Test User 1
 GET http://localhost:8080/api/users/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/total-balance
 Accept: application/json
 
+###########################################################
+# LEDGER
+###########################################################
+
+###
+POST http://localhost:8080/api/transactions
+Content-Type: application/json
+
+{
+  "description": "Cash Transfer",
+  "entries": [
+    {
+      "accountId": "11111111-1111-1111-1111-111111111111",
+      "amount": 500.00,
+      "type": "DEBIT"
+    },
+    {
+      "accountId": "22222222-2222-2222-2222-222222222222",
+      "amount": 500.00,
+      "type": "CREDIT"
+    }
+  ]
+}
+
 ###
 
-### Get User Total Credit - Test User 2
-GET http://localhost:8080/api/users/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb/total-credit
+POST http://localhost:8080/api/transactions
+Content-Type: application/json
+
+{
+  "description": "Salary Distribution",
+  "entries": [
+    {
+      "accountId": "11111111-1111-1111-1111-111111111111",
+      "amount": 5000.00,
+      "type": "DEBIT"
+    },
+    {
+      "accountId": "22222222-2222-2222-2222-222222222222",
+      "amount": 2500.00,
+      "type": "CREDIT"
+    },
+    {
+      "accountId": "33333333-3333-3333-3333-333333333333",
+      "amount": 2500.00,
+      "type": "CREDIT"
+    }
+  ]
+}
+
+###########################################################
+# CREDIT CARDS
+###########################################################
+
+###
+### Auto Create Account
+POST http://localhost:8080/api/credit-cards
+Content-Type: application/json
+
+{
+  "accountName": "BPI Platinum Rewards",
+  "creditLimit": 50000,
+  "billingDay": 15,
+  "paymentDueDays": 21
+}
+
+###
+
+### Existing Credit Card Account
+POST http://localhost:8080/api/credit-cards
+Content-Type: application/json
+
+{
+  "accountId": "44444444-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+  "creditLimit": 100000,
+  "billingDay": 15,
+  "paymentDueDays": 21
+}
+
+###########################################################
+# CREDIT CARD PURCHASES
+###########################################################
+
+###
+POST http://localhost:8080/api/credit-cards/transactions
+Content-Type: application/json
+
+{
+  "cardId": "1a1a1a1a-1a1a-1a1a-1a1a-1a1a1a1a1a1a",
+  "amount": 150,
+  "description": "Coffee",
+  "purchaseDate": "2026-08-06T09:00:00Z"
+}
+
+###
+
+POST http://localhost:8080/api/credit-cards/transactions
+Content-Type: application/json
+
+{
+  "cardId": "1a1a1a1a-1a1a-1a1a-1a1a-1a1a1a1a1a1a",
+  "amount": 2450.75,
+  "description": "Groceries",
+  "purchaseDate": "2026-08-06T12:00:00Z"
+}
+
+###
+
+POST http://localhost:8080/api/credit-cards/transactions
+Content-Type: application/json
+
+{
+  "cardId": "1a1a1a1a-1a1a-1a1a-1a1a-1a1a1a1a1a1a",
+  "amount": 899,
+  "description": "Netflix",
+  "purchaseDate": "2026-08-06T20:00:00Z"
+}
+
+###########################################################
+# STATEMENTS
+###########################################################
+
+###
+GET http://localhost:8080/api/credit-cards/statements/99999999-9999-9999-9999-999999999999
 Accept: application/json
 
+###########################################################
+# PAYMENTS
+###########################################################
+
 ###
+POST http://localhost:8080/api/credit-cards/payment
+Content-Type: application/json
+
+{
+  "statementId": "99999999-9999-9999-9999-999999999999",
+  "cardId": "1a1a1a1a-1a1a-1a1a-1a1a-1a1a1a1a1a1a",
+  "paymentAccountId": "11111111-1111-1111-1111-111111111111",
+  "amount": 5000,
+  "description": "Partial payment"
+}
+
+###
+
+POST http://localhost:8080/api/credit-cards/payment
+Content-Type: application/json
+
+{
+  "statementId": "99999999-9999-9999-9999-999999999999",
+  "cardId": "1a1a1a1a-1a1a-1a1a-1a1a-1a1a1a1a1a1a",
+  "paymentAccountId": "11111111-1111-1111-1111-111111111111",
+  "amount": 50000,
+  "description": "Full payment"
+}
+
+###########################################################
+# NEGATIVE TESTS
+###########################################################
+
+###
+GET http://localhost:8080/api/accounts/invalid-uuid/balance
+
+###
+
+GET http://localhost:8080/api/accounts/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/balance
+
+###
+
+POST http://localhost:8080/api/transactions
+Content-Type: application/json
+
+{
+  "description": "Unbalanced Transaction",
+  "entries": [
+    {
+      "accountId": "11111111-1111-1111-1111-111111111111",
+      "amount": 100,
+      "type": "DEBIT"
+    },
+    {
+      "accountId": "22222222-2222-2222-2222-222222222222",
+      "amount": 50,
+      "type": "CREDIT"
+    }
+  ]
+}
+
+###
+
+POST http://localhost:8080/api/credit-cards
+Content-Type: application/json
+
+{
+  "creditLimit": 10000,
+  "billingDay": 15,
+  "paymentDueDays": 21
+}
+
+###
+
+POST http://localhost:8080/api/credit-cards/transactions
+Content-Type: application/json
+
+{
+  "cardId": "1a1a1a1a-1a1a-1a1a-1a1a-1a1a1a1a1a1a",
+  "amount": -100,
+  "description": "Negative Amount",
+  "purchaseDate": "2026-08-06T10:00:00Z"
+}

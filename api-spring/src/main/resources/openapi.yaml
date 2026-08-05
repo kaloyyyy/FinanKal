@@ -217,10 +217,143 @@ paths:
                 type: number
                 format: decimal
                 example: 300.00
+
         '400':
           description: Invalid user ID
+
         '404':
           description: User not found
+
+        '500':
+          description: Server error
+
+  /api/credit-cards:
+    post:
+      summary: Create Credit Card
+      description: Creates a new credit card for an account. Requires either accountId or accountName.
+      operationId: createCreditCard
+      tags:
+        - Credit Cards
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCreditCardRequestDto'
+      responses:
+        '200':
+          description: Credit card created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateCreditCardResponseDto'
+        '400':
+          description: Invalid request - either accountId or accountName must be provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '501':
+          description: Account lookup by name not yet implemented. Please provide accountId.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/credit-cards/transactions:
+    post:
+      summary: Record Purchase
+      description: Records a purchase transaction on a credit card
+      operationId: recordCreditCardTransaction
+      tags:
+        - Credit Cards
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordCreditCardTransactionRequestDto'
+      responses:
+        '200':
+          description: Purchase recorded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactionId:
+                    type: string
+                    format: uuid
+        '400':
+          description: Invalid request payload
+        '404':
+          description: Card not found
+        '500':
+          description: Server error
+
+  /api/credit-cards/payment:
+    post:
+      summary: Pay Statement
+      description: Records a payment against a credit card statement
+      operationId: payCreditCardStatement
+      tags:
+        - Statements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayCreditCardStatementRequestDto'
+      responses:
+        '200':
+          description: Payment recorded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactionId:
+                    type: string
+                    format: uuid
+        '400':
+          description: Invalid request payload
+        '404':
+          description: Statement or card not found
+        '500':
+          description: Server error
+
+  /api/credit-cards/statements/{statementId}:
+    get:
+      summary: Get Statement
+      description: Retrieves a credit card statement
+      operationId: getCreditCardStatement
+      tags:
+        - Statements
+      parameters:
+        - name: statementId
+          in: path
+          description: Statement UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Statement retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditCardStatementDto'
+        '400':
+          description: Invalid statement ID
+        '404':
+          description: Statement not found
         '500':
           description: Server error
 
@@ -292,7 +425,7 @@ components:
           example: 100.00
         type:
           type: string
-          enum: [DEBIT, CREDIT]
+          enum: [ DEBIT, CREDIT ]
           description: Entry type
           example: "DEBIT"
 
@@ -331,7 +464,7 @@ components:
           example: 100.00
         type:
           type: string
-          enum: [DEBIT, CREDIT]
+          enum: [ DEBIT, CREDIT ]
           description: Entry type
           example: "DEBIT"
         description:
@@ -351,6 +484,189 @@ components:
           nullable: true
           description: Entry creation timestamp
           example: "2026-04-03T18:30:00"
+
+    BalanceDto:
+      type: object
+      description: Balance information
+      properties:
+        balance:
+          type: number
+          format: decimal
+          description: Balance amount
+          example: 1000.50
+
+    UserTotalDto:
+      type: object
+      description: User total amounts across all accounts
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: User unique identifier
+        totalCredit:
+          type: number
+          format: decimal
+          description: Total credit amount
+          example: 1500.00
+        totalDebit:
+          type: number
+          format: decimal
+          description: Total debit amount
+          example: 1200.00
+        totalBalance:
+          type: number
+          format: decimal
+          description: Total balance
+          example: 300.00
+
+    CreateCreditCardRequestDto:
+      type: object
+      description: Request body for creating a credit card. Either accountId or accountName must be provided (accountId is recommended).
+      properties:
+        accountId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Account UUID (required if accountName is not provided)
+          example: "11111111-1111-1111-1111-111111111111"
+        accountName:
+          type: string
+          nullable: true
+          description: Account name (required if accountId is not provided, not yet implemented)
+          example: "John Doe Credit Card"
+        creditLimit:
+          type: number
+          format: decimal
+          description: Credit limit amount
+          example: 50000.00
+        billingDay:
+          type: integer
+          description: Day of month for billing cycle
+          example: 15
+        paymentDueDays:
+          type: integer
+          description: Number of days until payment is due
+          example: 21
+      required:
+        - creditLimit
+        - billingDay
+        - paymentDueDays
+
+    CreateCreditCardResponseDto:
+      type: object
+      description: Response for credit card creation
+      properties:
+        creditCardId:
+          type: string
+          format: uuid
+          description: Credit card unique identifier
+          example: "11111111-1111-1111-1111-111111111111"
+
+    RecordCreditCardTransactionRequestDto:
+      type: object
+      required:
+        - cardId
+        - amount
+        - purchaseDate
+      description: Request body for recording a credit card transaction
+      properties:
+        cardId:
+          type: string
+          format: uuid
+          description: Credit card UUID
+          example: "11111111-1111-1111-1111-111111111111"
+        amount:
+          type: number
+          format: decimal
+          description: Transaction amount
+          example: 1500.00
+        description:
+          type: string
+          description: Transaction description
+          example: "Coffee"
+        purchaseDate:
+          type: string
+          format: date-time
+          description: Purchase timestamp
+          example: "2026-08-05T10:00:00Z"
+
+    PayCreditCardStatementRequestDto:
+      type: object
+      required:
+        - statementId
+        - cardId
+        - paymentAccountId
+        - amount
+      description: Request body for paying a credit card statement
+      properties:
+        statementId:
+          type: string
+          format: uuid
+          description: Statement UUID
+          example: "11111111-1111-1111-1111-111111111111"
+        cardId:
+          type: string
+          format: uuid
+          description: Credit card UUID
+          example: "11111111-1111-1111-1111-111111111111"
+        paymentAccountId:
+          type: string
+          format: uuid
+          description: Account to pay from
+          example: "11111111-1111-1111-1111-111111111111"
+        amount:
+          type: number
+          format: decimal
+          description: Payment amount
+          example: 5000.00
+        description:
+          type: string
+          description: Payment description
+          example: "August payment"
+
+    CreditCardStatementDto:
+      type: object
+      description: Credit card statement information
+      properties:
+        statementId:
+          type: string
+          format: uuid
+          description: Statement unique identifier
+          example: "11111111-1111-1111-1111-111111111111"
+        creditCardId:
+          type: string
+          format: uuid
+          description: Credit card unique identifier
+          example: "11111111-1111-1111-1111-111111111111"
+        startDate:
+          type: string
+          format: date
+          description: Statement period start date
+          example: "2026-08-01"
+        endDate:
+          type: string
+          format: date
+          description: Statement period end date
+          example: "2026-08-31"
+        statementDate:
+          type: string
+          format: date
+          description: Statement generation date
+          example: "2026-09-01"
+        dueDate:
+          type: string
+          format: date
+          description: Payment due date
+          example: "2026-09-21"
+        totalAmount:
+          type: number
+          format: decimal
+          description: Total statement amount
+          example: 12000.00
+        status:
+          type: string
+          description: Statement status
+          example: "OPEN"
 
     ErrorResponse:
       type: object
@@ -377,3 +693,7 @@ tags:
     description: Ledger entry retrieval endpoints
   - name: Users
     description: User-related endpoints
+  - name: Credit Cards
+    description: Credit card management endpoints
+  - name: Statements
+    description: Credit card statement endpoints
