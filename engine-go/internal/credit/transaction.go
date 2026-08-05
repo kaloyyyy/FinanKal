@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/kaloy/finankal/engine-go/internal/cache"
 	"github.com/kaloy/finankal/engine-go/internal/ledger"
 	"github.com/shopspring/decimal"
 )
@@ -21,7 +22,6 @@ func (s *Service) RecordCreditCardTransaction(
 	}
 
 	// Get credit card
-
 	card, err := s.cardRepo.GetCreditCard(
 		ctx,
 		request.CardID,
@@ -32,7 +32,6 @@ func (s *Service) RecordCreditCardTransaction(
 	}
 
 	// Validate transaction
-
 	err = s.ValidateCreditCardTransaction(
 		ctx,
 		request,
@@ -44,7 +43,6 @@ func (s *Service) RecordCreditCardTransaction(
 	}
 
 	// Begin database transaction
-
 	tx, err := s.ledgerRepo.BeginTx(ctx)
 
 	if err != nil {
@@ -54,14 +52,12 @@ func (s *Service) RecordCreditCardTransaction(
 	defer tx.Rollback(ctx)
 
 	// Calculate billing cycle
-
 	cycle := CalculateBillingCycle(
 		request.PurchaseDate,
 		*card,
 	)
 
 	// Find existing statement
-
 	statement, err :=
 		s.statementRepo.FindStatementByCycleTx(
 			ctx,
@@ -69,8 +65,8 @@ func (s *Service) RecordCreditCardTransaction(
 			request.CardID,
 			cycle,
 		)
-	// Create statement if missing
 
+	// Create statement if missing
 	if err != nil {
 
 		statementID, err :=
@@ -105,7 +101,6 @@ func (s *Service) RecordCreditCardTransaction(
 	}
 
 	// Get owner
-
 	userID, err :=
 		s.ledgerRepo.GetUserIDFromAccount(
 			ctx,
@@ -117,7 +112,6 @@ func (s *Service) RecordCreditCardTransaction(
 	}
 
 	// Create ledger transaction
-
 	transactionID, err :=
 		s.ledgerRepo.CreateTransactionTx(
 			ctx,
@@ -131,7 +125,6 @@ func (s *Service) RecordCreditCardTransaction(
 	}
 
 	// Debit expense
-
 	_, err =
 		s.ledgerRepo.InsertEntryTx(
 			ctx,
@@ -147,7 +140,6 @@ func (s *Service) RecordCreditCardTransaction(
 	}
 
 	// Credit credit card liability
-
 	cardEntryID, err :=
 		s.ledgerRepo.InsertEntryTx(
 			ctx,
@@ -163,7 +155,6 @@ func (s *Service) RecordCreditCardTransaction(
 	}
 
 	// Attach entry to statement
-
 	_, err =
 		s.entryRepo.CreateEntryMappingTx(
 			ctx,
@@ -177,7 +168,6 @@ func (s *Service) RecordCreditCardTransaction(
 	}
 
 	// Update statement total
-
 	err =
 		s.statementRepo.IncrementStatementTotalTx(
 			ctx,
@@ -191,7 +181,6 @@ func (s *Service) RecordCreditCardTransaction(
 	}
 
 	// Commit transaction
-
 	err = tx.Commit(ctx)
 
 	if err != nil {
@@ -199,15 +188,21 @@ func (s *Service) RecordCreditCardTransaction(
 	}
 
 	// Redis invalidation
+	_ = cache.InvalidateTransaction(
+		ctx,
+		s.redis,
+		userID,
+		card.AccountID,
+		request.ExpenseAccountID,
+	)
 
-	if s.redis != nil {
-		s.InvalidateCreditCardTransactionCache(
-			ctx,
-			card.AccountID,
-			request.ExpenseAccountID,
-			userID,
-		)
-	}
+	// Credit card specific cache
+	_ = cache.InvalidateCreditCard(
+		ctx,
+		s.redis,
+		request.CardID,
+		userID,
+	)
 
 	return transactionID, nil
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/kaloy/finankal/engine-go/internal/cache"
 	"github.com/shopspring/decimal"
 )
 
@@ -167,11 +168,14 @@ func (s *Service) PayCreditCardStatement(
 		return uuid.Nil, err
 	}
 
-	s.InvalidateCreditCardTransactionCache(
+	_ = cache.InvalidateCreditCardPayment(
 		ctx,
+		s.redis,
+		request.CardID,
+		request.StatementID,
+		userID,
 		card.AccountID,
 		request.PaymentAccountID,
-		userID,
 	)
 
 	return transactionID, nil

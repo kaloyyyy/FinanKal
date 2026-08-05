@@ -752,10 +752,11 @@ func (x *GetUserTotalResponse) GetTotalBalance() string {
 
 type CreateCreditCardRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	AccountId      string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	CreditLimit    string                 `protobuf:"bytes,2,opt,name=credit_limit,json=creditLimit,proto3" json:"credit_limit,omitempty"`
-	BillingDay     int32                  `protobuf:"varint,3,opt,name=billing_day,json=billingDay,proto3" json:"billing_day,omitempty"`
-	PaymentDueDays int32                  `protobuf:"varint,4,opt,name=payment_due_days,json=paymentDueDays,proto3" json:"payment_due_days,omitempty"`
+	AccountId      string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`       // optional
+	AccountName    string                 `protobuf:"bytes,2,opt,name=account_name,json=accountName,proto3" json:"account_name,omitempty"` // used when creating one
+	CreditLimit    string                 `protobuf:"bytes,3,opt,name=credit_limit,json=creditLimit,proto3" json:"credit_limit,omitempty"`
+	BillingDay     int32                  `protobuf:"varint,4,opt,name=billing_day,json=billingDay,proto3" json:"billing_day,omitempty"`
+	PaymentDueDays int32                  `protobuf:"varint,5,opt,name=payment_due_days,json=paymentDueDays,proto3" json:"payment_due_days,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -793,6 +794,13 @@ func (*CreateCreditCardRequest) Descriptor() ([]byte, []int) {
 func (x *CreateCreditCardRequest) GetAccountId() string {
 	if x != nil {
 		return x.AccountId
+	}
+	return ""
+}
+
+func (x *CreateCreditCardRequest) GetAccountName() string {
+	if x != nil {
+		return x.AccountName
 	}
 	return ""
 }
@@ -1293,14 +1301,15 @@ const file_finance_proto_rawDesc = "" +
 	"\ftotal_credit\x18\x02 \x01(\tR\vtotalCredit\x12\x1f\n" +
 	"\vtotal_debit\x18\x03 \x01(\tR\n" +
 	"totalDebit\x12#\n" +
-	"\rtotal_balance\x18\x04 \x01(\tR\ftotalBalance\"\xa6\x01\n" +
+	"\rtotal_balance\x18\x04 \x01(\tR\ftotalBalance\"\xc9\x01\n" +
 	"\x17CreateCreditCardRequest\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12!\n" +
-	"\fcredit_limit\x18\x02 \x01(\tR\vcreditLimit\x12\x1f\n" +
-	"\vbilling_day\x18\x03 \x01(\x05R\n" +
+	"\faccount_name\x18\x02 \x01(\tR\vaccountName\x12!\n" +
+	"\fcredit_limit\x18\x03 \x01(\tR\vcreditLimit\x12\x1f\n" +
+	"\vbilling_day\x18\x04 \x01(\x05R\n" +
 	"billingDay\x12(\n" +
-	"\x10payment_due_days\x18\x04 \x01(\x05R\x0epaymentDueDays\"@\n" +
+	"\x10payment_due_days\x18\x05 \x01(\x05R\x0epaymentDueDays\"@\n" +
 	"\x18CreateCreditCardResponse\x12$\n" +
 	"\x0ecredit_card_id\x18\x01 \x01(\tR\fcreditCardId\"\xb8\x01\n" +
 	"\"RecordCreditCardTransactionRequest\x12\x17\n" +

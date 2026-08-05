@@ -104,25 +104,50 @@ func (s *server) GetBalance(ctx context.Context, req *finance.GetBalanceRequest)
 // ===============================
 // CREDIT CARD
 // ===============================
+func (s *server) CreateCreditCard(
+	ctx context.Context,
+	req *finance.CreateCreditCardRequest,
+) (
+	*finance.CreateCreditCardResponse,
+	error,
+) {
 
-func (s *server) CreateCreditCard(ctx context.Context, req *finance.CreateCreditCardRequest) (*finance.CreateCreditCardResponse, error) {
+	var accountID uuid.UUID
+	var err error
 
-	accountID, err := uuid.Parse(req.AccountId)
-
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid account id")
+	if req.AccountId != "" {
+		accountID, err = uuid.Parse(req.AccountId)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.InvalidArgument,
+				"invalid accountId: %q",
+				req.AccountId,
+			)
+		}
 	}
 
 	limit, err := decimal.NewFromString(req.CreditLimit)
-
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid credit limit")
+		return nil, status.Error(
+			codes.InvalidArgument,
+			"invalid credit limit",
+		)
 	}
 
-	cardID, err := s.creditService.CreateCreditCard(ctx, accountID, limit, int(req.BillingDay), int(req.PaymentDueDays))
+	cardID, err := s.creditService.CreateCreditCard(
+		ctx,
+		accountID,
+		req.AccountName,
+		limit,
+		int(req.BillingDay),
+		int(req.PaymentDueDays),
+	)
 
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, status.Error(
+			codes.Internal,
+			err.Error(),
+		)
 	}
 
 	return &finance.CreateCreditCardResponse{

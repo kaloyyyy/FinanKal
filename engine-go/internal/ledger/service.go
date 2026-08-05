@@ -2,12 +2,10 @@ package ledger
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"log"
 	"time"
 
+	"github.com/kaloy/finankal/engine-go/internal/cache"
 	"github.com/shopspring/decimal"
 
 	"github.com/google/uuid"
@@ -56,77 +54,93 @@ func (s *Service) CreateTransaction(ctx context.Context, description string, ent
 	for _, e := range entries {
 		accountIDs = append(accountIDs, e.AccountID)
 	}
-	InvalidateLedgerCache(ctx, s.redis, accountIDs...)
 
-	// Invalidate user total caches via method (handles nil redis)
-	s.InvalidateUserTotalCache(ctx, userID)
+	_ = cache.InvalidateTransaction(
+		ctx,
+		s.redis,
+		userID,
+		accountIDs...,
+	)
 
 	return txID, nil
 }
 
-func (s *Service) GetBalance(ctx context.Context, accountID uuid.UUID) (decimal.Decimal, error) {
-	key := fmt.Sprintf("balance:%s", accountID)
+func (s *Service) GetBalance(
+	ctx context.Context,
+	accountID uuid.UUID,
+) (decimal.Decimal, error) {
 
-	if s.redis != nil {
-		val, err := s.redis.Get(ctx, key).Result()
-		if err == nil {
-			balance, err := decimal.NewFromString(val)
-			if err != nil {
-				return decimal.Zero, err
-			}
-			log.Printf("cache hit for balance: %s", accountID)
-			return balance, nil
-		} else if !errors.Is(err, redis.Nil) {
-			// real Redis error
-			return decimal.Zero, err
-		}
+	key := cache.AccountBalanceKey(accountID)
+
+	value, err := cache.Get[string](
+		ctx,
+		s.redis,
+		key,
+	)
+
+	if err == nil && value != nil {
+
+		return decimal.NewFromString(*value)
 	}
 
-	balance, err := s.repo.GetBalance(ctx, accountID)
+	balance, err := s.repo.GetBalance(
+		ctx,
+		accountID,
+	)
+
 	if err != nil {
 		return decimal.Zero, err
 	}
 
-	if s.redis != nil {
-		if err := s.redis.Set(ctx, key, balance.String(), 5*time.Minute).Err(); err != nil {
-			log.Printf("redis set error for key %s: %v", key, err)
-		}
-	}
+	_ = cache.Set(
+		ctx,
+		s.redis,
+		key,
+		balance.String(),
+		5*time.Minute,
+	)
 
 	return balance, nil
 }
 
-func (s *Service) GetAccountSummary(ctx context.Context, accountID uuid.UUID) (*AccountSummary, error) {
-	key := fmt.Sprintf("account_summary:%s", accountID)
+func (s *Service) GetAccountSummary(
+	ctx context.Context,
+	accountID uuid.UUID,
+) (*AccountSummary, error) {
 
-	// 🔹 Try Redis first
-	if s.redis != nil {
-		val, err := s.redis.Get(ctx, key).Result()
-		if err == nil {
-			var summary AccountSummary
-			if err := json.Unmarshal([]byte(val), &summary); err == nil {
-				log.Printf("cache hit for account summary: %s", accountID)
-				return &summary, nil
-			}
-			// if unmarshal fails → fall through to DB
-		} else if !errors.Is(err, redis.Nil) {
-			// real Redis error
-			return nil, err
-		}
+	key := cache.AccountSummaryKey(accountID)
+
+	summary, err := cache.Get[AccountSummary](
+		ctx,
+		s.redis,
+		key,
+	)
+
+	if err == nil && summary != nil {
+		return summary, nil
 	}
 
-	// 🔹 Fetch from DB
-	name, accountType, createdAt, err := s.repo.GetAccount(ctx, accountID)
+	name, accountType, createdAt, err :=
+		s.repo.GetAccount(
+			ctx,
+			accountID,
+		)
+
 	if err != nil {
 		return nil, err
 	}
 
-	balance, err := s.repo.GetBalance(ctx, accountID)
+	balance, err :=
+		s.repo.GetBalance(
+			ctx,
+			accountID,
+		)
+
 	if err != nil {
 		return nil, err
 	}
 
-	summary := &AccountSummary{
+	result := &AccountSummary{
 		AccountID: accountID,
 		Name:      name,
 		Type:      accountType,
@@ -134,143 +148,197 @@ func (s *Service) GetAccountSummary(ctx context.Context, accountID uuid.UUID) (*
 		CreatedAt: createdAt,
 	}
 
-	// 🔹 Cache result (ignore cache error for now)
-	if data, err := json.Marshal(summary); err == nil {
-		if s.redis != nil {
-			if err := s.redis.Set(ctx, key, data, 10*time.Minute).Err(); err != nil {
-				log.Printf("redis set error for key %s: %v", key, err)
-			}
-		}
-	}
+	_ = cache.Set(
+		ctx,
+		s.redis,
+		key,
+		result,
+		10*time.Minute,
+	)
 
-	return summary, nil
+	return result, nil
 }
 
-func (s *Service) GetLedgerEntries(ctx context.Context, accountID uuid.UUID) ([]Entry, error) {
-	key := fmt.Sprintf("ledger_entries:%s", accountID)
+func (s *Service) CreateAccount(
+	ctx context.Context,
+	userID uuid.UUID,
+	name string,
+	accountType AccountType,
+) (uuid.UUID, error) {
 
-	// Try Redis first
-	if s.redis != nil {
-		val, err := s.redis.Get(ctx, key).Result()
-		if err == nil {
-			var entries []Entry
-			if err := json.Unmarshal([]byte(val), &entries); err == nil {
-				log.Printf("cache hit for ledger entries: %s", accountID)
-				return entries, nil
-			}
-		} else if !errors.Is(err, redis.Nil) {
-			// real Redis error
-			return nil, err
-		}
+	accountID, err := s.repo.CreateAccount(
+		ctx,
+		userID,
+		name,
+		accountType,
+	)
+
+	if err != nil {
+		return uuid.Nil, err
 	}
 
-	// Fetch from DB
-	entries, err := s.repo.GetLedgerEntries(ctx, accountID)
+	// invalidate user caches
+	_ = cache.InvalidateUser(
+		ctx,
+		s.redis,
+		userID,
+	)
+
+	return accountID, nil
+}
+
+func (s *Service) GetLedgerEntries(
+	ctx context.Context,
+	accountID uuid.UUID,
+) ([]Entry, error) {
+
+	key := cache.AccountLedgerEntriesKey(accountID)
+
+	entries, err :=
+		cache.Get[[]Entry](
+			ctx,
+			s.redis,
+			key,
+		)
+
+	if err == nil && entries != nil {
+		return *entries, nil
+	}
+
+	entriesDB, err :=
+		s.repo.GetLedgerEntries(
+			ctx,
+			accountID,
+		)
+
 	if err != nil {
 		return nil, err
 	}
 
-	// Cache result
-	if data, err := json.Marshal(entries); err == nil {
-		if s.redis != nil {
-			if err := s.redis.Set(ctx, key, data, 2*time.Minute).Err(); err != nil {
-				log.Printf("redis set error for key %s: %v", key, err)
-			}
-		}
-	}
+	_ = cache.Set(
+		ctx,
+		s.redis,
+		key,
+		entriesDB,
+		2*time.Minute,
+	)
 
-	return entries, nil
+	return entriesDB, nil
 }
 
-func (s *Service) GetUserTotalCredit(ctx context.Context, userID uuid.UUID) (decimal.Decimal, error) {
-	key := fmt.Sprintf("user_total_credit:%s", userID)
+func (s *Service) GetUserTotalCredit(
+	ctx context.Context,
+	userID uuid.UUID,
+) (decimal.Decimal, error) {
 
-	if s.redis != nil {
-		val, err := s.redis.Get(ctx, key).Result()
-		if err == nil {
-			total, err := decimal.NewFromString(val)
-			if err != nil {
-				return decimal.Zero, err
-			}
-			log.Printf("cache hit for user total credit: %s", userID)
-			return total, nil
-		} else if !errors.Is(err, redis.Nil) {
-			return decimal.Zero, err
-		}
+	key := cache.UserTotalCreditKey(userID)
+
+	value, err :=
+		cache.Get[string](
+			ctx,
+			s.redis,
+			key,
+		)
+
+	if err == nil && value != nil {
+		return decimal.NewFromString(*value)
 	}
 
-	total, err := s.repo.GetUserTotalCredit(ctx, userID)
+	total, err :=
+		s.repo.GetUserTotalCredit(
+			ctx,
+			userID,
+		)
+
 	if err != nil {
 		return decimal.Zero, err
 	}
 
-	if s.redis != nil {
-		if err := s.redis.Set(ctx, key, total.String(), 5*time.Minute).Err(); err != nil {
-			log.Printf("redis set error for key %s: %v", key, err)
-		}
-	}
+	_ = cache.Set(
+		ctx,
+		s.redis,
+		key,
+		total.String(),
+		5*time.Minute,
+	)
 
 	return total, nil
 }
 
-func (s *Service) GetUserTotalDebit(ctx context.Context, userID uuid.UUID) (decimal.Decimal, error) {
-	key := fmt.Sprintf("user_total_debit:%s", userID)
+func (s *Service) GetUserTotalDebit(
+	ctx context.Context,
+	userID uuid.UUID,
+) (decimal.Decimal, error) {
 
-	if s.redis != nil {
-		val, err := s.redis.Get(ctx, key).Result()
-		if err == nil {
-			total, err := decimal.NewFromString(val)
-			if err != nil {
-				return decimal.Zero, err
-			}
-			log.Printf("cache hit for user total debit: %s", userID)
-			return total, nil
-		} else if !errors.Is(err, redis.Nil) {
-			return decimal.Zero, err
-		}
+	key := cache.UserTotalDebitKey(userID)
+
+	value, err :=
+		cache.Get[string](
+			ctx,
+			s.redis,
+			key,
+		)
+
+	if err == nil && value != nil {
+		return decimal.NewFromString(*value)
 	}
 
-	total, err := s.repo.GetUserTotalDebit(ctx, userID)
+	total, err :=
+		s.repo.GetUserTotalDebit(
+			ctx,
+			userID,
+		)
+
 	if err != nil {
 		return decimal.Zero, err
 	}
 
-	if s.redis != nil {
-		if err := s.redis.Set(ctx, key, total.String(), 5*time.Minute).Err(); err != nil {
-			log.Printf("redis set error for key %s: %v", key, err)
-		}
-	}
+	_ = cache.Set(
+		ctx,
+		s.redis,
+		key,
+		total.String(),
+		5*time.Minute,
+	)
 
 	return total, nil
 }
 
-func (s *Service) GetUserTotalBalance(ctx context.Context, userID uuid.UUID) (decimal.Decimal, error) {
-	key := fmt.Sprintf("user_total_balance:%s", userID)
+func (s *Service) GetUserTotalBalance(
+	ctx context.Context,
+	userID uuid.UUID,
+) (decimal.Decimal, error) {
 
-	if s.redis != nil {
-		val, err := s.redis.Get(ctx, key).Result()
-		if err == nil {
-			total, err := decimal.NewFromString(val)
-			if err != nil {
-				return decimal.Zero, err
-			}
-			log.Printf("cache hit for user total balance: %s", userID)
-			return total, nil
-		} else if !errors.Is(err, redis.Nil) {
-			return decimal.Zero, err
-		}
+	key := cache.UserTotalBalanceKey(userID)
+
+	value, err :=
+		cache.Get[string](
+			ctx,
+			s.redis,
+			key,
+		)
+
+	if err == nil && value != nil {
+		return decimal.NewFromString(*value)
 	}
 
-	total, err := s.repo.GetUserTotalBalance(ctx, userID)
+	total, err :=
+		s.repo.GetUserTotalBalance(
+			ctx,
+			userID,
+		)
+
 	if err != nil {
 		return decimal.Zero, err
 	}
 
-	if s.redis != nil {
-		if err := s.redis.Set(ctx, key, total.String(), 5*time.Minute).Err(); err != nil {
-			log.Printf("redis set error for key %s: %v", key, err)
-		}
-	}
+	_ = cache.Set(
+		ctx,
+		s.redis,
+		key,
+		total.String(),
+		5*time.Minute,
+	)
 
 	return total, nil
 }
