@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	_ "log"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,10 +21,7 @@ type server struct {
 	creditService *credit.Service
 }
 
-func NewServer(
-	ledgerService *ledger.Service,
-	creditService *credit.Service,
-) *server {
+func NewServer(ledgerService *ledger.Service, creditService *credit.Service) *server {
 
 	return &server{
 		ledgerService: ledgerService,
@@ -37,10 +33,7 @@ func NewServer(
 // HEALTH
 // ===============================
 
-func (s *server) HealthCheck(
-	ctx context.Context,
-	req *finance.HealthRequest,
-) (*finance.HealthResponse, error) {
+func (s *server) HealthCheck(ctx context.Context, req *finance.HealthRequest) (*finance.HealthResponse, error) {
 
 	return &finance.HealthResponse{
 		Status: "OK",
@@ -51,43 +44,25 @@ func (s *server) HealthCheck(
 // LEDGER
 // ===============================
 
-func (s *server) CreateTransaction(
-	ctx context.Context,
-	req *finance.CreateTransactionRequest,
-) (
-	*finance.CreateTransactionResponse,
-	error,
-) {
+func (s *server) CreateTransaction(ctx context.Context, req *finance.CreateTransactionRequest) (*finance.CreateTransactionResponse, error) {
 
-	entries :=
-		make([]ledger.Entry, len(req.Entries))
+	entries := make([]ledger.Entry, len(req.Entries))
 
 	for i, e := range req.Entries {
 
-		accountID, err :=
-			uuid.Parse(e.AccountId)
+		accountID, err := uuid.Parse(e.AccountId)
 
 		if err != nil {
-			return nil, status.Errorf(
-				codes.InvalidArgument,
-				"invalid account id",
-			)
+			return nil, status.Error(codes.InvalidArgument, "invalid account id")
 		}
 
-		amount, err :=
-			decimal.NewFromString(
-				e.Amount,
-			)
+		amount, err := decimal.NewFromString(e.Amount)
 
 		if err != nil {
-			return nil, status.Errorf(
-				codes.InvalidArgument,
-				"invalid amount",
-			)
+			return nil, status.Error(codes.InvalidArgument, "invalid amount")
 		}
 
-		entryType :=
-			ledger.EntryType(e.Type)
+		entryType := ledger.EntryType(e.Type)
 
 		entries[i] = ledger.Entry{
 			AccountID: accountID,
@@ -96,18 +71,10 @@ func (s *server) CreateTransaction(
 		}
 	}
 
-	txID, err :=
-		s.ledgerService.CreateTransaction(
-			ctx,
-			req.Description,
-			entries,
-		)
+	txID, err := s.ledgerService.CreateTransaction(ctx, req.Description, entries)
 
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			err.Error(),
-		)
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &finance.CreateTransactionResponse{
@@ -115,35 +82,18 @@ func (s *server) CreateTransaction(
 	}, nil
 }
 
-func (s *server) GetBalance(
-	ctx context.Context,
-	req *finance.GetBalanceRequest,
-) (
-	*finance.GetBalanceResponse,
-	error,
-) {
+func (s *server) GetBalance(ctx context.Context, req *finance.GetBalanceRequest) (*finance.GetBalanceResponse, error) {
 
-	accountID, err :=
-		uuid.Parse(req.AccountId)
+	accountID, err := uuid.Parse(req.AccountId)
 
 	if err != nil {
-		return nil, status.Error(
-			codes.InvalidArgument,
-			"invalid account id",
-		)
+		return nil, status.Error(codes.InvalidArgument, "invalid account id")
 	}
 
-	balance, err :=
-		s.ledgerService.GetBalance(
-			ctx,
-			accountID,
-		)
+	balance, err := s.ledgerService.GetBalance(ctx, accountID)
 
 	if err != nil {
-		return nil, status.Error(
-			codes.Internal,
-			err.Error(),
-		)
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &finance.GetBalanceResponse{
@@ -155,50 +105,24 @@ func (s *server) GetBalance(
 // CREDIT CARD
 // ===============================
 
-func (s *server) CreateCreditCard(
-	ctx context.Context,
-	req *finance.CreateCreditCardRequest,
-) (
-	*finance.CreateCreditCardResponse,
-	error,
-) {
+func (s *server) CreateCreditCard(ctx context.Context, req *finance.CreateCreditCardRequest) (*finance.CreateCreditCardResponse, error) {
 
-	accountID, err :=
-		uuid.Parse(req.AccountId)
+	accountID, err := uuid.Parse(req.AccountId)
 
 	if err != nil {
-		return nil, status.Error(
-			codes.InvalidArgument,
-			"invalid account id",
-		)
+		return nil, status.Error(codes.InvalidArgument, "invalid account id")
 	}
 
-	limit, err :=
-		decimal.NewFromString(
-			req.CreditLimit,
-		)
+	limit, err := decimal.NewFromString(req.CreditLimit)
 
 	if err != nil {
-		return nil, status.Error(
-			codes.InvalidArgument,
-			"invalid credit limit",
-		)
+		return nil, status.Error(codes.InvalidArgument, "invalid credit limit")
 	}
 
-	cardID, err :=
-		s.creditService.CreateCreditCard(
-			ctx,
-			accountID,
-			limit,
-			int(req.BillingDay),
-			int(req.PaymentDueDays),
-		)
+	cardID, err := s.creditService.CreateCreditCard(ctx, accountID, limit, int(req.BillingDay), int(req.PaymentDueDays))
 
 	if err != nil {
-		return nil, status.Error(
-			codes.Internal,
-			err.Error(),
-		)
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &finance.CreateCreditCardResponse{
@@ -206,10 +130,7 @@ func (s *server) CreateCreditCard(
 	}, nil
 }
 
-func (s *server) GetAccountSummary(
-	ctx context.Context,
-	req *finance.GetAccountSummaryRequest,
-) (*finance.GetAccountSummaryResponse, error) {
+func (s *server) GetAccountSummary(ctx context.Context, req *finance.GetAccountSummaryRequest) (*finance.GetAccountSummaryResponse, error) {
 
 	accountID, err := uuid.Parse(req.AccountId)
 	if err != nil {
@@ -229,80 +150,47 @@ func (s *server) GetAccountSummary(
 		CreatedAt: summary.CreatedAt.Format(time.RFC3339),
 	}, nil
 }
-func (s *server) GetLedgerEntries(
-	ctx context.Context,
-	req *finance.GetLedgerEntriesRequest,
-) (
-	*finance.GetLedgerEntriesResponse,
-	error,
-) {
+func (s *server) GetLedgerEntries(ctx context.Context, req *finance.GetLedgerEntriesRequest) (*finance.GetLedgerEntriesResponse, error) {
 
 	accountID, err := uuid.Parse(req.AccountId)
 	if err != nil {
-		return nil, status.Error(
-			codes.InvalidArgument,
-			"invalid account id",
-		)
+		return nil, status.Error(codes.InvalidArgument, "invalid account id")
 	}
 
-	entries, err := s.ledgerService.GetLedgerEntries(
-		ctx,
-		accountID,
-	)
+	entries, err := s.ledgerService.GetLedgerEntries(ctx, accountID)
 
 	if err != nil {
-		return nil, status.Error(
-			codes.Internal,
-			err.Error(),
-		)
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	response := &finance.GetLedgerEntriesResponse{}
 
 	for _, e := range entries {
 
-		response.Entries = append(
-			response.Entries,
-			&finance.LedgerEntry{
-				TransactionId: e.TransactionID.String(),
-				AccountId:     e.AccountID.String(),
-				Amount:        e.Amount.String(),
-				Type:          string(e.Type),
-				Description:   e.Description,
-				CreatedAt:     e.CreatedAt.Format(time.RFC3339),
-			},
-		)
+		response.Entries = append(response.Entries, &finance.LedgerEntry{
+			TransactionId: e.TransactionID.String(),
+			AccountId:     e.AccountID.String(),
+			Amount:        e.Amount.String(),
+			Type:          string(e.Type),
+			Description:   e.Description,
+			CreatedAt:     e.CreatedAt.Format(time.RFC3339),
+		})
 	}
 
 	return response, nil
 }
 
-func (s *server) GetUserTotalCredit(
-	ctx context.Context,
-	req *finance.GetUserTotalRequest,
-) (
-	*finance.GetUserTotalResponse,
-	error,
-) {
+func (s *server) GetUserTotalCredit(ctx context.Context, req *finance.GetUserTotalRequest) (*finance.GetUserTotalResponse, error) {
 
 	userID, err := uuid.Parse(req.UserId)
 	if err != nil {
-		return nil, status.Error(
-			codes.InvalidArgument,
-			"invalid user id",
-		)
+		return nil, status.Error(codes.InvalidArgument, "invalid user id")
 	}
 
-	total, err := s.ledgerService.GetUserTotalCredit(
-		ctx,
-		userID,
-	)
+	total, err := s.ledgerService.GetUserTotalCredit(ctx, userID)
 
 	if err != nil {
-		return nil, status.Error(
-			codes.Internal,
-			err.Error(),
-		)
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &finance.GetUserTotalResponse{
@@ -311,32 +199,17 @@ func (s *server) GetUserTotalCredit(
 	}, nil
 }
 
-func (s *server) GetUserTotalDebit(
-	ctx context.Context,
-	req *finance.GetUserTotalRequest,
-) (
-	*finance.GetUserTotalResponse,
-	error,
-) {
+func (s *server) GetUserTotalDebit(ctx context.Context, req *finance.GetUserTotalRequest) (*finance.GetUserTotalResponse, error) {
 
 	userID, err := uuid.Parse(req.UserId)
 	if err != nil {
-		return nil, status.Error(
-			codes.InvalidArgument,
-			"invalid user id",
-		)
+		return nil, status.Error(codes.InvalidArgument, "invalid user id")
 	}
 
-	total, err := s.ledgerService.GetUserTotalDebit(
-		ctx,
-		userID,
-	)
+	total, err := s.ledgerService.GetUserTotalDebit(ctx, userID)
 
 	if err != nil {
-		return nil, status.Error(
-			codes.Internal,
-			err.Error(),
-		)
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &finance.GetUserTotalResponse{
@@ -345,32 +218,17 @@ func (s *server) GetUserTotalDebit(
 	}, nil
 }
 
-func (s *server) GetUserTotalBalance(
-	ctx context.Context,
-	req *finance.GetUserTotalRequest,
-) (
-	*finance.GetUserTotalResponse,
-	error,
-) {
+func (s *server) GetUserTotalBalance(ctx context.Context, req *finance.GetUserTotalRequest) (*finance.GetUserTotalResponse, error) {
 
 	userID, err := uuid.Parse(req.UserId)
 	if err != nil {
-		return nil, status.Error(
-			codes.InvalidArgument,
-			"invalid user id",
-		)
+		return nil, status.Error(codes.InvalidArgument, "invalid user id")
 	}
 
-	total, err := s.ledgerService.GetUserTotalBalance(
-		ctx,
-		userID,
-	)
+	total, err := s.ledgerService.GetUserTotalBalance(ctx, userID)
 
 	if err != nil {
-		return nil, status.Error(
-			codes.Internal,
-			err.Error(),
-		)
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &finance.GetUserTotalResponse{
@@ -378,52 +236,29 @@ func (s *server) GetUserTotalBalance(
 		TotalBalance: total.String(),
 	}, nil
 }
-func (s *server) RecordCreditCardTransaction(
-	ctx context.Context,
-	req *finance.RecordCreditCardTransactionRequest,
-) (
-	*finance.RecordCreditCardTransactionResponse,
-	error,
-) {
+func (s *server) RecordCreditCardTransaction(ctx context.Context, req *finance.RecordCreditCardTransactionRequest) (*finance.RecordCreditCardTransactionResponse, error) {
 
-	cardID, err :=
-		uuid.Parse(req.CardId)
+	cardID, err := uuid.Parse(req.CardId)
 
 	if err != nil {
-		return nil, status.Error(
-			codes.InvalidArgument,
-			"invalid card id",
-		)
+		return nil, status.Error(codes.InvalidArgument, "invalid card id")
 	}
 
-	amount, err :=
-		decimal.NewFromString(
-			req.Amount,
-		)
+	amount, err := decimal.NewFromString(req.Amount)
 
 	if err != nil {
-		return nil, status.Error(
-			codes.InvalidArgument,
-			"invalid amount",
-		)
+		return nil, status.Error(codes.InvalidArgument, "invalid amount")
 	}
 
-	txID, err :=
-		s.creditService.RecordCreditCardTransaction(
-			ctx,
-			credit.CreditCardTransactionRequest{
-				CardID:       cardID,
-				Amount:       amount,
-				Description:  req.Description,
-				PurchaseDate: req.PurchaseDate.AsTime(),
-			},
-		)
+	txID, err := s.creditService.RecordCreditCardTransaction(ctx, credit.CreditCardTransactionRequest{
+		CardID:       cardID,
+		Amount:       amount,
+		Description:  req.Description,
+		PurchaseDate: req.PurchaseDate.AsTime(),
+	})
 
 	if err != nil {
-		return nil, status.Error(
-			codes.Internal,
-			err.Error(),
-		)
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &finance.RecordCreditCardTransactionResponse{
@@ -431,73 +266,42 @@ func (s *server) RecordCreditCardTransaction(
 	}, nil
 }
 
-func (s *server) PayCreditCardStatement(
-	ctx context.Context,
-	req *finance.PayCreditCardStatementRequest,
-) (
-	*finance.PayCreditCardStatementResponse,
-	error,
-) {
+func (s *server) PayCreditCardStatement(ctx context.Context, req *finance.PayCreditCardStatementRequest) (*finance.PayCreditCardStatementResponse, error) {
 
-	statementID, err :=
-		uuid.Parse(req.StatementId)
+	statementID, err := uuid.Parse(req.StatementId)
 
 	if err != nil {
-		return nil, status.Error(
-			codes.InvalidArgument,
-			"invalid statement id",
-		)
+		return nil, status.Error(codes.InvalidArgument, "invalid statement id")
 	}
 
-	cardID, err :=
-		uuid.Parse(req.CardId)
+	cardID, err := uuid.Parse(req.CardId)
 
 	if err != nil {
-		return nil, status.Error(
-			codes.InvalidArgument,
-			"invalid card id",
-		)
+		return nil, status.Error(codes.InvalidArgument, "invalid card id")
 	}
 
-	paymentAccountID, err :=
-		uuid.Parse(req.PaymentAccountId)
+	paymentAccountID, err := uuid.Parse(req.PaymentAccountId)
 
 	if err != nil {
-		return nil, status.Error(
-			codes.InvalidArgument,
-			"invalid payment account id",
-		)
+		return nil, status.Error(codes.InvalidArgument, "invalid payment account id")
 	}
 
-	amount, err :=
-		decimal.NewFromString(
-			req.Amount,
-		)
+	amount, err := decimal.NewFromString(req.Amount)
 
 	if err != nil {
-		return nil, status.Error(
-			codes.InvalidArgument,
-			"invalid amount",
-		)
+		return nil, status.Error(codes.InvalidArgument, "invalid amount")
 	}
 
-	txID, err :=
-		s.creditService.PayCreditCardStatement(
-			ctx,
-			credit.CreditCardPaymentRequest{
-				StatementID:      statementID,
-				CardID:           cardID,
-				PaymentAccountID: paymentAccountID,
-				Amount:           amount,
-				Description:      req.Description,
-			},
-		)
+	txID, err := s.creditService.PayCreditCardStatement(ctx, credit.CreditCardPaymentRequest{
+		StatementID:      statementID,
+		CardID:           cardID,
+		PaymentAccountID: paymentAccountID,
+		Amount:           amount,
+		Description:      req.Description,
+	})
 
 	if err != nil {
-		return nil, status.Error(
-			codes.Internal,
-			err.Error(),
-		)
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &finance.PayCreditCardStatementResponse{

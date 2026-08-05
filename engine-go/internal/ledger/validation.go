@@ -2,7 +2,6 @@ package ledger
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/shopspring/decimal"
 )
@@ -12,7 +11,6 @@ func validateEntries(entries []Entry) error {
 	credit := decimal.Zero
 
 	for _, e := range entries {
-		fmt.Println("Validating entry:", e.AccountID, e.Amount, e.Type)
 		switch e.Type {
 		case DEBIT:
 			debit = debit.Add(e.Amount)
