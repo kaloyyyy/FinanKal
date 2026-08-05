@@ -2,208 +2,505 @@ package main
 
 import (
 	"context"
-	"log"
+	_ "log"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/kaloy/finankal/engine-go/finance"
+	"github.com/kaloy/finankal/engine-go/internal/credit"
 	"github.com/kaloy/finankal/engine-go/internal/ledger"
 	"github.com/shopspring/decimal"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type server struct {
 	finance.UnimplementedFinanceEngineServer
+
 	ledgerService *ledger.Service
+	creditService *credit.Service
 }
 
-func NewServer(ledgerService *ledger.Service) *server {
+func NewServer(
+	ledgerService *ledger.Service,
+	creditService *credit.Service,
+) *server {
+
 	return &server{
 		ledgerService: ledgerService,
+		creditService: creditService,
 	}
 }
 
-func (s *server) HealthCheck(ctx context.Context, req *finance.HealthRequest) (*finance.HealthResponse, error) {
-	return &finance.HealthResponse{Status: "OK"}, nil
+// ===============================
+// HEALTH
+// ===============================
+
+func (s *server) HealthCheck(
+	ctx context.Context,
+	req *finance.HealthRequest,
+) (*finance.HealthResponse, error) {
+
+	return &finance.HealthResponse{
+		Status: "OK",
+	}, nil
 }
 
-func (s *server) CreateTransaction(ctx context.Context, req *finance.CreateTransactionRequest) (*finance.CreateTransactionResponse, error) {
-	log.Printf("Creating transaction with description: %s", req.Description)
-	entries := make([]ledger.Entry, len(req.Entries))
-	accountIDs := make([]string, len(req.Entries))
+// ===============================
+// LEDGER
+// ===============================
+
+func (s *server) CreateTransaction(
+	ctx context.Context,
+	req *finance.CreateTransactionRequest,
+) (
+	*finance.CreateTransactionResponse,
+	error,
+) {
+
+	entries :=
+		make([]ledger.Entry, len(req.Entries))
+
 	for i, e := range req.Entries {
-		accountID, err := uuid.Parse(e.AccountId)
+
+		accountID, err :=
+			uuid.Parse(e.AccountId)
+
 		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "invalid account_id: %v", err)
+			return nil, status.Errorf(
+				codes.InvalidArgument,
+				"invalid account id",
+			)
 		}
-		amount, err := decimal.NewFromString(e.Amount)
+
+		amount, err :=
+			decimal.NewFromString(
+				e.Amount,
+			)
+
 		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "invalid amount: %v", err)
+			return nil, status.Errorf(
+				codes.InvalidArgument,
+				"invalid amount",
+			)
 		}
-		var entryType ledger.EntryType
-		if e.Type == "DEBIT" {
-			entryType = ledger.DEBIT
-		} else if e.Type == "CREDIT" {
-			entryType = ledger.CREDIT
-		} else {
-			return nil, status.Errorf(codes.InvalidArgument, "invalid type: must be DEBIT or CREDIT")
-		}
+
+		entryType :=
+			ledger.EntryType(e.Type)
+
 		entries[i] = ledger.Entry{
 			AccountID: accountID,
 			Amount:    amount,
 			Type:      entryType,
 		}
-		accountIDs[i] = e.AccountId
 	}
 
-	log.Printf("Transaction involves accounts: %v", accountIDs)
-	txID, err := s.ledgerService.CreateTransaction(ctx, req.Description, entries)
+	txID, err :=
+		s.ledgerService.CreateTransaction(
+			ctx,
+			req.Description,
+			entries,
+		)
+
 	if err != nil {
-		log.Printf("Failed to create transaction: %v", err)
-		return nil, status.Errorf(codes.Internal, "failed to create transaction: %v", err)
+		return nil, status.Errorf(
+			codes.Internal,
+			err.Error(),
+		)
 	}
 
-	log.Printf("Successfully created transaction with ID: %s", txID.String())
-	return &finance.CreateTransactionResponse{TransactionId: txID.String()}, nil
+	return &finance.CreateTransactionResponse{
+		TransactionId: txID.String(),
+	}, nil
 }
 
-func (s *server) GetBalance(ctx context.Context, req *finance.GetBalanceRequest) (*finance.GetBalanceResponse, error) {
-	log.Printf("Getting balance for account: %s", req.AccountId)
-	accountID, err := uuid.Parse(req.AccountId)
+func (s *server) GetBalance(
+	ctx context.Context,
+	req *finance.GetBalanceRequest,
+) (
+	*finance.GetBalanceResponse,
+	error,
+) {
+
+	accountID, err :=
+		uuid.Parse(req.AccountId)
+
 	if err != nil {
-		log.Printf("Invalid account ID: %s", req.AccountId)
-		return nil, status.Errorf(codes.InvalidArgument, "invalid account_id: %v", err)
+		return nil, status.Error(
+			codes.InvalidArgument,
+			"invalid account id",
+		)
 	}
 
-	balance, err := s.ledgerService.GetBalance(ctx, accountID)
+	balance, err :=
+		s.ledgerService.GetBalance(
+			ctx,
+			accountID,
+		)
+
 	if err != nil {
-		log.Printf("Failed to get balance for account %s: %v", req.AccountId, err)
-		return nil, status.Errorf(codes.Internal, "failed to get balance: %v", err)
+		return nil, status.Error(
+			codes.Internal,
+			err.Error(),
+		)
 	}
 
-	log.Printf("Successfully retrieved balance for account %s: %s", req.AccountId, balance.String())
-	return &finance.GetBalanceResponse{Balance: balance.String()}, nil
+	return &finance.GetBalanceResponse{
+		Balance: balance.String(),
+	}, nil
 }
 
-func (s *server) GetAccountSummary(ctx context.Context, req *finance.GetAccountSummaryRequest) (*finance.GetAccountSummaryResponse, error) {
-	log.Printf("Getting account summary for account: %s", req.AccountId)
+// ===============================
+// CREDIT CARD
+// ===============================
+
+func (s *server) CreateCreditCard(
+	ctx context.Context,
+	req *finance.CreateCreditCardRequest,
+) (
+	*finance.CreateCreditCardResponse,
+	error,
+) {
+
+	accountID, err :=
+		uuid.Parse(req.AccountId)
+
+	if err != nil {
+		return nil, status.Error(
+			codes.InvalidArgument,
+			"invalid account id",
+		)
+	}
+
+	limit, err :=
+		decimal.NewFromString(
+			req.CreditLimit,
+		)
+
+	if err != nil {
+		return nil, status.Error(
+			codes.InvalidArgument,
+			"invalid credit limit",
+		)
+	}
+
+	cardID, err :=
+		s.creditService.CreateCreditCard(
+			ctx,
+			accountID,
+			limit,
+			int(req.BillingDay),
+			int(req.PaymentDueDays),
+		)
+
+	if err != nil {
+		return nil, status.Error(
+			codes.Internal,
+			err.Error(),
+		)
+	}
+
+	return &finance.CreateCreditCardResponse{
+		CreditCardId: cardID.String(),
+	}, nil
+}
+
+func (s *server) GetAccountSummary(
+	ctx context.Context,
+	req *finance.GetAccountSummaryRequest,
+) (*finance.GetAccountSummaryResponse, error) {
+
 	accountID, err := uuid.Parse(req.AccountId)
 	if err != nil {
-		log.Printf("Invalid account ID: %s", req.AccountId)
-		return nil, status.Errorf(codes.InvalidArgument, "invalid account_id: %v", err)
+		return nil, status.Error(codes.InvalidArgument, "invalid account id")
 	}
 
 	summary, err := s.ledgerService.GetAccountSummary(ctx, accountID)
 	if err != nil {
-		log.Printf("Failed to get account summary for account %s: %v", req.AccountId, err)
-		return nil, status.Errorf(codes.Internal, "failed to get account summary: %v", err)
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	log.Printf("Successfully retrieved account summary for account %s", req.AccountId)
 	return &finance.GetAccountSummaryResponse{
 		AccountId: summary.AccountID.String(),
 		Name:      summary.Name,
-		Type:      summary.Type,
+		Type:      string(summary.Type),
 		Balance:   summary.Balance.String(),
-		CreatedAt: summary.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		CreatedAt: summary.CreatedAt.Format(time.RFC3339),
 	}, nil
 }
+func (s *server) GetLedgerEntries(
+	ctx context.Context,
+	req *finance.GetLedgerEntriesRequest,
+) (
+	*finance.GetLedgerEntriesResponse,
+	error,
+) {
 
-func (s *server) GetLedgerEntries(ctx context.Context, req *finance.GetLedgerEntriesRequest) (*finance.GetLedgerEntriesResponse, error) {
-	log.Printf("Getting ledger entries for account: %s", req.AccountId)
 	accountID, err := uuid.Parse(req.AccountId)
 	if err != nil {
-		log.Printf("Invalid account ID: %s", req.AccountId)
-		return nil, status.Errorf(codes.InvalidArgument, "invalid account_id: %v", err)
+		return nil, status.Error(
+			codes.InvalidArgument,
+			"invalid account id",
+		)
 	}
 
-	entries, err := s.ledgerService.GetLedgerEntries(ctx, accountID)
+	entries, err := s.ledgerService.GetLedgerEntries(
+		ctx,
+		accountID,
+	)
+
 	if err != nil {
-		log.Printf("Failed to get ledger entries for account %s: %v", req.AccountId, err)
-		return nil, status.Errorf(codes.Internal, "failed to get ledger entries: %v", err)
+		return nil, status.Error(
+			codes.Internal,
+			err.Error(),
+		)
 	}
 
-	log.Printf("Successfully retrieved %d ledger entries for account %s", len(entries), req.AccountId)
-	protoEntries := make([]*finance.LedgerEntry, len(entries))
-	for i, entry := range entries {
-		protoEntries[i] = &finance.LedgerEntry{
-			TransactionId: entry.TransactionID.String(),
-			AccountId:     entry.AccountID.String(),
-			Amount:        entry.Amount.String(),
-			Type:          string(entry.Type),
-			Description:   entry.Description, // Include transaction description
-			CreatedAt:     entry.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		}
+	response := &finance.GetLedgerEntriesResponse{}
+
+	for _, e := range entries {
+
+		response.Entries = append(
+			response.Entries,
+			&finance.LedgerEntry{
+				TransactionId: e.TransactionID.String(),
+				AccountId:     e.AccountID.String(),
+				Amount:        e.Amount.String(),
+				Type:          string(e.Type),
+				Description:   e.Description,
+				CreatedAt:     e.CreatedAt.Format(time.RFC3339),
+			},
+		)
 	}
 
-	return &finance.GetLedgerEntriesResponse{Entries: protoEntries}, nil
+	return response, nil
 }
 
-func (s *server) GetUserTotalCredit(ctx context.Context, req *finance.GetUserTotalRequest) (*finance.GetUserTotalResponse, error) {
-	log.Printf("Getting user total credit for user: %s", req.UserId)
+func (s *server) GetUserTotalCredit(
+	ctx context.Context,
+	req *finance.GetUserTotalRequest,
+) (
+	*finance.GetUserTotalResponse,
+	error,
+) {
+
 	userID, err := uuid.Parse(req.UserId)
 	if err != nil {
-		log.Printf("Invalid user ID: %s", req.UserId)
-		return nil, status.Errorf(codes.InvalidArgument, "invalid user_id: %v", err)
+		return nil, status.Error(
+			codes.InvalidArgument,
+			"invalid user id",
+		)
 	}
 
-	total, err := s.ledgerService.GetUserTotalCredit(ctx, userID)
+	total, err := s.ledgerService.GetUserTotalCredit(
+		ctx,
+		userID,
+	)
+
 	if err != nil {
-		log.Printf("Failed to get user total credit for user %s: %v", req.UserId, err)
-		return nil, status.Errorf(codes.Internal, "failed to get user total credit: %v", err)
+		return nil, status.Error(
+			codes.Internal,
+			err.Error(),
+		)
 	}
 
-	log.Printf("Successfully retrieved user total credit for user %s: %s", req.UserId, total.String())
 	return &finance.GetUserTotalResponse{
-		UserId:       req.UserId,
-		TotalCredit:  total.String(),
-		TotalDebit:   "0", // Not requested, but included
-		TotalBalance: "0",
+		UserId:      req.UserId,
+		TotalCredit: total.String(),
 	}, nil
 }
 
-func (s *server) GetUserTotalDebit(ctx context.Context, req *finance.GetUserTotalRequest) (*finance.GetUserTotalResponse, error) {
-	log.Printf("Getting user total debit for user: %s", req.UserId)
+func (s *server) GetUserTotalDebit(
+	ctx context.Context,
+	req *finance.GetUserTotalRequest,
+) (
+	*finance.GetUserTotalResponse,
+	error,
+) {
+
 	userID, err := uuid.Parse(req.UserId)
 	if err != nil {
-		log.Printf("Invalid user ID: %s", req.UserId)
-		return nil, status.Errorf(codes.InvalidArgument, "invalid user_id: %v", err)
+		return nil, status.Error(
+			codes.InvalidArgument,
+			"invalid user id",
+		)
 	}
 
-	total, err := s.ledgerService.GetUserTotalDebit(ctx, userID)
+	total, err := s.ledgerService.GetUserTotalDebit(
+		ctx,
+		userID,
+	)
+
 	if err != nil {
-		log.Printf("Failed to get user total debit for user %s: %v", req.UserId, err)
-		return nil, status.Errorf(codes.Internal, "failed to get user total debit: %v", err)
+		return nil, status.Error(
+			codes.Internal,
+			err.Error(),
+		)
 	}
 
-	log.Printf("Successfully retrieved user total debit for user %s: %s", req.UserId, total.String())
 	return &finance.GetUserTotalResponse{
-		UserId:       req.UserId,
-		TotalCredit:  "0",
-		TotalDebit:   total.String(),
-		TotalBalance: "0",
+		UserId:     req.UserId,
+		TotalDebit: total.String(),
 	}, nil
 }
 
-func (s *server) GetUserTotalBalance(ctx context.Context, req *finance.GetUserTotalRequest) (*finance.GetUserTotalResponse, error) {
-	log.Printf("Getting user total balance for user: %s", req.UserId)
+func (s *server) GetUserTotalBalance(
+	ctx context.Context,
+	req *finance.GetUserTotalRequest,
+) (
+	*finance.GetUserTotalResponse,
+	error,
+) {
+
 	userID, err := uuid.Parse(req.UserId)
 	if err != nil {
-		log.Printf("Invalid user ID: %s", req.UserId)
-		return nil, status.Errorf(codes.InvalidArgument, "invalid user_id: %v", err)
+		return nil, status.Error(
+			codes.InvalidArgument,
+			"invalid user id",
+		)
 	}
 
-	total, err := s.ledgerService.GetUserTotalBalance(ctx, userID)
+	total, err := s.ledgerService.GetUserTotalBalance(
+		ctx,
+		userID,
+	)
+
 	if err != nil {
-		log.Printf("Failed to get user total balance for user %s: %v", req.UserId, err)
-		return nil, status.Errorf(codes.Internal, "failed to get user total balance: %v", err)
+		return nil, status.Error(
+			codes.Internal,
+			err.Error(),
+		)
 	}
 
-	log.Printf("Successfully retrieved user total balance for user %s: %s", req.UserId, total.String())
 	return &finance.GetUserTotalResponse{
 		UserId:       req.UserId,
-		TotalCredit:  "0",
-		TotalDebit:   "0",
 		TotalBalance: total.String(),
+	}, nil
+}
+func (s *server) RecordCreditCardTransaction(
+	ctx context.Context,
+	req *finance.RecordCreditCardTransactionRequest,
+) (
+	*finance.RecordCreditCardTransactionResponse,
+	error,
+) {
+
+	cardID, err :=
+		uuid.Parse(req.CardId)
+
+	if err != nil {
+		return nil, status.Error(
+			codes.InvalidArgument,
+			"invalid card id",
+		)
+	}
+
+	amount, err :=
+		decimal.NewFromString(
+			req.Amount,
+		)
+
+	if err != nil {
+		return nil, status.Error(
+			codes.InvalidArgument,
+			"invalid amount",
+		)
+	}
+
+	txID, err :=
+		s.creditService.RecordCreditCardTransaction(
+			ctx,
+			credit.CreditCardTransactionRequest{
+				CardID:       cardID,
+				Amount:       amount,
+				Description:  req.Description,
+				PurchaseDate: req.PurchaseDate.AsTime(),
+			},
+		)
+
+	if err != nil {
+		return nil, status.Error(
+			codes.Internal,
+			err.Error(),
+		)
+	}
+
+	return &finance.RecordCreditCardTransactionResponse{
+		TransactionId: txID.String(),
+	}, nil
+}
+
+func (s *server) PayCreditCardStatement(
+	ctx context.Context,
+	req *finance.PayCreditCardStatementRequest,
+) (
+	*finance.PayCreditCardStatementResponse,
+	error,
+) {
+
+	statementID, err :=
+		uuid.Parse(req.StatementId)
+
+	if err != nil {
+		return nil, status.Error(
+			codes.InvalidArgument,
+			"invalid statement id",
+		)
+	}
+
+	cardID, err :=
+		uuid.Parse(req.CardId)
+
+	if err != nil {
+		return nil, status.Error(
+			codes.InvalidArgument,
+			"invalid card id",
+		)
+	}
+
+	paymentAccountID, err :=
+		uuid.Parse(req.PaymentAccountId)
+
+	if err != nil {
+		return nil, status.Error(
+			codes.InvalidArgument,
+			"invalid payment account id",
+		)
+	}
+
+	amount, err :=
+		decimal.NewFromString(
+			req.Amount,
+		)
+
+	if err != nil {
+		return nil, status.Error(
+			codes.InvalidArgument,
+			"invalid amount",
+		)
+	}
+
+	txID, err :=
+		s.creditService.PayCreditCardStatement(
+			ctx,
+			credit.CreditCardPaymentRequest{
+				StatementID:      statementID,
+				CardID:           cardID,
+				PaymentAccountID: paymentAccountID,
+				Amount:           amount,
+				Description:      req.Description,
+			},
+		)
+
+	if err != nil {
+		return nil, status.Error(
+			codes.Internal,
+			err.Error(),
+		)
+	}
+
+	return &finance.PayCreditCardStatementResponse{
+		TransactionId: txID.String(),
 	}, nil
 }

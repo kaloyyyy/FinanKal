@@ -55,9 +55,43 @@ type CreditCardTransaction struct {
 	TransactionDate  time.Time
 }
 
+type CreditCardTransactionRequest struct {
+	CardID           uuid.UUID
+	ExpenseAccountID uuid.UUID
+	Amount           decimal.Decimal
+	Description      string
+	PurchaseDate     time.Time
+}
+
 type BillingCycle struct {
 	CycleStartDate time.Time
 	CycleEndDate   time.Time
 	StatementDate  time.Time
 	DueDate        time.Time
+}
+
+type CreditCardPayment struct {
+	ID            uuid.UUID
+	CreditCardID  uuid.UUID
+	BankAccountID uuid.UUID
+	Amount        decimal.Decimal
+	TransactionID uuid.UUID
+	PaymentDate   time.Time
+	CreatedAt     time.Time
+}
+
+type CreditCardPaymentRequest struct {
+	CardID           uuid.UUID
+	StatementID      uuid.UUID
+	PaymentAccountID uuid.UUID // cash/bank account
+	Amount           decimal.Decimal
+	Description      string
+	PaymentDate      time.Time
+}
+
+type CreditCardBalance struct {
+	CreditCardID    uuid.UUID
+	CreditLimit     decimal.Decimal
+	UsedCredit      decimal.Decimal
+	AvailableCredit decimal.Decimal
 }

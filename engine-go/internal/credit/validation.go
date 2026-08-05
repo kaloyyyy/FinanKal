@@ -39,7 +39,7 @@ func (s *Service) ValidateCreditCardTransaction(
 		return ErrCreditCardNotFound
 	}
 
-	if accountType != string(ledger.CREDIT_CARD) {
+	if accountType != ledger.CREDIT_CARD {
 		return ErrInvalidCreditAccount
 	}
 
@@ -55,7 +55,7 @@ func (s *Service) ValidateCreditCardTransaction(
 		return ErrInvalidExpenseAccount
 	}
 
-	if expenseType != string(ledger.EXPENSE) {
+	if expenseType != ledger.EXPENSE {
 		return ErrInvalidExpenseAccount
 	}
 

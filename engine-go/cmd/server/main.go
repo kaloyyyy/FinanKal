@@ -9,6 +9,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/kaloy/finankal/engine-go/finance"
 	"github.com/kaloy/finankal/engine-go/internal/cache"
+	"github.com/kaloy/finankal/engine-go/internal/credit"
 	"github.com/kaloy/finankal/engine-go/internal/db"
 	"github.com/kaloy/finankal/engine-go/internal/ledger"
 	"google.golang.org/grpc"
@@ -16,41 +17,74 @@ import (
 )
 
 func main() {
+
 	loadEnvFromRepoRoot()
+
+	// =====================
+	// Database
+	// =====================
 
 	dbConn, err := db.NewDB()
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("✓ Connected to PostgreSQL database")
+
+	log.Println("✓ Connected to PostgreSQL")
+
+	// =====================
+	// Redis
+	// =====================
 
 	redisClient := cache.NewRedis()
 
 	if err := redisClient.Ping(cache.Ctx).Err(); err != nil {
-		log.Fatalf("✗ Failed to connect to Redis: %v", err)
+		log.Fatalf("Redis connection failed: %v", err)
 	}
-	log.Println("✓ Connected to Redis cache")
 
-	repo := ledger.NewLedgerRepository(dbConn)
-	ledgerService := ledger.NewService(repo, redisClient)
+	log.Println("✓ Connected to Redis")
 
-	financeServer := NewServer(ledgerService)
-	log.Println("✓ Initialized Finance Server")
+	// =====================
+	// Ledger Module
+	// =====================
+
+	ledgerRepo := ledger.NewLedgerRepository(dbConn)
+
+	ledgerService := ledger.NewService(ledgerRepo, redisClient)
+
+	// =====================
+	// Credit Card Module
+	// =====================
+
+	cardRepo := credit.NewCardRepository(dbConn)
+
+	statementRepo := credit.NewStatementRepository(dbConn)
+
+	entryRepo := credit.NewEntryRepository(dbConn)
+
+	creditService := credit.NewService(dbConn, cardRepo, ledgerRepo, statementRepo, entryRepo, redisClient)
+
+	// =====================
+	// gRPC Server
+	// =====================
+
+	server := NewServer(ledgerService, creditService)
 
 	lis, err := net.Listen("tcp", ":50051")
+
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		log.Fatal(err)
 	}
-	log.Println("✓ TCP listener initialized on :50051")
 
-	s := grpc.NewServer()
-	finance.RegisterFinanceEngineServer(s, financeServer)
-	reflection.Register(s)
-	log.Println("✓ gRPC server configured with Finance Engine and reflection enabled")
+	grpcServer := grpc.NewServer()
 
-	log.Println("gRPC server listening on :50051")
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+	finance.RegisterFinanceEngineServer(grpcServer, server)
+
+	reflection.Register(grpcServer)
+
+	log.Println("✓ Finance Engine running :50051")
+
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatal(err)
 	}
 }
 

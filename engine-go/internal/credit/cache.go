@@ -3,6 +3,7 @@ package credit
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -150,4 +151,36 @@ func (s *Service) SetUserCreditCardsCache(
 		data,
 		creditCardCacheTTL,
 	).Err()
+}
+
+func (s *Service) InvalidateCreditCardTransactionCache(
+	ctx context.Context,
+	cardAccountID uuid.UUID,
+	expenseAccountID uuid.UUID,
+	userID uuid.UUID,
+) {
+
+	if s.redis == nil {
+		return
+	}
+
+	keys := []string{
+		fmt.Sprintf("balance:%s", cardAccountID),
+		fmt.Sprintf("balance:%s", expenseAccountID),
+
+		fmt.Sprintf("account_summary:%s", cardAccountID),
+		fmt.Sprintf("account_summary:%s", expenseAccountID),
+
+		fmt.Sprintf("ledger_entries:%s", cardAccountID),
+		fmt.Sprintf("ledger_entries:%s", expenseAccountID),
+
+		fmt.Sprintf("user_total_credit:%s", userID),
+		fmt.Sprintf("user_total_debit:%s", userID),
+		fmt.Sprintf("user_total_balance:%s", userID),
+	}
+
+	s.redis.Del(
+		ctx,
+		keys...,
+	)
 }

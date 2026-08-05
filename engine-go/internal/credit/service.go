@@ -5,6 +5,8 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kaloy/finankal/engine-go/internal/ledger"
 	"github.com/redis/go-redis/v9"
 	"github.com/shopspring/decimal"
@@ -16,12 +18,20 @@ type Service struct {
 	entryRepo     *EntryRepository
 	ledgerRepo    *ledger.LedgerRepository
 	redis         *redis.Client
+	db            *pgxpool.Pool
 }
 
 func NewService(
-	cardRepo *CardRepository, ledgerRepo *ledger.LedgerRepository, statementRepo *StatementRepository, entryRepo *EntryRepository, redis *redis.Client,
+	db *pgxpool.Pool,
+	cardRepo *CardRepository,
+	ledgerRepo *ledger.LedgerRepository,
+	statementRepo *StatementRepository,
+	entryRepo *EntryRepository,
+	redis *redis.Client,
 ) *Service {
+
 	return &Service{
+		db:            db,
 		cardRepo:      cardRepo,
 		ledgerRepo:    ledgerRepo,
 		statementRepo: statementRepo,
@@ -50,7 +60,7 @@ func (s *Service) CreateCreditCard(
 		return uuid.Nil, err
 	}
 
-	if accountType != "CREDIT_CARD" {
+	if accountType != ledger.CREDIT_CARD {
 		return uuid.Nil, errors.New("account is not a credit card account")
 	}
 
@@ -78,12 +88,12 @@ func (s *Service) CreateCreditCard(
 		return uuid.Nil, err
 	}
 
-	s.InvalidateUserCreditCardsCache(
+	_ = s.InvalidateUserCreditCardsCache(
 		ctx,
 		userID,
 	)
 
-	s.InvalidateCreditCardCache(
+	_ = s.InvalidateCreditCardCache(
 		ctx,
 		cardID,
 	)
@@ -254,4 +264,26 @@ func (s *Service) DeleteCreditCard(
 		cardID,
 	)
 	return nil
+}
+
+func (r *StatementRepository) UpdateStatementStatusTx(
+	ctx context.Context,
+	tx pgx.Tx,
+	statementID uuid.UUID,
+	status StatementStatus,
+) error {
+
+	_, err := tx.Exec(
+		ctx,
+		`
+		UPDATE credit_card_statements
+		SET status=$2,
+		    updated_at=NOW()
+		WHERE id=$1
+		`,
+		statementID,
+		status,
+	)
+
+	return err
 }

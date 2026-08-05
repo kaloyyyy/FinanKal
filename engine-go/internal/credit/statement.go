@@ -121,3 +121,60 @@ func (s *Service) IncrementStatementTotal(
 		amount,
 	)
 }
+func (s *Service) ClosePaidStatements(
+	ctx context.Context,
+) error {
+
+	statements, err :=
+		s.statementRepo.GetPaidStatementsToClose(
+			ctx,
+		)
+
+	if err != nil {
+		return err
+	}
+
+	for _, statement := range statements {
+
+		err :=
+			s.statementRepo.UpdateStatementStatus(
+				ctx,
+				statement.ID,
+				StatementClosed,
+			)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+func (s *Service) GetCurrentStatement(
+	ctx context.Context,
+	cardID uuid.UUID,
+) (*CreditCardStatement, error) {
+
+	return s.statementRepo.GetOpenStatement(
+		ctx,
+		cardID,
+	)
+}
+
+func (s *Service) GetOutstandingBalance(
+	ctx context.Context,
+	cardID uuid.UUID,
+) (decimal.Decimal, error) {
+
+	statement, err :=
+		s.statementRepo.GetOpenStatement(
+			ctx,
+			cardID,
+		)
+
+	if err != nil {
+		return decimal.Zero, err
+	}
+
+	return statement.TotalAmount, nil
+}

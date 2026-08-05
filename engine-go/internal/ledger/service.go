@@ -40,7 +40,7 @@ func (s *Service) CreateTransaction(ctx context.Context, description string, ent
 	}
 
 	for _, e := range entries {
-		err := s.repo.InsertEntry(ctx, txID, e.AccountID, e.Amount, string(e.Type))
+		_, err := s.repo.InsertEntry(ctx, txID, e.AccountID, e.Amount, e.Type)
 		if err != nil {
 			return uuid.UUID{}, err
 		}

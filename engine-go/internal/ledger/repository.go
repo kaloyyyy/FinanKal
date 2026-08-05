@@ -34,22 +34,37 @@ func (r *LedgerRepository) InsertEntry(
 	txID uuid.UUID,
 	accountID uuid.UUID,
 	amount decimal.Decimal,
-	entryType string,
+	entryType EntryType,
 ) (uuid.UUID, error) {
 
-	var entryID uuid.UUID
+	var id uuid.UUID
 
-	err := r.db.QueryRow(ctx,
-		`INSERT INTO entries (transaction_id, account_id, amount, type)
-		 VALUES ($1, $2, $3, $4)
-		 RETURNING id`,
+	const query = `
+INSERT INTO entries (
+	transaction_id,
+	account_id,
+	amount,
+	type
+)
+VALUES (
+	$1,
+	$2,
+	$3,
+	$4
+)
+RETURNING id
+`
+
+	err := r.db.QueryRow(
+		ctx,
+		query,
 		txID,
 		accountID,
 		amount,
 		entryType,
-	).Scan(&entryID)
+	).Scan(&id)
 
-	return entryID, err
+	return id, err
 }
 
 func (r *LedgerRepository) GetBalance(ctx context.Context, accountID uuid.UUID) (decimal.Decimal, error) {
@@ -66,9 +81,9 @@ func (r *LedgerRepository) GetBalance(ctx context.Context, accountID uuid.UUID) 
 	return balance, err
 }
 
-func (r *LedgerRepository) GetAccount(ctx context.Context, accountID uuid.UUID) (string, string, time.Time, error) {
-	var name, accountType string
-
+func (r *LedgerRepository) GetAccount(ctx context.Context, accountID uuid.UUID) (string, AccountType, time.Time, error) {
+	var name string
+	var accountType AccountType
 	var createAt time.Time
 	err := r.db.QueryRow(ctx,
 		`SELECT name, type, created_at FROM accounts WHERE id = $1`,

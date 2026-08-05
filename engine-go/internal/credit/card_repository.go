@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kaloy/finankal/engine-go/internal/ledger"
 	"github.com/shopspring/decimal"
 )
 
@@ -203,9 +204,9 @@ func (r *CardRepository) GetCreditCardByAccount(
 func (r *CardRepository) GetAccountType(
 	ctx context.Context,
 	accountID uuid.UUID,
-) (string, error) {
+) (ledger.AccountType, error) {
 
-	var accountType string
+	var accountType ledger.AccountType
 
 	err := r.db.QueryRow(ctx,
 		`SELECT type FROM accounts WHERE id = $1`,

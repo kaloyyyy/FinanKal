@@ -2,47 +2,36 @@ package credit
 
 import (
 	"context"
-	"time"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/kaloy/finankal/engine-go/internal/ledger"
 	"github.com/shopspring/decimal"
 )
 
-type CreditCardTransactionRequest struct {
-	UserID           uuid.UUID
-	CreditCardID     uuid.UUID
-	ExpenseAccountID uuid.UUID
-	Amount           decimal.Decimal
-	Description      string
-	PurchaseDate     time.Time
-}
-
 func (s *Service) RecordCreditCardTransaction(
 	ctx context.Context,
 	request CreditCardTransactionRequest,
 ) (uuid.UUID, error) {
 
-	tx, err := s.ledgerRepo.BeginTx(ctx)
-
-	if err != nil {
-		return uuid.Nil, err
+	if request.Amount.LessThanOrEqual(decimal.Zero) {
+		return uuid.Nil, errors.New(
+			"amount must be greater than zero",
+		)
 	}
 
-	defer func() {
-		if err != nil {
-			tx.Rollback(ctx)
-		}
-	}()
+	// Get credit card
 
 	card, err := s.cardRepo.GetCreditCard(
 		ctx,
-		request.CreditCardID,
+		request.CardID,
 	)
 
 	if err != nil {
 		return uuid.Nil, err
 	}
+
+	// Validate transaction
 
 	err = s.ValidateCreditCardTransaction(
 		ctx,
@@ -54,27 +43,94 @@ func (s *Service) RecordCreditCardTransaction(
 		return uuid.Nil, err
 	}
 
-	statement, err := s.GetOrCreateStatement(
-		ctx,
-		*card,
-		request.PurchaseDate,
-	)
+	// Begin database transaction
+
+	tx, err := s.ledgerRepo.BeginTx(ctx)
 
 	if err != nil {
 		return uuid.Nil, err
 	}
 
+	defer tx.Rollback(ctx)
+
+	// Calculate billing cycle
+
+	cycle := CalculateBillingCycle(
+		request.PurchaseDate,
+		*card,
+	)
+
+	// Find existing statement
+
+	statement, err :=
+		s.statementRepo.FindStatementByCycleTx(
+			ctx,
+			tx,
+			request.CardID,
+			cycle,
+		)
+	// Create statement if missing
+
+	if err != nil {
+
+		statementID, err :=
+			s.statementRepo.CreateStatementTx(
+				ctx,
+				tx,
+				CreditCardStatement{
+					CreditCardID:  request.CardID,
+					StartDate:     cycle.CycleStartDate,
+					EndDate:       cycle.CycleEndDate,
+					StatementDate: cycle.StatementDate,
+					DueDate:       cycle.DueDate,
+					TotalAmount:   decimal.Zero,
+					Status:        StatementOpen,
+				},
+			)
+
+		if err != nil {
+			return uuid.Nil, err
+		}
+
+		statement, err =
+			s.statementRepo.GetStatementTx(
+				ctx,
+				tx,
+				statementID,
+			)
+
+		if err != nil {
+			return uuid.Nil, err
+		}
+	}
+
+	// Get owner
+
+	userID, err :=
+		s.ledgerRepo.GetUserIDFromAccount(
+			ctx,
+			card.AccountID,
+		)
+
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	// Create ledger transaction
+
 	transactionID, err :=
 		s.ledgerRepo.CreateTransactionTx(
 			ctx,
 			tx,
-			request.UserID,
+			userID,
 			request.Description,
 		)
 
 	if err != nil {
 		return uuid.Nil, err
 	}
+
+	// Debit expense
 
 	_, err =
 		s.ledgerRepo.InsertEntryTx(
@@ -90,7 +146,9 @@ func (s *Service) RecordCreditCardTransaction(
 		return uuid.Nil, err
 	}
 
-	creditEntryID, err :=
+	// Credit credit card liability
+
+	cardEntryID, err :=
 		s.ledgerRepo.InsertEntryTx(
 			ctx,
 			tx,
@@ -104,17 +162,21 @@ func (s *Service) RecordCreditCardTransaction(
 		return uuid.Nil, err
 	}
 
+	// Attach entry to statement
+
 	_, err =
 		s.entryRepo.CreateEntryMappingTx(
 			ctx,
 			tx,
 			statement.ID,
-			creditEntryID,
+			cardEntryID,
 		)
 
 	if err != nil {
 		return uuid.Nil, err
 	}
+
+	// Update statement total
 
 	err =
 		s.statementRepo.IncrementStatementTotalTx(
@@ -128,16 +190,24 @@ func (s *Service) RecordCreditCardTransaction(
 		return uuid.Nil, err
 	}
 
+	// Commit transaction
+
 	err = tx.Commit(ctx)
 
 	if err != nil {
 		return uuid.Nil, err
 	}
 
-	s.InvalidateUserCreditCardsCache(
-		ctx,
-		request.UserID,
-	)
+	// Redis invalidation
+
+	if s.redis != nil {
+		s.InvalidateCreditCardTransactionCache(
+			ctx,
+			card.AccountID,
+			request.ExpenseAccountID,
+			userID,
+		)
+	}
 
 	return transactionID, nil
 }
