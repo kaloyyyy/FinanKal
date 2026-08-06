@@ -89,6 +89,13 @@ func main() {
 }
 
 func loadEnvFromRepoRoot() {
+	// If Docker Compose already provided environment variables,
+	// don't bother looking for a .env file.
+	if os.Getenv("DATABASE_URL") != "" {
+		log.Println("Environment variables already provided. Skipping .env loading.")
+		return
+	}
+
 	dir, err := os.Getwd()
 	if err != nil {
 		log.Println("Failed to get working directory:", err)
@@ -99,9 +106,9 @@ func loadEnvFromRepoRoot() {
 		envPath := filepath.Join(dir, ".env")
 		if _, err := os.Stat(envPath); err == nil {
 			if err := godotenv.Load(envPath); err != nil {
-				log.Println("Failed to load .env:", err)
+				log.Printf("Failed to load .env from %s: %v", envPath, err)
 			} else {
-				log.Println(".env loaded from:", envPath)
+				log.Printf("Loaded .env from %s", envPath)
 			}
 			return
 		}
@@ -112,4 +119,6 @@ func loadEnvFromRepoRoot() {
 		}
 		dir = parent
 	}
+
+	log.Println("No .env file found. Using existing environment variables.")
 }

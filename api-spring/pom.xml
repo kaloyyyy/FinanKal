@@ -142,20 +142,31 @@
                 </executions>
             </plugin>
 
-            <!-- Protobuf Maven Plugin for gRPC -->
+            <!-- Protobuf Maven Plugin -->
             <plugin>
                 <groupId>org.xolstice.maven.plugins</groupId>
                 <artifactId>protobuf-maven-plugin</artifactId>
                 <version>0.6.1</version>
+
                 <configuration>
                     <protoSourceRoot>${project.basedir}/../proto</protoSourceRoot>
-                    <outputDirectory>${project.build.directory}/generated-sources/protobuf/java</outputDirectory>
+
+                    <protocArtifact>
+                        com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}
+                    </protocArtifact>
+
+                    <pluginId>grpc-java</pluginId>
+
+                    <pluginArtifact>
+                        io.grpc:protoc-gen-grpc-java:${grpc.version}:exe:${os.detected.classifier}
+                    </pluginArtifact>
                 </configuration>
+
                 <executions>
                     <execution>
-                        <id>protobuf-compile</id>
                         <goals>
                             <goal>compile</goal>
+                            <goal>compile-custom</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -177,37 +188,14 @@
                         <configuration>
                             <sources>
                                 <source>${project.build.directory}/generated-sources/protobuf/java</source>
+                                <source>${project.build.directory}/generated-sources/protobuf/grpc-java</source>
                                 <source>${project.build.directory}/generated-sources/openapi/src/main/java</source>
                             </sources>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
-
-            <!-- Exec plugin to generate gRPC -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.1.0</version>
-                <executions>
-                    <execution>
-                        <id>generate-grpc</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>protoc</executable>
-                            <arguments>
-                                <argument>--plugin=protoc-gen-grpc-java=${project.basedir}/bin/protoc-gen-grpc-java</argument>
-                                <argument>--grpc-java_out=${project.build.directory}/generated-sources/protobuf/java</argument>
-                                <argument>--proto_path=${project.basedir}/../proto</argument>
-                                <argument>${project.basedir}/../proto/finance.proto</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+            
 
             <!-- OpenAPI Generator Plugin -->
             <plugin>

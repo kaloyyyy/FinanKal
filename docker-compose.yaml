@@ -10,32 +10,33 @@ services:
       context: ./engine-go
       dockerfile: Dockerfile
     container_name: finance_go_engine
-    restart: always
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
+    restart: no
+    env_file:
+      - ./.env.docker
     ports:
       - "50051:50051"
     depends_on:
       - postgres
-
+      - redis
   # =========================
   # Spring Boot API Service
   # =========================
   api-spring:
     build:
-      context: ./api-spring
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: api-spring/Dockerfile
     container_name: finance_api_spring
-    restart: always
+    restart: no
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_PROFILES_ACTIVE: docker
     ports:
       - "8080:8080"
     depends_on:
       - postgres
-
+      - go-engine
   # =========================
   # Postgres Database
   # =========================

@@ -140,15 +140,8 @@ func (s *Service) RecordCreditCardTransaction(
 	}
 
 	// Credit credit card liability
-	cardEntryID, err :=
-		s.ledgerRepo.InsertEntryTx(
-			ctx,
-			tx,
-			transactionID,
-			card.AccountID,
-			request.Amount,
-			ledger.CREDIT,
-		)
+	cardEntryID, err := s.ledgerRepo.InsertEntryTx(ctx, tx, transactionID, card.AccountID, request.Amount,
+		ledger.CREDIT)
 
 	if err != nil {
 		return uuid.Nil, err
