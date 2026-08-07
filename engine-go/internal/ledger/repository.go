@@ -166,27 +166,7 @@ func (r *LedgerRepository) GetUserIDFromAccount(ctx context.Context, accountID u
 	return userID, err
 }
 
-func (r *LedgerRepository) GetUserTotalCredit(ctx context.Context, userID uuid.UUID) (decimal.Decimal, error) {
-	var total decimal.Decimal
-	err := r.db.QueryRow(ctx, `
-		SELECT COALESCE(SUM(amount), 0) FROM entries e
-		JOIN accounts a ON e.account_id = a.id
-		WHERE a.user_id = $1 AND e.type = 'CREDIT'
-	`, userID).Scan(&total)
-	return total, err
-}
-
-func (r *LedgerRepository) GetUserTotalDebit(ctx context.Context, userID uuid.UUID) (decimal.Decimal, error) {
-	var total decimal.Decimal
-	err := r.db.QueryRow(ctx, `
-		SELECT COALESCE(SUM(amount), 0) FROM entries e
-		JOIN accounts a ON e.account_id = a.id
-		WHERE a.user_id = $1 AND e.type = 'DEBIT'
-	`, userID).Scan(&total)
-	return total, err
-}
-
-func (r *LedgerRepository) GetUserTotalBalance(
+func (r *LedgerRepository) GetUserTotalCredit(
 	ctx context.Context,
 	userID uuid.UUID,
 ) (decimal.Decimal, error) {
@@ -199,16 +179,99 @@ func (r *LedgerRepository) GetUserTotalBalance(
 		SELECT COALESCE(
 			SUM(
 				CASE
-					WHEN a.type IN ('ASSET', 'EXPENSE', 'CLEARING') THEN
-						CASE
-							WHEN e.type = 'DEBIT' THEN e.amount
-							ELSE -e.amount
-						END
+					WHEN e.type = 'CREDIT'
+						THEN e.amount
 					ELSE
+						-e.amount
+				END
+			),
+			0
+		)
+		FROM entries e
+		JOIN accounts a
+			ON a.id = e.account_id
+		WHERE a.user_id = $1
+		AND a.type IN (
+			'LIABILITY',
+			'CREDIT_CARD'
+		)
+		`,
+		userID,
+	).Scan(&total)
+
+	return total, err
+}
+
+func (r *LedgerRepository) GetUserTotalDebit(
+	ctx context.Context,
+	userID uuid.UUID,
+) (decimal.Decimal, error) {
+
+	var total decimal.Decimal
+
+	err := r.db.QueryRow(
+		ctx,
+		`
+		SELECT COALESCE(
+			SUM(
+				CASE
+					WHEN e.type = 'DEBIT'
+						THEN e.amount
+					ELSE
+						-e.amount
+				END
+			),
+			0
+		)
+		FROM entries e
+		JOIN accounts a
+			ON a.id = e.account_id
+		WHERE a.user_id = $1
+		AND a.type = 'ASSET'
+		`,
+		userID,
+	).Scan(&total)
+
+	return total, err
+}
+
+func (r *LedgerRepository) GetUserNetWorth(
+	ctx context.Context,
+	userID uuid.UUID,
+) (decimal.Decimal, error) {
+
+	var total decimal.Decimal
+
+	err := r.db.QueryRow(
+		ctx,
+		`
+		SELECT COALESCE(
+			SUM(
+				CASE
+
+					-- Assets
+					WHEN a.type = 'ASSET' THEN
 						CASE
-							WHEN e.type = 'CREDIT' THEN e.amount
-							ELSE -e.amount
+							WHEN e.type = 'DEBIT'
+								THEN e.amount
+							ELSE
+								-e.amount
 						END
+
+					-- Liabilities
+					WHEN a.type IN (
+						'LIABILITY',
+						'CREDIT_CARD'
+					) THEN
+						CASE
+							WHEN e.type = 'CREDIT'
+								THEN -e.amount
+							ELSE
+								e.amount
+						END
+
+					ELSE 0
+
 				END
 			),
 			0
@@ -287,4 +350,68 @@ func (r *LedgerRepository) InsertEntryTx(
 	).Scan(&entryID)
 
 	return entryID, err
+}
+
+func (r *LedgerRepository) GetUserAccounts(
+	ctx context.Context,
+	userID uuid.UUID,
+) ([]Account, error) {
+
+	rows, err := r.db.Query(ctx, `
+		SELECT
+			a.id,
+			a.user_id,
+			a.name,
+			a.type,
+			a.created_at,
+			COALESCE(
+				SUM(
+					CASE
+						WHEN e.type = 'DEBIT' THEN e.amount
+						ELSE -e.amount
+					END
+				),
+				0
+			) AS balance
+		FROM accounts a
+		LEFT JOIN entries e
+			ON e.account_id = a.id
+		WHERE a.user_id = $1
+		GROUP BY
+			a.id,
+			a.user_id,
+			a.name,
+			a.type,
+			a.created_at;
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var accounts []Account
+
+	for rows.Next() {
+		var account Account
+
+		err := rows.Scan(
+			&account.ID,
+			&account.UserID,
+			&account.Name,
+			&account.Type,
+			&account.CreatedAt,
+			&account.Balance,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		accounts = append(accounts, account)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return accounts, nil
 }

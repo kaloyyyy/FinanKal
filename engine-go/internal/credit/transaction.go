@@ -3,9 +3,11 @@ package credit
 import (
 	"context"
 	"errors"
+	"log"
 
 	"github.com/google/uuid"
 	"github.com/kaloy/finankal/engine-go/internal/cache"
+	"github.com/kaloy/finankal/engine-go/internal/db"
 	"github.com/kaloy/finankal/engine-go/internal/ledger"
 	"github.com/shopspring/decimal"
 )
@@ -20,14 +22,17 @@ func (s *Service) RecordCreditCardTransaction(
 			"amount must be greater than zero",
 		)
 	}
-
+	log.Default().Println("Recording credit card transaction...")
+	log.Default().Println("Request:", request)
 	// Get credit card
 	card, err := s.cardRepo.GetCreditCard(
 		ctx,
 		request.CardID,
 	)
 
+	log.Default().Println("Credit card:", card)
 	if err != nil {
+		db.LogPgError(err)
 		return uuid.Nil, err
 	}
 
@@ -39,6 +44,7 @@ func (s *Service) RecordCreditCardTransaction(
 	)
 
 	if err != nil {
+		db.LogPgError(err)
 		return uuid.Nil, err
 	}
 
@@ -46,6 +52,7 @@ func (s *Service) RecordCreditCardTransaction(
 	tx, err := s.ledgerRepo.BeginTx(ctx)
 
 	if err != nil {
+		db.LogPgError(err)
 		return uuid.Nil, err
 	}
 
@@ -74,7 +81,7 @@ func (s *Service) RecordCreditCardTransaction(
 				ctx,
 				tx,
 				CreditCardStatement{
-					CreditCardID:  request.CardID,
+					CardID:        request.CardID,
 					StartDate:     cycle.CycleStartDate,
 					EndDate:       cycle.CycleEndDate,
 					StatementDate: cycle.StatementDate,
@@ -83,8 +90,9 @@ func (s *Service) RecordCreditCardTransaction(
 					Status:        StatementOpen,
 				},
 			)
-
 		if err != nil {
+			log.Printf("CreateStatementTx error: %#v", err)
+			log.Printf("CreateStatementTx error: %v", err)
 			return uuid.Nil, err
 		}
 
@@ -94,8 +102,9 @@ func (s *Service) RecordCreditCardTransaction(
 				tx,
 				statementID,
 			)
-
+		log.Default().Println("Created new statement:", statement)
 		if err != nil {
+			db.LogPgError(err)
 			return uuid.Nil, err
 		}
 	}
@@ -104,13 +113,14 @@ func (s *Service) RecordCreditCardTransaction(
 	userID, err :=
 		s.ledgerRepo.GetUserIDFromAccount(
 			ctx,
-			card.ID,
+			card.CardID,
 		)
 
 	if err != nil {
+		db.LogPgError(err)
 		return uuid.Nil, err
 	}
-
+	log.Default().Println("User:", userID)
 	// Create ledger transaction
 	transactionID, err :=
 		s.ledgerRepo.CreateTransactionTx(
@@ -121,10 +131,13 @@ func (s *Service) RecordCreditCardTransaction(
 		)
 
 	if err != nil {
+		log.Default().Println("Error creating transaction:", err)
+		db.LogPgError(err)
 		return uuid.Nil, err
 	}
 
 	// Debit expense
+	log.Default().Println("Creating debit entry...")
 	_, err =
 		s.ledgerRepo.InsertEntryTx(
 			ctx,
@@ -136,30 +149,34 @@ func (s *Service) RecordCreditCardTransaction(
 		)
 
 	if err != nil {
+		db.LogPgError(err)
 		return uuid.Nil, err
 	}
 
 	// Credit credit card liability
-	cardEntryID, err := s.ledgerRepo.InsertEntryTx(ctx, tx, transactionID, card.ID, request.Amount,
+	cardEntryID, err := s.ledgerRepo.InsertEntryTx(ctx, tx, transactionID, card.CardID, request.Amount,
 		ledger.CREDIT)
 
 	if err != nil {
+		db.LogPgError(err)
 		return uuid.Nil, err
 	}
 
 	// Attach entry to statement
-	_, err =
-		s.entryRepo.CreateEntryMappingTx(
-			ctx,
-			tx,
-			statement.ID,
-			cardEntryID,
-		)
+	log.Default().Println("Creating entry mapping...")
+	err = s.entryRepo.CreateEntryMappingTx(
+		ctx,
+		tx,
+		statement.ID,
+		cardEntryID,
+	)
 
 	if err != nil {
+		db.LogPgError(err)
 		return uuid.Nil, err
 	}
 
+	log.Default().Println("Incrementing Statement Total...")
 	// Update statement total
 	err =
 		s.statementRepo.IncrementStatementTotalTx(
@@ -170,13 +187,16 @@ func (s *Service) RecordCreditCardTransaction(
 		)
 
 	if err != nil {
+		db.LogPgError(err)
 		return uuid.Nil, err
 	}
 
+	log.Default().Println("Committing transaction...")
 	// Commit transaction
 	err = tx.Commit(ctx)
 
 	if err != nil {
+		db.LogPgError(err)
 		return uuid.Nil, err
 	}
 
@@ -185,7 +205,7 @@ func (s *Service) RecordCreditCardTransaction(
 		ctx,
 		s.redis,
 		userID,
-		card.ID,
+		card.CardID,
 		card.ClearingAccountId,
 	)
 

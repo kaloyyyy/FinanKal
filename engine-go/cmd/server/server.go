@@ -9,6 +9,7 @@ import (
 	"github.com/kaloy/finankal/engine-go/internal/credit"
 	"github.com/kaloy/finankal/engine-go/internal/ledger"
 	"github.com/shopspring/decimal"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -168,13 +169,48 @@ func (s *server) GetAccountSummary(ctx context.Context, req *finance.GetAccountS
 	}
 
 	return &finance.GetAccountSummaryResponse{
-		AccountId: summary.AccountID.String(),
-		Name:      summary.Name,
-		Type:      string(summary.Type),
-		Balance:   summary.Balance.String(),
-		CreatedAt: summary.CreatedAt.Format(time.RFC3339),
+		Account: &finance.Account{
+			Id:        summary.AccountID.String(),
+			Name:      summary.Name,
+			Type:      string(summary.Type),
+			Balance:   summary.Balance.String(),
+			CreatedAt: timestamppb.New(summary.CreatedAt),
+		},
 	}, nil
 }
+
+func (s *server) GetUserAccounts(
+	ctx context.Context,
+	req *finance.GetUserAccountsRequest,
+) (*finance.GetUserAccountsResponse, error) {
+
+	userID, err := uuid.Parse(req.GetUserId())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid user id")
+	}
+
+	accounts, err := s.ledgerService.GetUserAccounts(ctx, userID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	resp := &finance.GetUserAccountsResponse{
+		Accounts: make([]*finance.Account, 0, len(accounts)),
+	}
+
+	for _, account := range accounts {
+		resp.Accounts = append(resp.Accounts, &finance.Account{
+			Id:        account.ID.String(),
+			Name:      account.Name,
+			Type:      string(account.Type),
+			Balance:   account.Balance.String(), // use InexactFloat64() if proto uses double
+			CreatedAt: timestamppb.New(account.CreatedAt),
+		})
+	}
+
+	return resp, nil
+}
+
 func (s *server) GetLedgerEntries(ctx context.Context, req *finance.GetLedgerEntriesRequest) (*finance.GetLedgerEntriesResponse, error) {
 
 	accountID, err := uuid.Parse(req.AccountId)
@@ -243,14 +279,14 @@ func (s *server) GetUserTotalDebit(ctx context.Context, req *finance.GetUserTota
 	}, nil
 }
 
-func (s *server) GetUserTotalBalance(ctx context.Context, req *finance.GetUserTotalRequest) (*finance.GetUserTotalResponse, error) {
+func (s *server) GetUserNetWorth(ctx context.Context, req *finance.GetUserTotalRequest) (*finance.GetUserTotalResponse, error) {
 
 	userID, err := uuid.Parse(req.UserId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user id")
 	}
 
-	total, err := s.ledgerService.GetUserTotalBalance(ctx, userID)
+	total, err := s.ledgerService.GetUserNetWorth(ctx, userID)
 
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())

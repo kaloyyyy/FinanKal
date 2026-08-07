@@ -2,8 +2,10 @@ package ledger
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/kaloy/finankal/engine-go/internal/cache"
@@ -64,6 +66,46 @@ func (s *Service) CreateTransaction(ctx context.Context, description string, ent
 	)
 
 	return txID, nil
+}
+
+func (s *Service) GetUserAccounts(
+	ctx context.Context,
+	userID uuid.UUID,
+) ([]Account, error) {
+	log.Default().Println("GetUserAccounts called for userID:", userID)
+	cacheKey := fmt.Sprintf("user:%s:accounts", userID)
+
+	// Try Redis
+	if data, err := s.redis.Get(ctx, cacheKey).Result(); err == nil {
+		var accounts []Account
+		if err := json.Unmarshal([]byte(data), &accounts); err == nil {
+			// log.Default().Println("GetUserAccounts unmarshalled from redis:", data)
+			return accounts, nil
+		}
+	}
+
+	// Cache miss
+	//log.Default().Println("GetUserAccounts from postgres:", userID)
+	accounts, err := s.repo.GetUserAccounts(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Store in Redis (ignore cache errors)
+	if bytes, err := json.Marshal(accounts); err == nil {
+		_ = s.redis.Set(ctx, cacheKey, bytes, 5*time.Minute).Err()
+		//log.Default().Println("GetUserAccounts from redis:", userID)
+	}
+
+	for _, account := range accounts {
+		log.Printf(
+			"%s = %s",
+			account.Name,
+			account.Balance.String(),
+		)
+	}
+
+	return accounts, nil
 }
 
 func (s *Service) GetBalance(
@@ -305,12 +347,12 @@ func (s *Service) GetUserTotalDebit(
 	return total, nil
 }
 
-func (s *Service) GetUserTotalBalance(
+func (s *Service) GetUserNetWorth(
 	ctx context.Context,
 	userID uuid.UUID,
 ) (decimal.Decimal, error) {
 
-	key := cache.UserTotalBalanceKey(userID)
+	key := cache.UserNetWorthKey(userID)
 
 	value, err :=
 		cache.Get[string](
@@ -324,7 +366,7 @@ func (s *Service) GetUserTotalBalance(
 	}
 
 	total, err :=
-		s.repo.GetUserTotalBalance(
+		s.repo.GetUserNetWorth(
 			ctx,
 			userID,
 		)

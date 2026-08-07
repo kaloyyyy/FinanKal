@@ -23,6 +23,7 @@ func NewCardRepository(db *pgxpool.Pool) *CardRepository {
 func (r *CardRepository) CreateCreditCard(
 	ctx context.Context,
 	accountID uuid.UUID,
+	clearingAccountID uuid.UUID,
 	creditLimit decimal.Decimal,
 	billingDay int,
 	dueDay int,
@@ -31,11 +32,11 @@ func (r *CardRepository) CreateCreditCard(
 	var cardID uuid.UUID
 
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO credit_cards (account_id, credit_limit, billing_day, payment_due_days)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO credit_cards (id, clearing_account_id, credit_limit, billing_day, payment_due_days)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id
 	`,
-		accountID, creditLimit, billingDay, dueDay,
+		accountID, clearingAccountID, creditLimit, billingDay, dueDay,
 	).Scan(&cardID)
 
 	return cardID, err

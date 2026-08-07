@@ -63,7 +63,7 @@ func (s *Service) PayCreditCardStatement(
 	userID, err :=
 		s.ledgerRepo.GetUserIDFromAccount(
 			ctx,
-			card.AccountID,
+			card.CardID,
 		)
 
 	if err != nil {
@@ -100,7 +100,7 @@ func (s *Service) PayCreditCardStatement(
 			ctx,
 			tx,
 			transactionID,
-			card.AccountID,
+			card.CardID,
 			request.Amount,
 			"DEBIT",
 		)
@@ -174,7 +174,7 @@ func (s *Service) PayCreditCardStatement(
 		request.CardID,
 		request.StatementID,
 		userID,
-		card.AccountID,
+		card.CardID,
 		request.PaymentAccountID,
 	)
 

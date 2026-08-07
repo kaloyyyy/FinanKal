@@ -51,3 +51,11 @@ type User struct {
 	Username  string
 	CreatedAt time.Time
 }
+type Account struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	Name      string
+	Type      string
+	Balance   decimal.Decimal
+	CreatedAt time.Time
+}

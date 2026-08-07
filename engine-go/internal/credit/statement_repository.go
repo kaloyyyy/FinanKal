@@ -2,6 +2,7 @@ package credit
 
 import (
 	"context"
+	"log"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -48,7 +49,7 @@ func (r *StatementRepository) CreateStatement(
 		VALUES ($1,$2,$3,$4,$5,$6,$7)
 		RETURNING id
 		`,
-		statement.CreditCardID,
+		statement.CardID,
 		statement.StartDate,
 		statement.EndDate,
 		statement.StatementDate,
@@ -83,7 +84,7 @@ func (r *StatementRepository) CreateStatementTx(
 		VALUES ($1,$2,$3,$4,$5,$6,$7)
 		RETURNING id
 		`,
-		statement.CreditCardID,
+		statement.CardID,
 		statement.StartDate,
 		statement.EndDate,
 		statement.StatementDate,
@@ -131,7 +132,7 @@ func (r *StatementRepository) FindStatementByCycle(
 		cycle.CycleEndDate,
 	).Scan(
 		&statement.ID,
-		&statement.CreditCardID,
+		&statement.CardID,
 		&statement.StartDate,
 		&statement.EndDate,
 		&statement.StatementDate,
@@ -182,7 +183,7 @@ func (r *StatementRepository) FindStatementByCycleTx(
 		cycle.CycleEndDate,
 	).Scan(
 		&statement.ID,
-		&statement.CreditCardID,
+		&statement.CardID,
 		&statement.StartDate,
 		&statement.EndDate,
 		&statement.StatementDate,
@@ -231,7 +232,7 @@ func (r *StatementRepository) GetStatement(
 		statementID,
 	).Scan(
 		&statement.ID,
-		&statement.CreditCardID,
+		&statement.CardID,
 		&statement.StartDate,
 		&statement.EndDate,
 		&statement.StatementDate,
@@ -277,7 +278,7 @@ func (r *StatementRepository) GetStatementTx(
 		statementID,
 	).Scan(
 		&statement.ID,
-		&statement.CreditCardID,
+		&statement.CardID,
 		&statement.StartDate,
 		&statement.EndDate,
 		&statement.StatementDate,
@@ -347,7 +348,7 @@ func (r *StatementRepository) IncrementStatementTotalTx(
 	statementID uuid.UUID,
 	amount decimal.Decimal,
 ) error {
-
+	log.Default().Println("Incrementing statement total...")
 	_, err := tx.Exec(
 		ctx,
 		`
@@ -359,7 +360,7 @@ func (r *StatementRepository) IncrementStatementTotalTx(
 		statementID,
 		amount,
 	)
-
+	log.Default().Println("Incremented statement total.")
 	return err
 }
 
@@ -447,7 +448,7 @@ func (r *StatementRepository) GetPaidStatementsToClose(
 		err :=
 			rows.Scan(
 				&statement.ID,
-				&statement.CreditCardID,
+				&statement.CardID,
 				&statement.StartDate,
 				&statement.EndDate,
 				&statement.StatementDate,
@@ -501,7 +502,7 @@ func (r *StatementRepository) GetOpenStatement(
 		).
 			Scan(
 				&statement.ID,
-				&statement.CreditCardID,
+				&statement.CardID,
 				&statement.StartDate,
 				&statement.EndDate,
 				&statement.StatementDate,

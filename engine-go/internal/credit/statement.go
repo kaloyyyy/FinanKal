@@ -21,7 +21,7 @@ func (s *Service) GetOrCreateStatement(
 
 	statement, err := s.statementRepo.FindStatementByCycle(
 		ctx,
-		card.ID,
+		card.CardID,
 		cycle,
 	)
 	if err == nil {
@@ -47,7 +47,7 @@ func (s *Service) CreateStatement(
 ) (*CreditCardStatement, error) {
 
 	statement := CreditCardStatement{
-		CreditCardID:  card.ID,
+		CardID:        card.CardID,
 		StartDate:     cycle.CycleStartDate,
 		EndDate:       cycle.CycleEndDate,
 		StatementDate: cycle.StatementDate,

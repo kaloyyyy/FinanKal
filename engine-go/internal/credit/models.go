@@ -16,19 +16,19 @@ const (
 )
 
 type CreditCard struct {
-	ID             uuid.UUID
-	AccountID      uuid.UUID
-	CreditLimit    decimal.Decimal
-	BillingDay     int
-	PaymentDueDays int
-	CutoffTime     time.Time
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	CardID            uuid.UUID
+	ClearingAccountId uuid.UUID
+	CreditLimit       decimal.Decimal
+	BillingDay        int
+	PaymentDueDays    int
+	CutoffTime        time.Time
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 type CreditCardStatement struct {
 	ID            uuid.UUID
-	CreditCardID  uuid.UUID
+	CardID        uuid.UUID
 	StartDate     time.Time
 	EndDate       time.Time
 	StatementDate time.Time
@@ -45,22 +45,11 @@ type CreditCardEntry struct {
 	EntryID     uuid.UUID
 	CreatedAt   time.Time
 }
-
-type CreditCardTransaction struct {
-	TransactionID    uuid.UUID
-	CreditCardID     uuid.UUID
-	ExpenseAccountID uuid.UUID
-	Amount           decimal.Decimal
-	Description      string
-	TransactionDate  time.Time
-}
-
 type CreditCardTransactionRequest struct {
-	CardID           uuid.UUID
-	ExpenseAccountID uuid.UUID
-	Amount           decimal.Decimal
-	Description      string
-	PurchaseDate     time.Time
+	CardID       uuid.UUID
+	Amount       decimal.Decimal
+	Description  string
+	PurchaseDate time.Time
 }
 
 type BillingCycle struct {
@@ -72,7 +61,7 @@ type BillingCycle struct {
 
 type CreditCardPayment struct {
 	ID            uuid.UUID
-	CreditCardID  uuid.UUID
+	CardID        uuid.UUID
 	BankAccountID uuid.UUID
 	Amount        decimal.Decimal
 	TransactionID uuid.UUID
@@ -90,7 +79,7 @@ type CreditCardPaymentRequest struct {
 }
 
 type CreditCardBalance struct {
-	CreditCardID    uuid.UUID
+	CardID          uuid.UUID
 	CreditLimit     decimal.Decimal
 	UsedCredit      decimal.Decimal
 	AvailableCredit decimal.Decimal

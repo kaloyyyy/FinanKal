@@ -22,6 +22,67 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type AccountType int32
+
+const (
+	AccountType_ACCOUNT_TYPE_UNSPECIFIED AccountType = 0
+	AccountType_ASSET                    AccountType = 1
+	AccountType_LIABILITY                AccountType = 2
+	AccountType_EQUITY                   AccountType = 3
+	AccountType_INCOME                   AccountType = 4
+	AccountType_EXPENSE                  AccountType = 5
+	AccountType_CREDIT_CARD              AccountType = 6
+)
+
+// Enum value maps for AccountType.
+var (
+	AccountType_name = map[int32]string{
+		0: "ACCOUNT_TYPE_UNSPECIFIED",
+		1: "ASSET",
+		2: "LIABILITY",
+		3: "EQUITY",
+		4: "INCOME",
+		5: "EXPENSE",
+		6: "CREDIT_CARD",
+	}
+	AccountType_value = map[string]int32{
+		"ACCOUNT_TYPE_UNSPECIFIED": 0,
+		"ASSET":                    1,
+		"LIABILITY":                2,
+		"EQUITY":                   3,
+		"INCOME":                   4,
+		"EXPENSE":                  5,
+		"CREDIT_CARD":              6,
+	}
+)
+
+func (x AccountType) Enum() *AccountType {
+	p := new(AccountType)
+	*p = x
+	return p
+}
+
+func (x AccountType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AccountType) Descriptor() protoreflect.EnumDescriptor {
+	return file_finance_proto_enumTypes[0].Descriptor()
+}
+
+func (AccountType) Type() protoreflect.EnumType {
+	return &file_finance_proto_enumTypes[0]
+}
+
+func (x AccountType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AccountType.Descriptor instead.
+func (AccountType) EnumDescriptor() ([]byte, []int) {
+	return file_finance_proto_rawDescGZIP(), []int{0}
+}
+
 type HealthRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -392,11 +453,7 @@ func (x *GetAccountSummaryRequest) GetAccountId() string {
 
 type GetAccountSummaryResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Type          string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
-	Balance       string                 `protobuf:"bytes,4,opt,name=balance,proto3" json:"balance,omitempty"`
-	CreatedAt     string                 `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Account       *Account               `protobuf:"bytes,1,opt,name=account,proto3" json:"account,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -431,39 +488,175 @@ func (*GetAccountSummaryResponse) Descriptor() ([]byte, []int) {
 	return file_finance_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *GetAccountSummaryResponse) GetAccountId() string {
+func (x *GetAccountSummaryResponse) GetAccount() *Account {
 	if x != nil {
-		return x.AccountId
+		return x.Account
+	}
+	return nil
+}
+
+type Account struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Type          string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
+	Balance       string                 `protobuf:"bytes,4,opt,name=balance,proto3" json:"balance,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Account) Reset() {
+	*x = Account{}
+	mi := &file_finance_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Account) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Account) ProtoMessage() {}
+
+func (x *Account) ProtoReflect() protoreflect.Message {
+	mi := &file_finance_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Account.ProtoReflect.Descriptor instead.
+func (*Account) Descriptor() ([]byte, []int) {
+	return file_finance_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *Account) GetId() string {
+	if x != nil {
+		return x.Id
 	}
 	return ""
 }
 
-func (x *GetAccountSummaryResponse) GetName() string {
+func (x *Account) GetName() string {
 	if x != nil {
 		return x.Name
 	}
 	return ""
 }
 
-func (x *GetAccountSummaryResponse) GetType() string {
+func (x *Account) GetType() string {
 	if x != nil {
 		return x.Type
 	}
 	return ""
 }
 
-func (x *GetAccountSummaryResponse) GetBalance() string {
+func (x *Account) GetBalance() string {
 	if x != nil {
 		return x.Balance
 	}
 	return ""
 }
 
-func (x *GetAccountSummaryResponse) GetCreatedAt() string {
+func (x *Account) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.CreatedAt
 	}
+	return nil
+}
+
+type GetUserAccountsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserAccountsRequest) Reset() {
+	*x = GetUserAccountsRequest{}
+	mi := &file_finance_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserAccountsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserAccountsRequest) ProtoMessage() {}
+
+func (x *GetUserAccountsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_finance_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserAccountsRequest.ProtoReflect.Descriptor instead.
+func (*GetUserAccountsRequest) Descriptor() ([]byte, []int) {
+	return file_finance_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *GetUserAccountsRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
 	return ""
+}
+
+type GetUserAccountsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Accounts      []*Account             `protobuf:"bytes,1,rep,name=accounts,proto3" json:"accounts,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserAccountsResponse) Reset() {
+	*x = GetUserAccountsResponse{}
+	mi := &file_finance_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserAccountsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserAccountsResponse) ProtoMessage() {}
+
+func (x *GetUserAccountsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_finance_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserAccountsResponse.ProtoReflect.Descriptor instead.
+func (*GetUserAccountsResponse) Descriptor() ([]byte, []int) {
+	return file_finance_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *GetUserAccountsResponse) GetAccounts() []*Account {
+	if x != nil {
+		return x.Accounts
+	}
+	return nil
 }
 
 type GetLedgerEntriesRequest struct {
@@ -475,7 +668,7 @@ type GetLedgerEntriesRequest struct {
 
 func (x *GetLedgerEntriesRequest) Reset() {
 	*x = GetLedgerEntriesRequest{}
-	mi := &file_finance_proto_msgTypes[9]
+	mi := &file_finance_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -487,7 +680,7 @@ func (x *GetLedgerEntriesRequest) String() string {
 func (*GetLedgerEntriesRequest) ProtoMessage() {}
 
 func (x *GetLedgerEntriesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_finance_proto_msgTypes[9]
+	mi := &file_finance_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -500,7 +693,7 @@ func (x *GetLedgerEntriesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLedgerEntriesRequest.ProtoReflect.Descriptor instead.
 func (*GetLedgerEntriesRequest) Descriptor() ([]byte, []int) {
-	return file_finance_proto_rawDescGZIP(), []int{9}
+	return file_finance_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetLedgerEntriesRequest) GetAccountId() string {
@@ -519,7 +712,7 @@ type GetLedgerEntriesResponse struct {
 
 func (x *GetLedgerEntriesResponse) Reset() {
 	*x = GetLedgerEntriesResponse{}
-	mi := &file_finance_proto_msgTypes[10]
+	mi := &file_finance_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -531,7 +724,7 @@ func (x *GetLedgerEntriesResponse) String() string {
 func (*GetLedgerEntriesResponse) ProtoMessage() {}
 
 func (x *GetLedgerEntriesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_finance_proto_msgTypes[10]
+	mi := &file_finance_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -544,7 +737,7 @@ func (x *GetLedgerEntriesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLedgerEntriesResponse.ProtoReflect.Descriptor instead.
 func (*GetLedgerEntriesResponse) Descriptor() ([]byte, []int) {
-	return file_finance_proto_rawDescGZIP(), []int{10}
+	return file_finance_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetLedgerEntriesResponse) GetEntries() []*LedgerEntry {
@@ -568,7 +761,7 @@ type LedgerEntry struct {
 
 func (x *LedgerEntry) Reset() {
 	*x = LedgerEntry{}
-	mi := &file_finance_proto_msgTypes[11]
+	mi := &file_finance_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -580,7 +773,7 @@ func (x *LedgerEntry) String() string {
 func (*LedgerEntry) ProtoMessage() {}
 
 func (x *LedgerEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_finance_proto_msgTypes[11]
+	mi := &file_finance_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -593,7 +786,7 @@ func (x *LedgerEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LedgerEntry.ProtoReflect.Descriptor instead.
 func (*LedgerEntry) Descriptor() ([]byte, []int) {
-	return file_finance_proto_rawDescGZIP(), []int{11}
+	return file_finance_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *LedgerEntry) GetTransactionId() string {
@@ -647,7 +840,7 @@ type GetUserTotalRequest struct {
 
 func (x *GetUserTotalRequest) Reset() {
 	*x = GetUserTotalRequest{}
-	mi := &file_finance_proto_msgTypes[12]
+	mi := &file_finance_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -659,7 +852,7 @@ func (x *GetUserTotalRequest) String() string {
 func (*GetUserTotalRequest) ProtoMessage() {}
 
 func (x *GetUserTotalRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_finance_proto_msgTypes[12]
+	mi := &file_finance_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -672,7 +865,7 @@ func (x *GetUserTotalRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserTotalRequest.ProtoReflect.Descriptor instead.
 func (*GetUserTotalRequest) Descriptor() ([]byte, []int) {
-	return file_finance_proto_rawDescGZIP(), []int{12}
+	return file_finance_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *GetUserTotalRequest) GetUserId() string {
@@ -694,7 +887,7 @@ type GetUserTotalResponse struct {
 
 func (x *GetUserTotalResponse) Reset() {
 	*x = GetUserTotalResponse{}
-	mi := &file_finance_proto_msgTypes[13]
+	mi := &file_finance_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -706,7 +899,7 @@ func (x *GetUserTotalResponse) String() string {
 func (*GetUserTotalResponse) ProtoMessage() {}
 
 func (x *GetUserTotalResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_finance_proto_msgTypes[13]
+	mi := &file_finance_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -719,7 +912,7 @@ func (x *GetUserTotalResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserTotalResponse.ProtoReflect.Descriptor instead.
 func (*GetUserTotalResponse) Descriptor() ([]byte, []int) {
-	return file_finance_proto_rawDescGZIP(), []int{13}
+	return file_finance_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *GetUserTotalResponse) GetUserId() string {
@@ -763,7 +956,7 @@ type CreateCreditCardRequest struct {
 
 func (x *CreateCreditCardRequest) Reset() {
 	*x = CreateCreditCardRequest{}
-	mi := &file_finance_proto_msgTypes[14]
+	mi := &file_finance_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -775,7 +968,7 @@ func (x *CreateCreditCardRequest) String() string {
 func (*CreateCreditCardRequest) ProtoMessage() {}
 
 func (x *CreateCreditCardRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_finance_proto_msgTypes[14]
+	mi := &file_finance_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -788,7 +981,7 @@ func (x *CreateCreditCardRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCreditCardRequest.ProtoReflect.Descriptor instead.
 func (*CreateCreditCardRequest) Descriptor() ([]byte, []int) {
-	return file_finance_proto_rawDescGZIP(), []int{14}
+	return file_finance_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *CreateCreditCardRequest) GetAccountId() string {
@@ -835,7 +1028,7 @@ type CreateCreditCardResponse struct {
 
 func (x *CreateCreditCardResponse) Reset() {
 	*x = CreateCreditCardResponse{}
-	mi := &file_finance_proto_msgTypes[15]
+	mi := &file_finance_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -847,7 +1040,7 @@ func (x *CreateCreditCardResponse) String() string {
 func (*CreateCreditCardResponse) ProtoMessage() {}
 
 func (x *CreateCreditCardResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_finance_proto_msgTypes[15]
+	mi := &file_finance_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -860,7 +1053,7 @@ func (x *CreateCreditCardResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCreditCardResponse.ProtoReflect.Descriptor instead.
 func (*CreateCreditCardResponse) Descriptor() ([]byte, []int) {
-	return file_finance_proto_rawDescGZIP(), []int{15}
+	return file_finance_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *CreateCreditCardResponse) GetCreditCardId() string {
@@ -882,7 +1075,7 @@ type RecordCreditCardTransactionRequest struct {
 
 func (x *RecordCreditCardTransactionRequest) Reset() {
 	*x = RecordCreditCardTransactionRequest{}
-	mi := &file_finance_proto_msgTypes[16]
+	mi := &file_finance_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -894,7 +1087,7 @@ func (x *RecordCreditCardTransactionRequest) String() string {
 func (*RecordCreditCardTransactionRequest) ProtoMessage() {}
 
 func (x *RecordCreditCardTransactionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_finance_proto_msgTypes[16]
+	mi := &file_finance_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -907,7 +1100,7 @@ func (x *RecordCreditCardTransactionRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use RecordCreditCardTransactionRequest.ProtoReflect.Descriptor instead.
 func (*RecordCreditCardTransactionRequest) Descriptor() ([]byte, []int) {
-	return file_finance_proto_rawDescGZIP(), []int{16}
+	return file_finance_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *RecordCreditCardTransactionRequest) GetCardId() string {
@@ -947,7 +1140,7 @@ type RecordCreditCardTransactionResponse struct {
 
 func (x *RecordCreditCardTransactionResponse) Reset() {
 	*x = RecordCreditCardTransactionResponse{}
-	mi := &file_finance_proto_msgTypes[17]
+	mi := &file_finance_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -959,7 +1152,7 @@ func (x *RecordCreditCardTransactionResponse) String() string {
 func (*RecordCreditCardTransactionResponse) ProtoMessage() {}
 
 func (x *RecordCreditCardTransactionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_finance_proto_msgTypes[17]
+	mi := &file_finance_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -972,7 +1165,7 @@ func (x *RecordCreditCardTransactionResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use RecordCreditCardTransactionResponse.ProtoReflect.Descriptor instead.
 func (*RecordCreditCardTransactionResponse) Descriptor() ([]byte, []int) {
-	return file_finance_proto_rawDescGZIP(), []int{17}
+	return file_finance_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *RecordCreditCardTransactionResponse) GetTransactionId() string {
@@ -995,7 +1188,7 @@ type PayCreditCardStatementRequest struct {
 
 func (x *PayCreditCardStatementRequest) Reset() {
 	*x = PayCreditCardStatementRequest{}
-	mi := &file_finance_proto_msgTypes[18]
+	mi := &file_finance_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1007,7 +1200,7 @@ func (x *PayCreditCardStatementRequest) String() string {
 func (*PayCreditCardStatementRequest) ProtoMessage() {}
 
 func (x *PayCreditCardStatementRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_finance_proto_msgTypes[18]
+	mi := &file_finance_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1020,7 +1213,7 @@ func (x *PayCreditCardStatementRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PayCreditCardStatementRequest.ProtoReflect.Descriptor instead.
 func (*PayCreditCardStatementRequest) Descriptor() ([]byte, []int) {
-	return file_finance_proto_rawDescGZIP(), []int{18}
+	return file_finance_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *PayCreditCardStatementRequest) GetStatementId() string {
@@ -1067,7 +1260,7 @@ type PayCreditCardStatementResponse struct {
 
 func (x *PayCreditCardStatementResponse) Reset() {
 	*x = PayCreditCardStatementResponse{}
-	mi := &file_finance_proto_msgTypes[19]
+	mi := &file_finance_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1079,7 +1272,7 @@ func (x *PayCreditCardStatementResponse) String() string {
 func (*PayCreditCardStatementResponse) ProtoMessage() {}
 
 func (x *PayCreditCardStatementResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_finance_proto_msgTypes[19]
+	mi := &file_finance_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1092,7 +1285,7 @@ func (x *PayCreditCardStatementResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PayCreditCardStatementResponse.ProtoReflect.Descriptor instead.
 func (*PayCreditCardStatementResponse) Descriptor() ([]byte, []int) {
-	return file_finance_proto_rawDescGZIP(), []int{19}
+	return file_finance_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *PayCreditCardStatementResponse) GetTransactionId() string {
@@ -1111,7 +1304,7 @@ type GetCreditCardStatementRequest struct {
 
 func (x *GetCreditCardStatementRequest) Reset() {
 	*x = GetCreditCardStatementRequest{}
-	mi := &file_finance_proto_msgTypes[20]
+	mi := &file_finance_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1123,7 +1316,7 @@ func (x *GetCreditCardStatementRequest) String() string {
 func (*GetCreditCardStatementRequest) ProtoMessage() {}
 
 func (x *GetCreditCardStatementRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_finance_proto_msgTypes[20]
+	mi := &file_finance_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1136,7 +1329,7 @@ func (x *GetCreditCardStatementRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCreditCardStatementRequest.ProtoReflect.Descriptor instead.
 func (*GetCreditCardStatementRequest) Descriptor() ([]byte, []int) {
-	return file_finance_proto_rawDescGZIP(), []int{20}
+	return file_finance_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *GetCreditCardStatementRequest) GetStatementId() string {
@@ -1162,7 +1355,7 @@ type GetCreditCardStatementResponse struct {
 
 func (x *GetCreditCardStatementResponse) Reset() {
 	*x = GetCreditCardStatementResponse{}
-	mi := &file_finance_proto_msgTypes[21]
+	mi := &file_finance_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1174,7 +1367,7 @@ func (x *GetCreditCardStatementResponse) String() string {
 func (*GetCreditCardStatementResponse) ProtoMessage() {}
 
 func (x *GetCreditCardStatementResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_finance_proto_msgTypes[21]
+	mi := &file_finance_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1187,7 +1380,7 @@ func (x *GetCreditCardStatementResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCreditCardStatementResponse.ProtoReflect.Descriptor instead.
 func (*GetCreditCardStatementResponse) Descriptor() ([]byte, []int) {
-	return file_finance_proto_rawDescGZIP(), []int{21}
+	return file_finance_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *GetCreditCardStatementResponse) GetStatementId() string {
@@ -1271,15 +1464,20 @@ const file_finance_proto_rawDesc = "" +
 	"\abalance\x18\x01 \x01(\tR\abalance\"9\n" +
 	"\x18GetAccountSummaryRequest\x12\x1d\n" +
 	"\n" +
-	"account_id\x18\x01 \x01(\tR\taccountId\"\x9b\x01\n" +
-	"\x19GetAccountSummaryResponse\x12\x1d\n" +
-	"\n" +
-	"account_id\x18\x01 \x01(\tR\taccountId\x12\x12\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\"G\n" +
+	"\x19GetAccountSummaryResponse\x12*\n" +
+	"\aaccount\x18\x01 \x01(\v2\x10.finance.AccountR\aaccount\"\x96\x01\n" +
+	"\aAccount\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
 	"\x04type\x18\x03 \x01(\tR\x04type\x12\x18\n" +
-	"\abalance\x18\x04 \x01(\tR\abalance\x12\x1d\n" +
+	"\abalance\x18\x04 \x01(\tR\abalance\x129\n" +
 	"\n" +
-	"created_at\x18\x05 \x01(\tR\tcreatedAt\"8\n" +
+	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"1\n" +
+	"\x16GetUserAccountsRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"G\n" +
+	"\x17GetUserAccountsResponse\x12,\n" +
+	"\baccounts\x18\x01 \x03(\v2\x10.finance.AccountR\baccounts\"8\n" +
 	"\x17GetLedgerEntriesRequest\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\"J\n" +
@@ -1338,17 +1536,28 @@ const file_finance_proto_rawDesc = "" +
 	"\x0estatement_date\x18\x05 \x01(\tR\rstatementDate\x12\x19\n" +
 	"\bdue_date\x18\x06 \x01(\tR\adueDate\x12!\n" +
 	"\ftotal_amount\x18\a \x01(\tR\vtotalAmount\x12\x16\n" +
-	"\x06status\x18\b \x01(\tR\x06status2\xc9\b\n" +
+	"\x06status\x18\b \x01(\tR\x06status*{\n" +
+	"\vAccountType\x12\x1c\n" +
+	"\x18ACCOUNT_TYPE_UNSPECIFIED\x10\x00\x12\t\n" +
+	"\x05ASSET\x10\x01\x12\r\n" +
+	"\tLIABILITY\x10\x02\x12\n" +
+	"\n" +
+	"\x06EQUITY\x10\x03\x12\n" +
+	"\n" +
+	"\x06INCOME\x10\x04\x12\v\n" +
+	"\aEXPENSE\x10\x05\x12\x0f\n" +
+	"\vCREDIT_CARD\x10\x062\x9b\t\n" +
 	"\rFinanceEngine\x12>\n" +
 	"\vHealthCheck\x12\x16.finance.HealthRequest\x1a\x17.finance.HealthResponse\x12Z\n" +
 	"\x11CreateTransaction\x12!.finance.CreateTransactionRequest\x1a\".finance.CreateTransactionResponse\x12E\n" +
 	"\n" +
 	"GetBalance\x12\x1a.finance.GetBalanceRequest\x1a\x1b.finance.GetBalanceResponse\x12Z\n" +
-	"\x11GetAccountSummary\x12!.finance.GetAccountSummaryRequest\x1a\".finance.GetAccountSummaryResponse\x12W\n" +
+	"\x11GetAccountSummary\x12!.finance.GetAccountSummaryRequest\x1a\".finance.GetAccountSummaryResponse\x12T\n" +
+	"\x0fGetUserAccounts\x12\x1f.finance.GetUserAccountsRequest\x1a .finance.GetUserAccountsResponse\x12W\n" +
 	"\x10GetLedgerEntries\x12 .finance.GetLedgerEntriesRequest\x1a!.finance.GetLedgerEntriesResponse\x12Q\n" +
 	"\x12GetUserTotalCredit\x12\x1c.finance.GetUserTotalRequest\x1a\x1d.finance.GetUserTotalResponse\x12P\n" +
-	"\x11GetUserTotalDebit\x12\x1c.finance.GetUserTotalRequest\x1a\x1d.finance.GetUserTotalResponse\x12R\n" +
-	"\x13GetUserTotalBalance\x12\x1c.finance.GetUserTotalRequest\x1a\x1d.finance.GetUserTotalResponse\x12W\n" +
+	"\x11GetUserTotalDebit\x12\x1c.finance.GetUserTotalRequest\x1a\x1d.finance.GetUserTotalResponse\x12N\n" +
+	"\x0fGetUserNetWorth\x12\x1c.finance.GetUserTotalRequest\x1a\x1d.finance.GetUserTotalResponse\x12W\n" +
 	"\x10CreateCreditCard\x12 .finance.CreateCreditCardRequest\x1a!.finance.CreateCreditCardResponse\x12x\n" +
 	"\x1bRecordCreditCardTransaction\x12+.finance.RecordCreditCardTransactionRequest\x1a,.finance.RecordCreditCardTransactionResponse\x12i\n" +
 	"\x16PayCreditCardStatement\x12&.finance.PayCreditCardStatementRequest\x1a'.finance.PayCreditCardStatementResponse\x12i\n" +
@@ -1367,65 +1576,75 @@ func file_finance_proto_rawDescGZIP() []byte {
 	return file_finance_proto_rawDescData
 }
 
-var file_finance_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_finance_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_finance_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_finance_proto_goTypes = []any{
-	(*HealthRequest)(nil),                       // 0: finance.HealthRequest
-	(*HealthResponse)(nil),                      // 1: finance.HealthResponse
-	(*CreateTransactionRequest)(nil),            // 2: finance.CreateTransactionRequest
-	(*CreateTransactionResponse)(nil),           // 3: finance.CreateTransactionResponse
-	(*Entry)(nil),                               // 4: finance.Entry
-	(*GetBalanceRequest)(nil),                   // 5: finance.GetBalanceRequest
-	(*GetBalanceResponse)(nil),                  // 6: finance.GetBalanceResponse
-	(*GetAccountSummaryRequest)(nil),            // 7: finance.GetAccountSummaryRequest
-	(*GetAccountSummaryResponse)(nil),           // 8: finance.GetAccountSummaryResponse
-	(*GetLedgerEntriesRequest)(nil),             // 9: finance.GetLedgerEntriesRequest
-	(*GetLedgerEntriesResponse)(nil),            // 10: finance.GetLedgerEntriesResponse
-	(*LedgerEntry)(nil),                         // 11: finance.LedgerEntry
-	(*GetUserTotalRequest)(nil),                 // 12: finance.GetUserTotalRequest
-	(*GetUserTotalResponse)(nil),                // 13: finance.GetUserTotalResponse
-	(*CreateCreditCardRequest)(nil),             // 14: finance.CreateCreditCardRequest
-	(*CreateCreditCardResponse)(nil),            // 15: finance.CreateCreditCardResponse
-	(*RecordCreditCardTransactionRequest)(nil),  // 16: finance.RecordCreditCardTransactionRequest
-	(*RecordCreditCardTransactionResponse)(nil), // 17: finance.RecordCreditCardTransactionResponse
-	(*PayCreditCardStatementRequest)(nil),       // 18: finance.PayCreditCardStatementRequest
-	(*PayCreditCardStatementResponse)(nil),      // 19: finance.PayCreditCardStatementResponse
-	(*GetCreditCardStatementRequest)(nil),       // 20: finance.GetCreditCardStatementRequest
-	(*GetCreditCardStatementResponse)(nil),      // 21: finance.GetCreditCardStatementResponse
-	(*timestamppb.Timestamp)(nil),               // 22: google.protobuf.Timestamp
+	(AccountType)(0),                            // 0: finance.AccountType
+	(*HealthRequest)(nil),                       // 1: finance.HealthRequest
+	(*HealthResponse)(nil),                      // 2: finance.HealthResponse
+	(*CreateTransactionRequest)(nil),            // 3: finance.CreateTransactionRequest
+	(*CreateTransactionResponse)(nil),           // 4: finance.CreateTransactionResponse
+	(*Entry)(nil),                               // 5: finance.Entry
+	(*GetBalanceRequest)(nil),                   // 6: finance.GetBalanceRequest
+	(*GetBalanceResponse)(nil),                  // 7: finance.GetBalanceResponse
+	(*GetAccountSummaryRequest)(nil),            // 8: finance.GetAccountSummaryRequest
+	(*GetAccountSummaryResponse)(nil),           // 9: finance.GetAccountSummaryResponse
+	(*Account)(nil),                             // 10: finance.Account
+	(*GetUserAccountsRequest)(nil),              // 11: finance.GetUserAccountsRequest
+	(*GetUserAccountsResponse)(nil),             // 12: finance.GetUserAccountsResponse
+	(*GetLedgerEntriesRequest)(nil),             // 13: finance.GetLedgerEntriesRequest
+	(*GetLedgerEntriesResponse)(nil),            // 14: finance.GetLedgerEntriesResponse
+	(*LedgerEntry)(nil),                         // 15: finance.LedgerEntry
+	(*GetUserTotalRequest)(nil),                 // 16: finance.GetUserTotalRequest
+	(*GetUserTotalResponse)(nil),                // 17: finance.GetUserTotalResponse
+	(*CreateCreditCardRequest)(nil),             // 18: finance.CreateCreditCardRequest
+	(*CreateCreditCardResponse)(nil),            // 19: finance.CreateCreditCardResponse
+	(*RecordCreditCardTransactionRequest)(nil),  // 20: finance.RecordCreditCardTransactionRequest
+	(*RecordCreditCardTransactionResponse)(nil), // 21: finance.RecordCreditCardTransactionResponse
+	(*PayCreditCardStatementRequest)(nil),       // 22: finance.PayCreditCardStatementRequest
+	(*PayCreditCardStatementResponse)(nil),      // 23: finance.PayCreditCardStatementResponse
+	(*GetCreditCardStatementRequest)(nil),       // 24: finance.GetCreditCardStatementRequest
+	(*GetCreditCardStatementResponse)(nil),      // 25: finance.GetCreditCardStatementResponse
+	(*timestamppb.Timestamp)(nil),               // 26: google.protobuf.Timestamp
 }
 var file_finance_proto_depIdxs = []int32{
-	4,  // 0: finance.CreateTransactionRequest.entries:type_name -> finance.Entry
-	11, // 1: finance.GetLedgerEntriesResponse.entries:type_name -> finance.LedgerEntry
-	22, // 2: finance.RecordCreditCardTransactionRequest.purchase_date:type_name -> google.protobuf.Timestamp
-	0,  // 3: finance.FinanceEngine.HealthCheck:input_type -> finance.HealthRequest
-	2,  // 4: finance.FinanceEngine.CreateTransaction:input_type -> finance.CreateTransactionRequest
-	5,  // 5: finance.FinanceEngine.GetBalance:input_type -> finance.GetBalanceRequest
-	7,  // 6: finance.FinanceEngine.GetAccountSummary:input_type -> finance.GetAccountSummaryRequest
-	9,  // 7: finance.FinanceEngine.GetLedgerEntries:input_type -> finance.GetLedgerEntriesRequest
-	12, // 8: finance.FinanceEngine.GetUserTotalCredit:input_type -> finance.GetUserTotalRequest
-	12, // 9: finance.FinanceEngine.GetUserTotalDebit:input_type -> finance.GetUserTotalRequest
-	12, // 10: finance.FinanceEngine.GetUserTotalBalance:input_type -> finance.GetUserTotalRequest
-	14, // 11: finance.FinanceEngine.CreateCreditCard:input_type -> finance.CreateCreditCardRequest
-	16, // 12: finance.FinanceEngine.RecordCreditCardTransaction:input_type -> finance.RecordCreditCardTransactionRequest
-	18, // 13: finance.FinanceEngine.PayCreditCardStatement:input_type -> finance.PayCreditCardStatementRequest
-	20, // 14: finance.FinanceEngine.GetCreditCardStatement:input_type -> finance.GetCreditCardStatementRequest
-	1,  // 15: finance.FinanceEngine.HealthCheck:output_type -> finance.HealthResponse
-	3,  // 16: finance.FinanceEngine.CreateTransaction:output_type -> finance.CreateTransactionResponse
-	6,  // 17: finance.FinanceEngine.GetBalance:output_type -> finance.GetBalanceResponse
-	8,  // 18: finance.FinanceEngine.GetAccountSummary:output_type -> finance.GetAccountSummaryResponse
-	10, // 19: finance.FinanceEngine.GetLedgerEntries:output_type -> finance.GetLedgerEntriesResponse
-	13, // 20: finance.FinanceEngine.GetUserTotalCredit:output_type -> finance.GetUserTotalResponse
-	13, // 21: finance.FinanceEngine.GetUserTotalDebit:output_type -> finance.GetUserTotalResponse
-	13, // 22: finance.FinanceEngine.GetUserTotalBalance:output_type -> finance.GetUserTotalResponse
-	15, // 23: finance.FinanceEngine.CreateCreditCard:output_type -> finance.CreateCreditCardResponse
-	17, // 24: finance.FinanceEngine.RecordCreditCardTransaction:output_type -> finance.RecordCreditCardTransactionResponse
-	19, // 25: finance.FinanceEngine.PayCreditCardStatement:output_type -> finance.PayCreditCardStatementResponse
-	21, // 26: finance.FinanceEngine.GetCreditCardStatement:output_type -> finance.GetCreditCardStatementResponse
-	15, // [15:27] is the sub-list for method output_type
-	3,  // [3:15] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	5,  // 0: finance.CreateTransactionRequest.entries:type_name -> finance.Entry
+	10, // 1: finance.GetAccountSummaryResponse.account:type_name -> finance.Account
+	26, // 2: finance.Account.created_at:type_name -> google.protobuf.Timestamp
+	10, // 3: finance.GetUserAccountsResponse.accounts:type_name -> finance.Account
+	15, // 4: finance.GetLedgerEntriesResponse.entries:type_name -> finance.LedgerEntry
+	26, // 5: finance.RecordCreditCardTransactionRequest.purchase_date:type_name -> google.protobuf.Timestamp
+	1,  // 6: finance.FinanceEngine.HealthCheck:input_type -> finance.HealthRequest
+	3,  // 7: finance.FinanceEngine.CreateTransaction:input_type -> finance.CreateTransactionRequest
+	6,  // 8: finance.FinanceEngine.GetBalance:input_type -> finance.GetBalanceRequest
+	8,  // 9: finance.FinanceEngine.GetAccountSummary:input_type -> finance.GetAccountSummaryRequest
+	11, // 10: finance.FinanceEngine.GetUserAccounts:input_type -> finance.GetUserAccountsRequest
+	13, // 11: finance.FinanceEngine.GetLedgerEntries:input_type -> finance.GetLedgerEntriesRequest
+	16, // 12: finance.FinanceEngine.GetUserTotalCredit:input_type -> finance.GetUserTotalRequest
+	16, // 13: finance.FinanceEngine.GetUserTotalDebit:input_type -> finance.GetUserTotalRequest
+	16, // 14: finance.FinanceEngine.GetUserNetWorth:input_type -> finance.GetUserTotalRequest
+	18, // 15: finance.FinanceEngine.CreateCreditCard:input_type -> finance.CreateCreditCardRequest
+	20, // 16: finance.FinanceEngine.RecordCreditCardTransaction:input_type -> finance.RecordCreditCardTransactionRequest
+	22, // 17: finance.FinanceEngine.PayCreditCardStatement:input_type -> finance.PayCreditCardStatementRequest
+	24, // 18: finance.FinanceEngine.GetCreditCardStatement:input_type -> finance.GetCreditCardStatementRequest
+	2,  // 19: finance.FinanceEngine.HealthCheck:output_type -> finance.HealthResponse
+	4,  // 20: finance.FinanceEngine.CreateTransaction:output_type -> finance.CreateTransactionResponse
+	7,  // 21: finance.FinanceEngine.GetBalance:output_type -> finance.GetBalanceResponse
+	9,  // 22: finance.FinanceEngine.GetAccountSummary:output_type -> finance.GetAccountSummaryResponse
+	12, // 23: finance.FinanceEngine.GetUserAccounts:output_type -> finance.GetUserAccountsResponse
+	14, // 24: finance.FinanceEngine.GetLedgerEntries:output_type -> finance.GetLedgerEntriesResponse
+	17, // 25: finance.FinanceEngine.GetUserTotalCredit:output_type -> finance.GetUserTotalResponse
+	17, // 26: finance.FinanceEngine.GetUserTotalDebit:output_type -> finance.GetUserTotalResponse
+	17, // 27: finance.FinanceEngine.GetUserNetWorth:output_type -> finance.GetUserTotalResponse
+	19, // 28: finance.FinanceEngine.CreateCreditCard:output_type -> finance.CreateCreditCardResponse
+	21, // 29: finance.FinanceEngine.RecordCreditCardTransaction:output_type -> finance.RecordCreditCardTransactionResponse
+	23, // 30: finance.FinanceEngine.PayCreditCardStatement:output_type -> finance.PayCreditCardStatementResponse
+	25, // 31: finance.FinanceEngine.GetCreditCardStatement:output_type -> finance.GetCreditCardStatementResponse
+	19, // [19:32] is the sub-list for method output_type
+	6,  // [6:19] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_finance_proto_init() }
@@ -1438,13 +1657,14 @@ func file_finance_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_finance_proto_rawDesc), len(file_finance_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   22,
+			NumEnums:      1,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_finance_proto_goTypes,
 		DependencyIndexes: file_finance_proto_depIdxs,
+		EnumInfos:         file_finance_proto_enumTypes,
 		MessageInfos:      file_finance_proto_msgTypes,
 	}.Build()
 	File_finance_proto = out.File

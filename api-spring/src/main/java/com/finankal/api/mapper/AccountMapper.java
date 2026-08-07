@@ -5,24 +5,34 @@ import com.finankal.api.finance.FinanceProtos;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 @Component
 public class AccountMapper {
 
     public AccountDto toDto(FinanceProtos.GetAccountSummaryResponse response) {
+        return toDto(response.getAccount());
+    }
+
+    public AccountDto toDto(FinanceProtos.Account account) {
         AccountDto dto = new AccountDto();
-        dto.setId(response.getAccountId());
-        dto.setName(response.getName());
-        dto.setType(response.getType());
-        dto.setBalance(new BigDecimal(response.getBalance()));
-        
-        // Parse RFC3339 timestamp with timezone
-        OffsetDateTime odt = OffsetDateTime.parse(response.getCreatedAt());
-        LocalDateTime localDateTime = odt.toLocalDateTime();
-        dto.setCreatedAt(localDateTime);
-        
+        dto.setId(account.getId());
+        dto.setName(account.getName());
+        dto.setType(account.getType());
+        dto.setBalance(new BigDecimal(account.getBalance()));
+
+        Instant instant = Instant.ofEpochSecond(
+                account.getCreatedAt().getSeconds(),
+                account.getCreatedAt().getNanos()
+        );
+
+        dto.setCreatedAt(
+                LocalDateTime.ofInstant(instant, ZoneOffset.UTC)
+        );
+
         return dto;
     }
 }

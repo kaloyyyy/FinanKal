@@ -86,7 +86,7 @@ func InvalidateUser(
 		UserBalanceKey(userID),
 		UserTotalCreditKey(userID),
 		UserTotalDebitKey(userID),
-		UserTotalBalanceKey(userID),
+		UserNetWorthKey(userID),
 
 		UserCreditCardsKey(userID),
 	)
@@ -186,7 +186,7 @@ func InvalidateCreditCardPayment(
 		UserBalanceKey(userID),
 		UserTotalCreditKey(userID),
 		UserTotalDebitKey(userID),
-		UserTotalBalanceKey(userID),
+		UserNetWorthKey(userID),
 	}
 
 	for _, accountID := range accountIDs {

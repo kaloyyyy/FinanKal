@@ -69,7 +69,7 @@ func UserTotalDebitKey(userID uuid.UUID) string {
 	)
 }
 
-func UserTotalBalanceKey(userID uuid.UUID) string {
+func UserNetWorthKey(userID uuid.UUID) string {
 	return fmt.Sprintf(
 		"user:%s:total_balance",
 		userID,

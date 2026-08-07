@@ -13,7 +13,6 @@ service FinanceEngine {
   // Health
   rpc HealthCheck(HealthRequest) returns (HealthResponse);
 
-
   // Ledger
   rpc CreateTransaction(CreateTransactionRequest)
       returns (CreateTransactionResponse);
@@ -24,6 +23,9 @@ service FinanceEngine {
   rpc GetAccountSummary(GetAccountSummaryRequest)
       returns (GetAccountSummaryResponse);
 
+  rpc GetUserAccounts(GetUserAccountsRequest)
+      returns (GetUserAccountsResponse);
+
   rpc GetLedgerEntries(GetLedgerEntriesRequest)
       returns (GetLedgerEntriesResponse);
 
@@ -33,7 +35,7 @@ service FinanceEngine {
   rpc GetUserTotalDebit(GetUserTotalRequest)
       returns (GetUserTotalResponse);
 
-  rpc GetUserTotalBalance(GetUserTotalRequest)
+  rpc GetUserNetWorth(GetUserTotalRequest)
       returns (GetUserTotalResponse);
 
 
@@ -88,16 +90,37 @@ message GetBalanceRequest {string account_id = 1;}
 
 message GetBalanceResponse {string balance = 1;}
 
-
 message GetAccountSummaryRequest {string account_id = 1;}
 
+message GetAccountSummaryResponse {
+  Account account = 1;
+}
 
-message GetAccountSummaryResponse {string account_id = 1;
+message Account {
+  string id = 1;
   string name = 2;
   string type = 3;
   string balance = 4;
-  string created_at = 5;}
+  google.protobuf.Timestamp created_at = 5;
+}
 
+enum AccountType {
+  ACCOUNT_TYPE_UNSPECIFIED = 0;
+  ASSET = 1;
+  LIABILITY = 2;
+  EQUITY = 3;
+  INCOME = 4;
+  EXPENSE = 5;
+  CREDIT_CARD = 6;
+}
+
+message GetUserAccountsRequest {
+  string user_id = 1;
+}
+
+message GetUserAccountsResponse {
+  repeated Account accounts = 1;
+}
 
 message GetLedgerEntriesRequest {string account_id = 1;}
 

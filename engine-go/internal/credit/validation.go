@@ -32,7 +32,7 @@ func (s *Service) ValidateCreditCardTransaction(
 	// Validate credit card account
 	accountName, accountType, _, err := s.ledgerRepo.GetAccount(
 		ctx,
-		card.ID,
+		card.CardID,
 	)
 
 	if err != nil {
@@ -62,7 +62,7 @@ func (s *Service) ValidateCreditCardTransaction(
 	// Validate available credit limit
 	currentBalance, err := s.ledgerRepo.GetBalance(
 		ctx,
-		card.ID,
+		card.CardID,
 	)
 
 	if err != nil {

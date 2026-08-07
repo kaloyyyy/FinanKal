@@ -27,16 +27,16 @@ func (r *EntryRepository) CreateEntryMapping(
 	var id uuid.UUID
 
 	const query = `
-INSERT INTO credit_card_entries (
-	statement_id,
-	entry_id
-)
-VALUES (
-	$1,
-	$2
-)
-RETURNING id
-`
+		INSERT INTO credit_card_entries (
+			statement_id,
+			entry_id
+		)
+		VALUES (
+			$1,
+			$2
+		)
+		RETURNING id
+		`
 
 	err := r.db.QueryRow(
 		ctx,
@@ -56,14 +56,14 @@ func (r *EntryRepository) GetEntryMapping(
 	var entry CreditCardEntry
 
 	const query = `
-SELECT
-	id,
-	statement_id,
-	entry_id,
-	created_at
-FROM credit_card_entries
-WHERE id = $1
-`
+		SELECT
+			id,
+			statement_id,
+			entry_id,
+			created_at
+		FROM credit_card_entries
+		WHERE id = $1
+		`
 
 	err := r.db.QueryRow(
 		ctx,
@@ -89,15 +89,15 @@ func (r *EntryRepository) ListEntriesByStatement(
 ) ([]CreditCardEntry, error) {
 
 	const query = `
-SELECT
-	id,
-	statement_id,
-	entry_id,
-	created_at
-FROM credit_card_entries
-WHERE statement_id = $1
-ORDER BY created_at
-`
+		SELECT
+			id,
+			statement_id,
+			entry_id,
+			created_at
+		FROM credit_card_entries
+		WHERE statement_id = $1
+		ORDER BY created_at
+		`
 
 	rows, err := r.db.Query(
 		ctx,
@@ -136,10 +136,10 @@ func (r *EntryRepository) DeleteEntryMapping(
 ) error {
 
 	const query = `
-DELETE
-FROM credit_card_entries
-WHERE id = $1
-`
+		DELETE
+		FROM credit_card_entries
+		WHERE id = $1
+		`
 
 	_, err := r.db.Exec(
 		ctx,
@@ -156,10 +156,10 @@ func (r *EntryRepository) DeleteMappingsByStatement(
 ) error {
 
 	const query = `
-DELETE
-FROM credit_card_entries
-WHERE statement_id = $1
-`
+		DELETE
+		FROM credit_card_entries
+		WHERE statement_id = $1
+		`
 
 	_, err := r.db.Exec(
 		ctx,
@@ -177,13 +177,13 @@ func (r *EntryRepository) Exists(
 ) (bool, error) {
 
 	const query = `
-SELECT EXISTS (
-	SELECT 1
-	FROM credit_card_entries
-	WHERE statement_id = $1
-	  AND entry_id = $2
-)
-`
+		SELECT EXISTS (
+			SELECT 1
+			FROM credit_card_entries
+			WHERE statement_id = $1
+			  AND entry_id = $2
+		)
+		`
 
 	var exists bool
 
@@ -202,23 +202,20 @@ func (r *EntryRepository) CreateEntryMappingTx(
 	tx pgx.Tx,
 	statementID uuid.UUID,
 	entryID uuid.UUID,
-) (uuid.UUID, error) {
+) error {
 
-	var id uuid.UUID
-
-	err := tx.QueryRow(
+	_, err := tx.Exec(
 		ctx,
 		`
-		INSERT INTO credit_card_entries (
-			statement_id,
-			entry_id
-		)
-		VALUES ($1,$2)
-		RETURNING id
-		`,
+        INSERT INTO credit_card_entries (
+            statement_id,
+            entry_id
+        )
+        VALUES ($1,$2)
+        `,
 		statementID,
 		entryID,
-	).Scan(&id)
+	)
 
-	return id, err
+	return err
 }

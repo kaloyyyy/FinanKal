@@ -12,54 +12,70 @@
 GET http://localhost:8080/actuator/health
 Accept: application/json
 
-###########################################################
-# ACCOUNTS
-###########################################################
 
-###
 ### Get Account Summary
 GET http://localhost:8080/api/accounts/11111111-1111-1111-1111-111111111111
 Accept: application/json
 
-###
+
 
 ### Get Account Balance
 GET http://localhost:8080/api/accounts/11111111-1111-1111-1111-111111111111/balance
 Accept: application/json
 
-###
+
 
 ### Get Credit Card Account Summary
 GET http://localhost:8080/api/accounts/44444444-4444-4444-4444-444444444444
 Accept: application/json
 
-###
+
 
 ### Get Ledger Entries
 GET http://localhost:8080/api/ledger-entries/11111111-1111-1111-1111-111111111111
 Accept: application/json
 
-###########################################################
-# USERS
-###########################################################
 
-###
-GET http://localhost:8080/api/users/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/total-credit
+
+### Get user total credit
+GET http://localhost:8080/api/users/bcc539f6-fc94-4a2e-9ce6-3c03c0560204/total-credit
+Accept: application/json
+
+### Get user total debit
+
+GET http://localhost:8080/api/users/bcc539f6-fc94-4a2e-9ce6-3c03c0560204/total-debit
+Accept: application/json
+
+###get user total balance
+
+GET http://localhost:8080/api/users/bcc539f6-fc94-4a2e-9ce6-3c03c0560204/net-worth
+Accept: application/json
+
+### Get User Accounts
+GET http://localhost:8080/api/users/bcc539f6-fc94-4a2e-9ce6-3c03c0560204/accounts
+Accept: application/json
+
+### Get Clearing Account Summary
+GET http://localhost:8080/api/accounts/55555555-5555-5555-5555-555555555555
+Accept: application/json
+
+
+### Get Clearing Account Balance
+GET http://localhost:8080/api/accounts/55555555-5555-5555-5555-555555555555/balance
+Accept: application/json
+
+
+
+### Get CC Summary
+GET http://localhost:8080/api/accounts/1a1a1a1a-1a1a-1a1a-1a1a-1a1a1a1a1a1a
 Accept: application/json
 
 ###
 
-GET http://localhost:8080/api/users/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/total-debit
+### Get CC Account Balance
+
+GET http://localhost:8080/api/accounts/1a1a1a1a-1a1a-1a1a-1a1a-1a1a1a1a1a1a/balance
 Accept: application/json
-
-###
-
-GET http://localhost:8080/api/users/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/total-balance
-Accept: application/json
-
-###########################################################
-# LEDGER
-###########################################################
 
 ###
 POST http://localhost:8080/api/transactions
