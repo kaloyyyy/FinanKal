@@ -23,6 +23,8 @@ const (
 	INCOME      AccountType = "INCOME"
 	EQUITY      AccountType = "EQUITY"
 	CREDIT_CARD AccountType = "CREDIT_CARD"
+	BNPL        AccountType = "BNPL"
+	CLEARING    AccountType = "CLEARING"
 )
 
 type Entry struct {

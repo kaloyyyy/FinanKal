@@ -3,6 +3,7 @@ package ledger
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/kaloy/finankal/engine-go/internal/cache"
@@ -341,4 +342,20 @@ func (s *Service) GetUserTotalBalance(
 	)
 
 	return total, nil
+}
+
+func (r *LedgerRepository) CreateClearingAccount(
+	ctx context.Context,
+	userID uuid.UUID,
+	cardName string,
+) (uuid.UUID, error) {
+
+	accountName := fmt.Sprintf("%s Clearing", cardName)
+
+	return r.CreateAccount(
+		ctx,
+		userID,
+		accountName,
+		CLEARING,
+	)
 }

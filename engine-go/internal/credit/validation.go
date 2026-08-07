@@ -11,11 +11,11 @@ import (
 )
 
 var (
-	ErrInvalidAmount         = errors.New("amount must be greater than zero")
-	ErrCreditCardNotFound    = errors.New("credit card not found")
-	ErrInvalidCreditAccount  = errors.New("account is not a credit card")
-	ErrCreditLimitExceeded   = errors.New("credit limit exceeded")
-	ErrInvalidExpenseAccount = errors.New("invalid expense account")
+	ErrInvalidAmount          = errors.New("amount must be greater than zero")
+	ErrCreditCardNotFound     = errors.New("credit card not found")
+	ErrInvalidCreditAccount   = errors.New("account is not a credit card")
+	ErrCreditLimitExceeded    = errors.New("credit limit exceeded")
+	ErrInvalidClearingAccount = errors.New("invalid clearing account")
 )
 
 func (s *Service) ValidateCreditCardTransaction(
@@ -32,7 +32,7 @@ func (s *Service) ValidateCreditCardTransaction(
 	// Validate credit card account
 	accountName, accountType, _, err := s.ledgerRepo.GetAccount(
 		ctx,
-		card.AccountID,
+		card.ID,
 	)
 
 	if err != nil {
@@ -45,24 +45,24 @@ func (s *Service) ValidateCreditCardTransaction(
 
 	_ = accountName
 
-	// Validate expense account
-	_, expenseType, _, err := s.ledgerRepo.GetAccount(
+	// Validate clearing account
+	_, clearingType, _, err := s.ledgerRepo.GetAccount(
 		ctx,
-		request.ExpenseAccountID,
+		card.ClearingAccountId,
 	)
 
 	if err != nil {
-		return ErrInvalidExpenseAccount
+		return ErrInvalidClearingAccount
 	}
 
-	if expenseType != ledger.EXPENSE {
-		return ErrInvalidExpenseAccount
+	if clearingType != ledger.CLEARING {
+		return ErrInvalidClearingAccount
 	}
 
 	// Validate available credit limit
 	currentBalance, err := s.ledgerRepo.GetBalance(
 		ctx,
-		card.AccountID,
+		card.ID,
 	)
 
 	if err != nil {

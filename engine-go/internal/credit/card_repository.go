@@ -49,16 +49,15 @@ func (r *CardRepository) GetCreditCard(
 	var card CreditCard
 
 	err := r.db.QueryRow(ctx, `
-		SELECT id, account_id, credit_limit, billing_day, payment_due_days, cutoff_time, created_at, 
+		SELECT id, clearing_account_id, credit_limit, billing_day, payment_due_days, created_at, 
 			updated_at 
 		FROM credit_cards WHERE id = $1
 	`, cardID).Scan(
-		&card.ID,
-		&card.AccountID,
+		&card.CardID,
+		&card.ClearingAccountId,
 		&card.CreditLimit,
 		&card.BillingDay,
 		&card.PaymentDueDays,
-		&card.CutoffTime,
 		&card.CreatedAt,
 		&card.UpdatedAt,
 	)
@@ -78,16 +77,15 @@ func (r *CardRepository) ListCreditCards(
 	rows, err := r.db.Query(ctx, `
 		SELECT
 			cc.id,
-			cc.account_id,
+			cc.clearing_account_id,
 			cc.credit_limit,
 			cc.billing_day,
 			cc.payment_due_days,
-			cc.cutoff_time,
 			cc.created_at,
 			cc.updated_at
 		FROM credit_cards cc
 		JOIN accounts a
-			ON cc.account_id = a.id
+			ON cc.id = a.id
 		WHERE a.user_id = $1
 		ORDER BY cc.created_at
 	`, userID)
@@ -105,12 +103,11 @@ func (r *CardRepository) ListCreditCards(
 		var card CreditCard
 
 		err := rows.Scan(
-			&card.ID,
-			&card.AccountID,
+			&card.CardID,
+			&card.ClearingAccountId,
 			&card.CreditLimit,
 			&card.BillingDay,
 			&card.PaymentDueDays,
-			&card.CutoffTime,
 			&card.CreatedAt,
 			&card.UpdatedAt,
 		)
@@ -174,22 +171,20 @@ func (r *CardRepository) GetCreditCardByAccount(
 	err := r.db.QueryRow(ctx, `
 		SELECT
 			id,
-			account_id,
+			clearing_account_id,
 			credit_limit,
 			billing_day,
 			payment_due_days,
-			cutoff_time,
 			created_at,
 			updated_at
 		FROM credit_cards
 		WHERE account_id = $1
 	`, accountID).Scan(
-		&card.ID,
-		&card.AccountID,
+		&card.CardID,
+		&card.ClearingAccountId,
 		&card.CreditLimit,
 		&card.BillingDay,
 		&card.PaymentDueDays,
-		&card.CutoffTime,
 		&card.CreatedAt,
 		&card.UpdatedAt,
 	)
@@ -226,16 +221,15 @@ func (r *CardRepository) GetUserCreditCards(
 		`
 		SELECT
 			cc.id,
-			cc.account_id,
+			cc.clearing_account_id,
 			cc.credit_limit,
 			cc.billing_day,
 			cc.payment_due_days,
-			cc.cutoff_time,
 			cc.created_at,
 			cc.updated_at
 		FROM credit_cards cc
 		JOIN accounts a
-			ON cc.account_id = a.id
+			ON cc.id = a.id
 		WHERE a.user_id = $1
 		ORDER BY cc.created_at DESC
 		`,
@@ -255,12 +249,12 @@ func (r *CardRepository) GetUserCreditCards(
 		var card CreditCard
 
 		err := rows.Scan(
-			&card.ID,
-			&card.AccountID,
+			&card.CardID,
+			&card.ClearingAccountId,
 			&card.CreditLimit,
 			&card.BillingDay,
 			&card.PaymentDueDays,
-			&card.CutoffTime,
+
 			&card.CreatedAt,
 			&card.UpdatedAt,
 		)

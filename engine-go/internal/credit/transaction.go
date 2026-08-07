@@ -104,7 +104,7 @@ func (s *Service) RecordCreditCardTransaction(
 	userID, err :=
 		s.ledgerRepo.GetUserIDFromAccount(
 			ctx,
-			card.AccountID,
+			card.ID,
 		)
 
 	if err != nil {
@@ -130,7 +130,7 @@ func (s *Service) RecordCreditCardTransaction(
 			ctx,
 			tx,
 			transactionID,
-			request.ExpenseAccountID,
+			card.ClearingAccountId,
 			request.Amount,
 			ledger.DEBIT,
 		)
@@ -140,7 +140,7 @@ func (s *Service) RecordCreditCardTransaction(
 	}
 
 	// Credit credit card liability
-	cardEntryID, err := s.ledgerRepo.InsertEntryTx(ctx, tx, transactionID, card.AccountID, request.Amount,
+	cardEntryID, err := s.ledgerRepo.InsertEntryTx(ctx, tx, transactionID, card.ID, request.Amount,
 		ledger.CREDIT)
 
 	if err != nil {
@@ -185,8 +185,8 @@ func (s *Service) RecordCreditCardTransaction(
 		ctx,
 		s.redis,
 		userID,
-		card.AccountID,
-		request.ExpenseAccountID,
+		card.ID,
+		card.ClearingAccountId,
 	)
 
 	// Credit card specific cache

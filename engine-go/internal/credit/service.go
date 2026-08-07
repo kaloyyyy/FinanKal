@@ -71,8 +71,9 @@ func (s *Service) CreateCreditCard(
 	}
 
 	var (
-		userID uuid.UUID
-		err    error
+		userID            uuid.UUID
+		clearingAccountID uuid.UUID
+		err               error
 	)
 
 	// Create a new ledger account if none was supplied
@@ -90,20 +91,24 @@ func (s *Service) CreateCreditCard(
 		if err != nil {
 			return uuid.Nil, err
 		}
-	} else {
 
-		userID, err = s.ledgerRepo.GetUserIDFromAccount(
+		clearingAccountID, err = s.ledgerRepo.CreateClearingAccount(
 			ctx,
-			accountID,
+			userID,
+			accountName,
 		)
 		if err != nil {
 			return uuid.Nil, err
 		}
 
-		accountType, err := s.cardRepo.GetAccountType(
-			ctx,
-			accountID,
-		)
+	} else {
+
+		userID, err = s.ledgerRepo.GetUserIDFromAccount(ctx, accountID)
+		if err != nil {
+			return uuid.Nil, err
+		}
+
+		accountType, err := s.cardRepo.GetAccountType(ctx, accountID)
 		if err != nil {
 			return uuid.Nil, err
 		}
@@ -111,11 +116,22 @@ func (s *Service) CreateCreditCard(
 		if accountType != ledger.CREDIT_CARD {
 			return uuid.Nil, errors.New("account is not a credit card account")
 		}
+
+		// Existing credit card account. Create its clearing account.
+		clearingAccountID, err = s.ledgerRepo.CreateClearingAccount(
+			ctx,
+			userID,
+			accountName,
+		)
+		if err != nil {
+			return uuid.Nil, err
+		}
 	}
 
 	cardID, err := s.cardRepo.CreateCreditCard(
 		ctx,
 		accountID,
+		clearingAccountID,
 		creditLimit,
 		billingDay,
 		paymentDueDays,
@@ -224,7 +240,7 @@ func (s *Service) UpdateCreditCard(
 		return err
 	}
 
-	userID, err := s.ledgerRepo.GetUserIDFromAccount(ctx, card.AccountID)
+	userID, err := s.ledgerRepo.GetUserIDFromAccount(ctx, card.CardID)
 	if err != nil {
 		return err
 	}
@@ -272,7 +288,7 @@ func (s *Service) DeleteCreditCard(
 		return err
 	}
 
-	userID, err := s.ledgerRepo.GetUserIDFromAccount(ctx, card.AccountID)
+	userID, err := s.ledgerRepo.GetUserIDFromAccount(ctx, card.CardID)
 	if err != nil {
 		return err
 	}
