@@ -160,43 +160,6 @@ to synchronize dependencies.
 * For Spring Boot, open as a Maven project.
 * Synchronize dependencies after changes in `go.mod` or `pom.xml`.
 
----
-
-## Troubleshooting
-
-* **Port conflicts**: check `5432` for PostgreSQL (`sudo lsof -i :5432`)
-* **gRPC server not found**: ensure `server` binary exists in `engine-go`
-* **IntelliJ “Cannot resolve module”**: run `go mod tidy` and synchronize in IDE
-
----
-
-## Sprint changelog
-
-This changelog summarizes sprint-scoped commits in the repository (labels: SP0, SP1, SP2, SP3). Entries list commit hash, date, and commit message.
-
-### SP0 (2026-03-17)
-- a809b2d4ea3368d1ed23cf6ed77f42e0ad2c86d3 — 2026-03-17 — SP0 : setup env.
-- 66c5f7e5d5597314740be06996909a163afdfdc5 — 2026-03-15 — Initial commit - FinanKal clean structure
-
-### SP1 (2026-04-01 — 2026-04-03)
-- b057338cbcbeefdee4f106ad781a696b634eaef1 — 2026-04-01 — SP1 feat: implement gRPC endpoints in engine-go
-- aaf7b56682f5eefb59e60187cd7ca34cd1dfdfa3 — 2026-04-01 — SP1 chore: rename springboot main application
-- dc7c96dd23d43da6ee62982be7f3e0a91dc0fce8 — 2026-04-03 — SP1 update proto file
-- 065554a1abdc5a5cc8f4944497b4cf113286c4ab — 2026-04-03 — SP1 implement springboot http endpoints
-- 0ff68e101429631356ddf5ac02a553d7e8024f23 — 2026-04-03 — SP1 update engine-go to accommodate spring boot
-- c872298ea35616fced5f2b9759e862a72f8da902 — 2026-04-03 — SP1 openapi first approach
-
-### SP2 (2026-04-06)
-- 5ba28ae9a071b0d9ec4f77327a64e3d3fb500e52 — 2026-04-06 — SP2 (API): add get user balances
-- 38a936fd2cfcff57221158670df9234f29ca5b11 — 2026-04-06 — SP2 (core): add user balances
-- 59c3417fb3a0cdd3a5ea5b4b71cffb2fa417d01d — 2026-04-06 — SP2 (core): add cache to user balances
-- f69b38171c316fdc89980745544590ecb13508b5 — 2026-04-06 — SP2 (core): add logging for cache hits
-- bbfdc5bedd20232e788dc6b66546290b49ed25fe — 2026-04-06 — SP2 IDE settings
-
-### SP3 (2026-05-06 — 2026-08-05)
-- 1c3aea41537257208d827afe29480089ed457561 — 2026-05-06 — SP3 (core): logging
-- cf322289c1081006192725379567830d3dd8a900 — 2026-05-06 — SP3 (core): update redis
-- 45424c160488d9f4abd2e53d0eb39e96d01cfa99 — 2026-08-05 — SP3 (db): formatting
 
 ---
 
