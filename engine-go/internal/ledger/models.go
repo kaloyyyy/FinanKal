@@ -59,3 +59,12 @@ type Account struct {
 	Balance   decimal.Decimal
 	CreatedAt time.Time
 }
+
+type RecentTransaction struct {
+	ID          uuid.UUID
+	Description string
+	Amount      decimal.Decimal
+	Direction   string
+	AccountName string
+	CreatedAt   time.Time
+}

@@ -154,6 +154,51 @@ paths:
         '500':
           description: Server error
 
+  /api/users/{userId}/ledger-entries/recent:
+    get:
+      summary: Get Recent Ledger Entries
+      description: Retrieves the most recent ledger entries across all accounts belonging to a user
+      operationId: getRecentLedgerEntries
+      tags:
+        - Ledger Entries
+      parameters:
+        - name: userId
+          in: path
+          description: User UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+
+        - name: limit
+          in: query
+          description: Maximum number of recent ledger entries to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+
+      responses:
+        '200':
+          description: Recent ledger entries retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LedgerEntryDto'
+
+        '400':
+          description: Invalid user ID or limit
+
+        '404':
+          description: User not found
+
+        '500':
+          description: Server error
+
   /api/users/{id}/total-credit:
     get:
       summary: Get User Total Credit

@@ -401,3 +401,24 @@ func (r *LedgerRepository) CreateClearingAccount(
 		CLEARING,
 	)
 }
+
+func (s *Service) GetUserRecentTransactions(
+	ctx context.Context,
+	userID uuid.UUID,
+	limit int,
+) ([]RecentTransaction, error) {
+
+	if limit <= 0 {
+		limit = 5
+	}
+
+	if limit > 20 {
+		limit = 20
+	}
+
+	return s.repo.GetUserRecentTransactions(
+		ctx,
+		userID,
+		limit,
+	)
+}

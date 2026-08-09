@@ -1,5 +1,5 @@
 <script lang="ts">
-
+    import currency from "$lib/utils/currency.ts";
     interface Props {
         title:string;
         value:number;
@@ -13,14 +13,6 @@
         type="positive"
     }: Props = $props();
 
-
-    const money = new Intl.NumberFormat(
-        "en-PH",
-        {
-            style:"currency",
-            currency:"PHP"
-        }
-    );
 
 </script>
 
@@ -39,7 +31,7 @@
 			: "mt-3 text-3xl font-bold text-green-600"
 		}
     >
-        {money.format(value)}
+        {currency.format(value)}
     </p>
 
 </div>

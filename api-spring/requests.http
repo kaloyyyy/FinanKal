@@ -67,14 +67,16 @@ Accept: application/json
 
 
 ### Get CC Summary
-GET http://localhost:8080/api/accounts/1a1a1a1a-1a1a-1a1a-1a1a-1a1a1a1a1a1a
+GET http://localhost:8080/api/accounts/779f62f6-cfb9-49b6-b7de-965a1d9d058b
 Accept: application/json
 
-###
+### Get recent transactions
+GET http://localhost:8080/api/users/bcc539f6-fc94-4a2e-9ce6-3c03c0560204/transactions/recent
+Accept: application/json
 
 ### Get CC Account Balance
 
-GET http://localhost:8080/api/accounts/1a1a1a1a-1a1a-1a1a-1a1a-1a1a1a1a1a1a/balance
+GET http://localhost:8080/api/accounts/779f62f6-cfb9-49b6-b7de-965a1d9d058b/balance
 Accept: application/json
 
 ###

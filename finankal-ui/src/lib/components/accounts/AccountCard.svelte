@@ -1,12 +1,9 @@
 <script lang="ts">
     import AccountTypeBadge from './AccountTypeBadge.svelte';
-
+    import {currency} from "$lib/utils/currency.ts";
     let { account } = $props();
 
-    const currency = new Intl.NumberFormat('en-PH', {
-        style: 'currency',
-        currency: 'PHP'
-    });
+
 
     const balanceClass =
         account.balance < 0
@@ -35,7 +32,7 @@
                 </div>
 
                 <div>
-                    <h3 class="font-semibold text-white">
+                    <h3 class="font-semibold text-lg text-white">
                         {account.name}
                     </h3>
 

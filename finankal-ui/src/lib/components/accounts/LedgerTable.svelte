@@ -1,5 +1,7 @@
 <script lang="ts">
     import type {LedgerEntryDto} from "$lib/types/ledger";
+    import {currency} from "$lib/utils/currency.ts";
+
 
     interface Props {
         entries: LedgerEntryDto[];
@@ -8,42 +10,103 @@
     let {entries}: Props = $props();
 </script>
 
-<table class="table">
+<div class="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900">
 
-    <thead>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
 
-    <tr>
+            <thead class="border-b border-slate-800 bg-slate-950/50">
+            <tr>
+                <th class="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Date
+                </th>
 
-        <th>Date</th>
+                <th class="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Description
+                </th>
 
-        <th>Description</th>
+                <th class="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Account
+                </th>
 
-        <th>Type</th>
+                <th class="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Type
+                </th>
 
-        <th>Amount</th>
+                <th class="px-5 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Amount
+                </th>
+            </tr>
+            </thead>
 
-    </tr>
+            <tbody class="divide-y divide-slate-800">
 
-    </thead>
+            {#each entries as entry}
 
-    <tbody>
+                <tr class="transition hover:bg-slate-800/50">
 
-    {#each entries as entry}
+                    <td class="whitespace-nowrap px-5 py-4 text-sm text-slate-400">
+                        {new Date(entry.createdAt).toLocaleDateString()}
+                    </td>
 
-        <tr>
+                    <td class="px-5 py-4">
+                        <p class="font-medium text-white">
+                            {entry.description || "No description"}
+                        </p>
+                    </td>
 
-            <td>{entry.createdAt}</td>
+                    <td class="px-5 py-4">
+                            <span class="font-mono text-xs text-slate-400">
+                                {entry.accountId}
+                            </span>
+                    </td>
 
-            <td>{entry.description}</td>
+                    <td class="px-5 py-4">
 
-            <td>{entry.type}</td>
+                        {#if entry.type === "DEBIT"}
 
-            <td>{entry.amount}</td>
+                                <span class="inline-flex rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
+                                    Debit
+                                </span>
 
-        </tr>
+                        {:else}
 
-    {/each}
+                                <span class="inline-flex rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-400">
+                                    Credit
+                                </span>
 
-    </tbody>
+                        {/if}
 
-</table>
+                    </td>
+
+                    <td
+                            class={`whitespace-nowrap px-5 py-4 text-right font-semibold ${
+                                entry.type === "DEBIT"
+                                    ? "text-emerald-400"
+                                    : "text-blue-400"
+                            }`}
+                    >
+                        {currency.format(Number(entry.amount))}
+                    </td>
+
+                </tr>
+
+            {:else}
+
+                <tr>
+                    <td
+                            colspan="5"
+                            class="px-5 py-12 text-center text-sm text-slate-500"
+                    >
+                        No ledger entries found.
+                    </td>
+                </tr>
+
+            {/each}
+
+            </tbody>
+
+        </table>
+    </div>
+
+</div>

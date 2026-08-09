@@ -1,4 +1,5 @@
 <script lang="ts">
+    import {currency} from "$lib/utils/currency.ts";
     interface Props {
         balance: number;
     }
@@ -15,8 +16,7 @@
     </div>
 
     <div class="text-3xl font-bold">
-
-        ₱ {balance.toLocaleString()}
+        {currency.format(balance)}
 
     </div>
 

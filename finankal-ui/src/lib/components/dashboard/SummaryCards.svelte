@@ -43,7 +43,7 @@
         class="grid w-full grid-cols-3 gap-4"
 >
     <SummaryCard
-            title="Liquid Money"
+            title="Liquid Assets"
             value={currency(totalDebit)}
             description="Available cash across your accounts"
             icon="💵"
@@ -51,7 +51,7 @@
     />
 
     <SummaryCard
-            title="Total Debt"
+            title="Total Liabilities"
             value={currency(totalCredit)}
             description="Outstanding loans and credit"
             icon="💳"

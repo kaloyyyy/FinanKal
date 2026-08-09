@@ -1,5 +1,6 @@
 import type { PageServerLoad } from "./$types";
 import { getUserFinancialSummary } from "$lib/server/api/users";
+import {getRecentTransactions} from "$lib/server/api/transactions";
 
 
 const USER_ID =
@@ -10,8 +11,9 @@ export const load: PageServerLoad = async () => {
 
     const summary =
         await getUserFinancialSummary(USER_ID);
-
+    const recentTransactions =
+        await getRecentTransactions(USER_ID, 5);
     return {
-        summary
+        summary, recentTransactions
     };
 };

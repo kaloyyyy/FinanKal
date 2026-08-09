@@ -415,3 +415,173 @@ func (r *LedgerRepository) GetUserAccounts(
 
 	return accounts, nil
 }
+
+func (r *LedgerRepository) GetUserRecentTransactions(
+	ctx context.Context,
+	userID uuid.UUID,
+	limit int,
+) ([]RecentTransaction, error) {
+
+	rows, err := r.db.Query(
+		ctx,
+		`
+		WITH recent_transactions AS (
+			SELECT DISTINCT
+				t.id,
+				t.description,
+				t.created_at
+			FROM transactions t
+			JOIN entries e
+				ON e.transaction_id = t.id
+			JOIN accounts a
+				ON a.id = e.account_id
+			WHERE a.user_id = $1
+			ORDER BY t.created_at DESC
+			LIMIT $2
+		)
+
+		SELECT
+			rt.id,
+			rt.description,
+			rt.created_at,
+
+			chosen.amount,
+
+			CASE
+				WHEN EXISTS (
+					SELECT 1
+					FROM entries e2
+					JOIN accounts a2
+						ON a2.id = e2.account_id
+					WHERE e2.transaction_id = rt.id
+						AND a2.user_id = $1
+						AND a2.type = 'ASSET'
+						AND e2.type = 'DEBIT'
+				)
+				AND EXISTS (
+					SELECT 1
+					FROM entries e3
+					JOIN accounts a3
+						ON a3.id = e3.account_id
+					WHERE e3.transaction_id = rt.id
+						AND a3.user_id = $1
+						AND a3.type = 'ASSET'
+						AND e3.type = 'CREDIT'
+				)
+				THEN 'TRANSFER'
+
+				WHEN chosen.account_type = 'ASSET'
+					AND chosen.entry_type = 'DEBIT'
+					THEN 'IN'
+
+				WHEN chosen.account_type = 'ASSET'
+					AND chosen.entry_type = 'CREDIT'
+					THEN 'OUT'
+
+				WHEN chosen.account_type IN (
+					'LIABILITY',
+					'CREDIT_CARD',
+					'BNPL'
+				)
+					AND chosen.entry_type = 'DEBIT'
+					THEN 'IN'
+
+				WHEN chosen.account_type IN (
+					'LIABILITY',
+					'CREDIT_CARD',
+					'BNPL'
+				)
+					AND chosen.entry_type = 'CREDIT'
+					THEN 'OUT'
+
+				WHEN chosen.account_type = 'INCOME'
+					AND chosen.entry_type = 'CREDIT'
+					THEN 'IN'
+
+				WHEN chosen.account_type = 'EXPENSE'
+					AND chosen.entry_type = 'DEBIT'
+					THEN 'OUT'
+
+				ELSE 'TRANSFER'
+			END AS direction,
+
+			chosen.account_name
+
+		FROM recent_transactions rt
+
+		JOIN LATERAL (
+			SELECT
+				e.amount,
+				e.type AS entry_type,
+				a.type AS account_type,
+				a.name AS account_name
+			FROM entries e
+			JOIN accounts a
+				ON a.id = e.account_id
+			WHERE e.transaction_id = rt.id
+				AND a.user_id = $1
+
+			ORDER BY
+				CASE
+					WHEN a.type = 'ASSET' THEN 1
+					WHEN a.type IN (
+						'CREDIT_CARD',
+						'LIABILITY',
+						'BNPL'
+					) THEN 2
+					WHEN a.type IN (
+						'INCOME',
+						'EXPENSE'
+					) THEN 3
+					ELSE 4
+				END
+
+			LIMIT 1
+		) chosen ON TRUE
+
+		ORDER BY rt.created_at DESC
+		`,
+		userID,
+		limit,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var transactions []RecentTransaction
+
+	for rows.Next() {
+		var transaction RecentTransaction
+
+		var createdAt time.Time
+
+		err := rows.Scan(
+			&transaction.ID,
+			&transaction.Description,
+			&createdAt,
+			&transaction.Amount,
+			&transaction.Direction,
+			&transaction.AccountName,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		transaction.CreatedAt = createdAt
+
+		transactions = append(
+			transactions,
+			transaction,
+		)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return transactions, nil
+}

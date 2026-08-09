@@ -297,6 +297,64 @@ func (s *server) GetUserNetWorth(ctx context.Context, req *finance.GetUserTotalR
 		TotalBalance: total.String(),
 	}, nil
 }
+
+func (s *server) GetRecentTransactions(
+	ctx context.Context,
+	req *finance.GetRecentTransactionsRequest,
+) (*finance.GetRecentTransactionsResponse, error) {
+
+	userID, err := uuid.Parse(req.GetUserId())
+	if err != nil {
+		return nil, status.Error(
+			codes.InvalidArgument,
+			"invalid user ID",
+		)
+	}
+
+	limit := int(req.GetLimit())
+
+	if limit <= 0 {
+		limit = 5
+	}
+
+	if limit > 20 {
+		limit = 20
+	}
+
+	transactions, err :=
+		s.ledgerService.GetUserRecentTransactions(
+			ctx,
+			userID,
+			limit,
+		)
+
+	if err != nil {
+		return nil, status.Error(
+			codes.Internal,
+			"failed to retrieve recent transactions",
+		)
+	}
+
+	response := &finance.GetRecentTransactionsResponse{}
+
+	for _, transaction := range transactions {
+
+		response.Transactions = append(
+			response.Transactions,
+			&finance.RecentTransaction{
+				Id:          transaction.ID.String(),
+				Description: transaction.Description,
+				Amount:      transaction.Amount.String(),
+				Direction:   transaction.Direction,
+				AccountName: transaction.AccountName,
+				CreatedAt:   transaction.CreatedAt.Format(time.RFC3339),
+			},
+		)
+	}
+
+	return response, nil
+}
+
 func (s *server) RecordCreditCardTransaction(ctx context.Context, req *finance.RecordCreditCardTransactionRequest) (*finance.RecordCreditCardTransactionResponse, error) {
 
 	cardID, err := uuid.Parse(req.CardId)

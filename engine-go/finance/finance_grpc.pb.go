@@ -28,6 +28,7 @@ const (
 	FinanceEngine_GetUserTotalCredit_FullMethodName          = "/finance.FinanceEngine/GetUserTotalCredit"
 	FinanceEngine_GetUserTotalDebit_FullMethodName           = "/finance.FinanceEngine/GetUserTotalDebit"
 	FinanceEngine_GetUserNetWorth_FullMethodName             = "/finance.FinanceEngine/GetUserNetWorth"
+	FinanceEngine_GetRecentTransactions_FullMethodName       = "/finance.FinanceEngine/GetRecentTransactions"
 	FinanceEngine_CreateCreditCard_FullMethodName            = "/finance.FinanceEngine/CreateCreditCard"
 	FinanceEngine_RecordCreditCardTransaction_FullMethodName = "/finance.FinanceEngine/RecordCreditCardTransaction"
 	FinanceEngine_PayCreditCardStatement_FullMethodName      = "/finance.FinanceEngine/PayCreditCardStatement"
@@ -49,6 +50,7 @@ type FinanceEngineClient interface {
 	GetUserTotalCredit(ctx context.Context, in *GetUserTotalRequest, opts ...grpc.CallOption) (*GetUserTotalResponse, error)
 	GetUserTotalDebit(ctx context.Context, in *GetUserTotalRequest, opts ...grpc.CallOption) (*GetUserTotalResponse, error)
 	GetUserNetWorth(ctx context.Context, in *GetUserTotalRequest, opts ...grpc.CallOption) (*GetUserTotalResponse, error)
+	GetRecentTransactions(ctx context.Context, in *GetRecentTransactionsRequest, opts ...grpc.CallOption) (*GetRecentTransactionsResponse, error)
 	CreateCreditCard(ctx context.Context, in *CreateCreditCardRequest, opts ...grpc.CallOption) (*CreateCreditCardResponse, error)
 	RecordCreditCardTransaction(ctx context.Context, in *RecordCreditCardTransactionRequest, opts ...grpc.CallOption) (*RecordCreditCardTransactionResponse, error)
 	PayCreditCardStatement(ctx context.Context, in *PayCreditCardStatementRequest, opts ...grpc.CallOption) (*PayCreditCardStatementResponse, error)
@@ -153,6 +155,16 @@ func (c *financeEngineClient) GetUserNetWorth(ctx context.Context, in *GetUserTo
 	return out, nil
 }
 
+func (c *financeEngineClient) GetRecentTransactions(ctx context.Context, in *GetRecentTransactionsRequest, opts ...grpc.CallOption) (*GetRecentTransactionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRecentTransactionsResponse)
+	err := c.cc.Invoke(ctx, FinanceEngine_GetRecentTransactions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *financeEngineClient) CreateCreditCard(ctx context.Context, in *CreateCreditCardRequest, opts ...grpc.CallOption) (*CreateCreditCardResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateCreditCardResponse)
@@ -208,6 +220,7 @@ type FinanceEngineServer interface {
 	GetUserTotalCredit(context.Context, *GetUserTotalRequest) (*GetUserTotalResponse, error)
 	GetUserTotalDebit(context.Context, *GetUserTotalRequest) (*GetUserTotalResponse, error)
 	GetUserNetWorth(context.Context, *GetUserTotalRequest) (*GetUserTotalResponse, error)
+	GetRecentTransactions(context.Context, *GetRecentTransactionsRequest) (*GetRecentTransactionsResponse, error)
 	CreateCreditCard(context.Context, *CreateCreditCardRequest) (*CreateCreditCardResponse, error)
 	RecordCreditCardTransaction(context.Context, *RecordCreditCardTransactionRequest) (*RecordCreditCardTransactionResponse, error)
 	PayCreditCardStatement(context.Context, *PayCreditCardStatementRequest) (*PayCreditCardStatementResponse, error)
@@ -248,6 +261,9 @@ func (UnimplementedFinanceEngineServer) GetUserTotalDebit(context.Context, *GetU
 }
 func (UnimplementedFinanceEngineServer) GetUserNetWorth(context.Context, *GetUserTotalRequest) (*GetUserTotalResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUserNetWorth not implemented")
+}
+func (UnimplementedFinanceEngineServer) GetRecentTransactions(context.Context, *GetRecentTransactionsRequest) (*GetRecentTransactionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetRecentTransactions not implemented")
 }
 func (UnimplementedFinanceEngineServer) CreateCreditCard(context.Context, *CreateCreditCardRequest) (*CreateCreditCardResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateCreditCard not implemented")
@@ -444,6 +460,24 @@ func _FinanceEngine_GetUserNetWorth_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FinanceEngine_GetRecentTransactions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRecentTransactionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FinanceEngineServer).GetRecentTransactions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FinanceEngine_GetRecentTransactions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FinanceEngineServer).GetRecentTransactions(ctx, req.(*GetRecentTransactionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _FinanceEngine_CreateCreditCard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateCreditCardRequest)
 	if err := dec(in); err != nil {
@@ -558,6 +592,10 @@ var FinanceEngine_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUserNetWorth",
 			Handler:    _FinanceEngine_GetUserNetWorth_Handler,
+		},
+		{
+			MethodName: "GetRecentTransactions",
+			Handler:    _FinanceEngine_GetRecentTransactions_Handler,
 		},
 		{
 			MethodName: "CreateCreditCard",

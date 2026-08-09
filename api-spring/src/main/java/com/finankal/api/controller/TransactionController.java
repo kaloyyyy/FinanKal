@@ -2,6 +2,7 @@ package com.finankal.api.controller;
 
 import com.finankal.api.dto.CreateTransactionRequestDto;
 import com.finankal.api.dto.LedgerEntryDto;
+import com.finankal.api.dto.RecentTransactionDto;
 import com.finankal.api.dto.TransactionDto;
 import com.finankal.api.service.TransactionService;
 import org.slf4j.Logger;
@@ -10,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController

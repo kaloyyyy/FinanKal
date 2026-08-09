@@ -1,6 +1,7 @@
 package com.finankal.api.controller;
 
 import com.finankal.api.dto.AccountDto;
+import com.finankal.api.dto.RecentTransactionDto;
 import com.finankal.api.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,4 +54,19 @@ public class UserController {
         logger.info("Successfully fetched net worth for user: {} - Total: {}", id, total);
         return ResponseEntity.ok(total);
     }
+
+    @GetMapping("/{id}/transactions/recent")
+    public List<RecentTransactionDto> getRecentTransactions(
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "5") int limit
+    ) {
+
+        int safeLimit = Math.clamp(limit, 1, 20);
+
+        return userService.getRecentTransactions(
+                id,
+                safeLimit
+        );
+    }
+
 }
