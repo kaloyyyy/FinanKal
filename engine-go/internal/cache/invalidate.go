@@ -83,6 +83,8 @@ func InvalidateUser(
 		ctx,
 		rdb,
 
+		UserAccountsKey(userID),
+
 		UserBalanceKey(userID),
 		UserTotalCreditKey(userID),
 		UserTotalDebitKey(userID),

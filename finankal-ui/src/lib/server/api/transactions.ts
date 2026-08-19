@@ -1,5 +1,8 @@
 const API_URL = "http://localhost:8080";
 
+/**
+ * Create a new double-entry transaction.
+ */
 export async function createTransaction(payload: {
     description: string;
     entries: {
@@ -30,6 +33,12 @@ export async function createTransaction(payload: {
     return response.json();
 }
 
+
+/**
+ * Recent transaction returned by:
+ *
+ * GET /api/users/{userId}/transactions/recent
+ */
 export type RecentTransaction = {
     id: string;
     description: string;
@@ -39,18 +48,99 @@ export type RecentTransaction = {
     createdAt: string;
 };
 
+
+/**
+ * Get the most recent transactions for a user.
+ */
 export async function getRecentTransactions(
     userId: string,
     limit = 5
 ): Promise<RecentTransaction[]> {
 
+    const safeLimit = Math.min(Math.max(limit, 1), 20);
+
     const response = await fetch(
-        `${API_URL}/api/users/${userId}/transactions/recent?limit=${limit}`
+        `${API_URL}/api/users/${userId}/transactions/recent?limit=${safeLimit}`
     );
 
     if (!response.ok) {
+        const errorText = await response.text();
+
         throw new Error(
-            `Failed to fetch recent transactions: ${response.status}`
+            `Failed to fetch recent transactions: ${response.status}: ${errorText}`
+        );
+    }
+
+    return response.json();
+}
+
+
+/**
+ * Ledger entry belonging to a transaction.
+ */
+export type TransactionEntry = {
+    accountId: string;
+    amount: number;
+    type: "DEBIT" | "CREDIT";
+    description?: string | null;
+    transactionId?: string | null;
+    createdAt?: string | null;
+};
+
+
+/**
+ * Transaction returned by:
+ *
+ * GET /api/users/{userId}/transactions
+ */
+export type Transaction = {
+    id: string;
+    description: string;
+    entries: TransactionEntry[];
+};
+
+
+/**
+ * Get all transactions for a user.
+ */
+export async function getUserTransactions(
+    userId: string
+): Promise<Transaction[]> {
+
+    const response = await fetch(
+        `${API_URL}/api/users/${userId}/transactions`
+    );
+
+    if (!response.ok) {
+        const errorText = await response.text();
+
+        throw new Error(
+            `Failed to fetch transactions: ${response.status}: ${errorText}`
+        );
+    }
+
+    return response.json();
+}
+
+
+/**
+ * Get a specific transaction.
+ *
+ * GET /api/transactions/{id}
+ */
+export async function getTransaction(
+    transactionId: string
+): Promise<Transaction> {
+
+    const response = await fetch(
+        `${API_URL}/api/transactions/${transactionId}`
+    );
+
+    if (!response.ok) {
+        const errorText = await response.text();
+
+        throw new Error(
+            `Failed to fetch transaction: ${response.status}: ${errorText}`
         );
     }
 

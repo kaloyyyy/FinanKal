@@ -68,3 +68,20 @@ type RecentTransaction struct {
 	AccountName string
 	CreatedAt   time.Time
 }
+
+type TransactionDetail struct {
+	ID          uuid.UUID
+	Description string
+	CreatedAt   time.Time
+	Entries     []TransactionEntry
+}
+
+type TransactionEntry struct {
+	ID            uuid.UUID
+	TransactionID uuid.UUID
+	AccountID     uuid.UUID
+	AccountName   string
+	AccountType   AccountType
+	Amount        decimal.Decimal
+	Type          EntryType
+}

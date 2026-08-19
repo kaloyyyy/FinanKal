@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/kaloy/finankal/engine-go/finance"
 	"github.com/kaloy/finankal/engine-go/internal/credit"
 	"github.com/kaloy/finankal/engine-go/internal/ledger"
@@ -349,6 +351,154 @@ func (s *server) GetRecentTransactions(
 				AccountName: transaction.AccountName,
 				CreatedAt:   transaction.CreatedAt.Format(time.RFC3339),
 			},
+		)
+	}
+
+	return response, nil
+}
+
+func (s *server) GetTransaction(
+	ctx context.Context,
+	req *finance.GetTransactionRequest,
+) (*finance.TransactionResponse, error) {
+
+	transactionID, err := uuid.Parse(
+		req.GetTransactionId(),
+	)
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.InvalidArgument,
+			"invalid transaction_id: %v",
+			err,
+		)
+	}
+
+	transaction, err := s.ledgerService.GetTransaction(
+		ctx,
+		transactionID,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, status.Error(
+				codes.NotFound,
+				"transaction not found",
+			)
+		}
+
+		return nil, status.Errorf(
+			codes.Internal,
+			"failed to get transaction: %v",
+			err,
+		)
+	}
+
+	response := &finance.TransactionResponse{
+		Id:          transaction.ID.String(),
+		Description: transaction.Description,
+		CreatedAt:   timestamppb.New(transaction.CreatedAt),
+	}
+
+	for _, entry := range transaction.Entries {
+
+		response.Entries = append(
+			response.Entries,
+			&finance.TransactionEntry{
+				Id:            entry.ID.String(),
+				TransactionId: entry.TransactionID.String(),
+				AccountId:     entry.AccountID.String(),
+				AccountName:   entry.AccountName,
+				AccountType:   string(entry.AccountType),
+				Amount:        entry.Amount.String(),
+				Type:          string(entry.Type),
+			},
+		)
+	}
+
+	return response, nil
+}
+
+func (s *server) GetUserTransactions(
+	ctx context.Context,
+	req *finance.GetUserTransactionsRequest,
+) (*finance.GetUserTransactionsResponse, error) {
+
+	userID, err := uuid.Parse(
+		req.GetUserId(),
+	)
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.InvalidArgument,
+			"invalid user_id: %v",
+			err,
+		)
+	}
+
+	limit := int(req.GetLimit())
+
+	if limit <= 0 {
+		limit = 50
+	}
+
+	if limit > 100 {
+		limit = 100
+	}
+
+	offset := int(req.GetOffset())
+
+	if offset < 0 {
+		offset = 0
+	}
+
+	transactions, total, err :=
+		s.ledgerService.GetUserTransactions(
+			ctx,
+			userID,
+			limit,
+			offset,
+		)
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			"failed to get user transactions: %v",
+			err,
+		)
+	}
+
+	response := &finance.GetUserTransactionsResponse{
+		Total: int32(total),
+	}
+
+	for _, transaction := range transactions {
+
+		protoTransaction := &finance.TransactionResponse{
+			Id:          transaction.ID.String(),
+			Description: transaction.Description,
+			CreatedAt:   timestamppb.New(transaction.CreatedAt),
+		}
+
+		for _, entry := range transaction.Entries {
+
+			protoTransaction.Entries = append(
+				protoTransaction.Entries,
+				&finance.TransactionEntry{
+					Id:            entry.ID.String(),
+					TransactionId: entry.TransactionID.String(),
+					AccountId:     entry.AccountID.String(),
+					AccountName:   entry.AccountName,
+					AccountType:   string(entry.AccountType),
+					Amount:        entry.Amount.String(),
+					Type:          string(entry.Type),
+				},
+			)
+		}
+
+		response.Transactions = append(
+			response.Transactions,
+			protoTransaction,
 		)
 	}
 

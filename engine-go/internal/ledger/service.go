@@ -84,7 +84,7 @@ func (s *Service) GetUserAccounts(
 		}
 	}
 
-	// Cache miss
+	// Cache mis
 	//log.Default().Println("GetUserAccounts from postgres:", userID)
 	accounts, err := s.repo.GetUserAccounts(ctx, userID)
 	if err != nil {
@@ -420,5 +420,31 @@ func (s *Service) GetUserRecentTransactions(
 		ctx,
 		userID,
 		limit,
+	)
+}
+
+func (s *Service) GetTransaction(
+	ctx context.Context,
+	transactionID uuid.UUID,
+) (*TransactionDetail, error) {
+
+	return s.repo.GetTransaction(
+		ctx,
+		transactionID,
+	)
+}
+
+func (s *Service) GetUserTransactions(
+	ctx context.Context,
+	userID uuid.UUID,
+	limit int,
+	offset int,
+) ([]TransactionDetail, int, error) {
+
+	return s.repo.GetUserTransactions(
+		ctx,
+		userID,
+		limit,
+		offset,
 	)
 }

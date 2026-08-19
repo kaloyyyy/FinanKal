@@ -2,6 +2,7 @@ package com.finankal.api.controller;
 
 import com.finankal.api.dto.AccountDto;
 import com.finankal.api.dto.RecentTransactionDto;
+import com.finankal.api.dto.TransactionDto;
 import com.finankal.api.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,4 +70,17 @@ public class UserController {
         );
     }
 
+    @GetMapping("/{userId}/transactions")
+    public ResponseEntity<List<TransactionDto>> getUserTransactions(
+            @PathVariable UUID userId
+    ) {
+        logger.info(
+                "Getting transactions for user: {}",
+                userId
+        );
+
+        return ResponseEntity.ok(
+                userService.getUserTransactions(userId)
+        );
+    }
 }

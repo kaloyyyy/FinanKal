@@ -2,9 +2,11 @@ package com.finankal.api.service;
 
 import com.finankal.api.dto.AccountDto;
 import com.finankal.api.dto.RecentTransactionDto;
+import com.finankal.api.dto.TransactionDto;
 import com.finankal.api.finance.FinanceEngineGrpc;
 import com.finankal.api.finance.FinanceProtos;
 import com.finankal.api.mapper.AccountMapper;
+import com.finankal.api.mapper.TransactionMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +23,8 @@ public class UserService {
 
     @Autowired
     private AccountMapper accountMapper;
+    @Autowired
+    private TransactionMapper transactionMapper;
 
     public BigDecimal getUserTotalCredit(String userId) {
         FinanceProtos.GetUserTotalRequest request = FinanceProtos.GetUserTotalRequest.newBuilder()
@@ -86,6 +90,27 @@ public class UserService {
                                 OffsetDateTime.parse(transaction.getCreatedAt())
                         )
                 )
+                .toList();
+    }
+
+    /**
+     * Get all transactions for a user.
+     */
+    public List<TransactionDto> getUserTransactions(
+            UUID userId
+    ) {
+
+        FinanceProtos.GetUserTransactionsRequest request =
+                FinanceProtos.GetUserTransactionsRequest.newBuilder()
+                        .setUserId(userId.toString())
+                        .build();
+
+        FinanceProtos.GetUserTransactionsResponse response =
+                financeEngineStub.getUserTransactions(request);
+
+        return response.getTransactionsList()
+                .stream()
+                .map(transactionMapper::toDto)
                 .toList();
     }
 }

@@ -349,6 +349,8 @@ func (r *LedgerRepository) InsertEntryTx(
 		entryType,
 	).Scan(&entryID)
 
+	//clear cache for getuserAccounts
+
 	return entryID, err
 }
 
@@ -584,4 +586,225 @@ func (r *LedgerRepository) GetUserRecentTransactions(
 	}
 
 	return transactions, nil
+}
+
+func (r *LedgerRepository) GetTransaction(
+	ctx context.Context,
+	transactionID uuid.UUID,
+) (*TransactionDetail, error) {
+
+	var transaction TransactionDetail
+
+	err := r.db.QueryRow(
+		ctx,
+		`
+		SELECT
+			id,
+			description,
+			created_at
+		FROM transactions
+		WHERE id = $1
+		`,
+		transactionID,
+	).Scan(
+		&transaction.ID,
+		&transaction.Description,
+		&transaction.CreatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.db.Query(
+		ctx,
+		`
+		SELECT
+			e.id,
+			e.transaction_id,
+			e.account_id,
+			a.name,
+			a.type,
+			e.amount,
+			e.type
+		FROM entries e
+		JOIN accounts a
+			ON a.id = e.account_id
+		WHERE e.transaction_id = $1
+		ORDER BY e.id
+		`,
+		transactionID,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+
+		var entry TransactionEntry
+
+		err := rows.Scan(
+			&entry.ID,
+			&entry.TransactionID,
+			&entry.AccountID,
+			&entry.AccountName,
+			&entry.AccountType,
+			&entry.Amount,
+			&entry.Type,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		transaction.Entries = append(
+			transaction.Entries,
+			entry,
+		)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return &transaction, nil
+}
+
+func (r *LedgerRepository) GetUserTransactions(
+	ctx context.Context,
+	userID uuid.UUID,
+	limit int,
+	offset int,
+) ([]TransactionDetail, int, error) {
+
+	var total int
+
+	err := r.db.QueryRow(
+		ctx,
+		`
+		SELECT COUNT(*)
+		FROM transactions
+		WHERE user_id = $1
+		`,
+		userID,
+	).Scan(&total)
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	rows, err := r.db.Query(
+		ctx,
+		`
+		SELECT
+			id,
+			description,
+			created_at
+		FROM transactions
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2
+		OFFSET $3
+		`,
+		userID,
+		limit,
+		offset,
+	)
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	defer rows.Close()
+
+	transactions := make([]TransactionDetail, 0)
+
+	for rows.Next() {
+
+		var transaction TransactionDetail
+
+		err := rows.Scan(
+			&transaction.ID,
+			&transaction.Description,
+			&transaction.CreatedAt,
+		)
+
+		if err != nil {
+			return nil, 0, err
+		}
+
+		transactions = append(
+			transactions,
+			transaction,
+		)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	// Load entries for the returned transactions.
+	for i := range transactions {
+
+		entryRows, err := r.db.Query(
+			ctx,
+			`
+			SELECT
+				e.id,
+				e.transaction_id,
+				e.account_id,
+				a.name,
+				a.type,
+				e.amount,
+				e.type
+			FROM entries e
+			JOIN accounts a
+				ON a.id = e.account_id
+			WHERE e.transaction_id = $1
+			ORDER BY e.id
+			`,
+			transactions[i].ID,
+		)
+
+		if err != nil {
+			return nil, 0, err
+		}
+
+		for entryRows.Next() {
+
+			var entry TransactionEntry
+
+			err := entryRows.Scan(
+				&entry.ID,
+				&entry.TransactionID,
+				&entry.AccountID,
+				&entry.AccountName,
+				&entry.AccountType,
+				&entry.Amount,
+				&entry.Type,
+			)
+
+			if err != nil {
+				entryRows.Close()
+				return nil, 0, err
+			}
+
+			transactions[i].Entries = append(
+				transactions[i].Entries,
+				entry,
+			)
+		}
+
+		if err := entryRows.Err(); err != nil {
+			entryRows.Close()
+			return nil, 0, err
+		}
+
+		entryRows.Close()
+	}
+
+	return transactions, total, nil
 }

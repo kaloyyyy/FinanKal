@@ -75,3 +75,6 @@ func UserNetWorthKey(userID uuid.UUID) string {
 		userID,
 	)
 }
+func UserAccountsKey(userID uuid.UUID) string {
+	return fmt.Sprintf("user:%s:accounts", userID)
+}
