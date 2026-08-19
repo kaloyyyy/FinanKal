@@ -1,7 +1,6 @@
 package com.finankal.api.service;
 
 import com.finankal.api.dto.CreateTransactionRequestDto;
-import com.finankal.api.dto.LedgerEntryDto;
 import com.finankal.api.dto.TransactionDto;
 import com.finankal.api.finance.FinanceEngineGrpc;
 import com.finankal.api.finance.FinanceProtos;
@@ -9,8 +8,6 @@ import com.finankal.api.mapper.TransactionMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,9 +21,6 @@ public class TransactionService {
     private TransactionMapper transactionMapper;
 
 
-    /**
-     * Create transaction
-     */
     public TransactionDto createTransaction(
             CreateTransactionRequestDto requestDto
     ) {
@@ -37,29 +31,10 @@ public class TransactionService {
         FinanceProtos.CreateTransactionResponse response =
                 financeEngineStub.createTransaction(request);
 
-        TransactionDto dto = new TransactionDto();
-
-        dto.setId(response.getTransactionId());
-        dto.setDescription(requestDto.getDescription());
-        dto.setEntries(requestDto.getEntries());
-
-        for (LedgerEntryDto entry : dto.getEntries()) {
-
-            entry.setTransactionId(dto.getId());
-            entry.setDescription(dto.getDescription());
-            entry.setCreatedAt(
-                    LocalDateTime.now()
-                            .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-            );
-        }
-
-        return dto;
+        return transactionMapper.toDto(response);
     }
 
 
-    /**
-     * Get a specific transaction
-     */
     public TransactionDto getTransaction(
             UUID transactionId
     ) {
@@ -76,5 +51,25 @@ public class TransactionService {
     }
 
 
+    public List<TransactionDto> getUserTransactions(
+            UUID userId,
+            int limit,
+            int offset
+    ) {
 
+        FinanceProtos.GetUserTransactionsRequest request =
+                FinanceProtos.GetUserTransactionsRequest.newBuilder()
+                        .setUserId(userId.toString())
+                        .setLimit(limit)
+                        .setOffset(offset)
+                        .build();
+
+        FinanceProtos.GetUserTransactionsResponse response =
+                financeEngineStub.getUserTransactions(request);
+
+        return response.getTransactionsList()
+                .stream()
+                .map(transactionMapper::toDto)
+                .toList();
+    }
 }

@@ -1,7 +1,7 @@
 package com.finankal.api.controller;
 
+import com.finankal.api.dto.CreateTransactionEntryDto;
 import com.finankal.api.dto.CreateTransactionRequestDto;
-import com.finankal.api.dto.LedgerEntryDto;
 import com.finankal.api.dto.TransactionDto;
 import com.finankal.api.service.TransactionService;
 import org.slf4j.Logger;
@@ -23,8 +23,11 @@ public class TransactionController {
     @Autowired
     private TransactionService transactionService;
 
+
     /**
      * Create a new double-entry transaction.
+     *
+     * POST /api/transactions
      */
     @PostMapping
     public ResponseEntity<TransactionDto> createTransaction(
@@ -33,7 +36,7 @@ public class TransactionController {
 
         String accountIds = request.getEntries()
                 .stream()
-                .map(LedgerEntryDto::getAccountId)
+                .map(CreateTransactionEntryDto::getAccountId)
                 .collect(Collectors.joining(", "));
 
         logger.info(
@@ -53,9 +56,10 @@ public class TransactionController {
         return ResponseEntity.ok(transaction);
     }
 
+
     /**
      * Get a specific transaction.
-     * <p>
+     *
      * GET /api/transactions/{id}
      */
     @GetMapping("/{id}")

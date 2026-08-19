@@ -33,9 +33,7 @@ public class LedgerEntryService {
         dto.setAccountId(protoEntry.getAccountId());
         dto.setAmount(new BigDecimal(protoEntry.getAmount()));
         dto.setType(protoEntry.getType());
-        dto.setDescription(protoEntry.getDescription());
         dto.setTransactionId(protoEntry.getTransactionId());
-        dto.setCreatedAt(protoEntry.getCreatedAt());
         return dto;
     }
 }

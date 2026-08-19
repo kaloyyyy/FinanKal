@@ -96,9 +96,7 @@ public class UserService {
     /**
      * Get all transactions for a user.
      */
-    public List<TransactionDto> getUserTransactions(
-            UUID userId
-    ) {
+    public List<TransactionDto> getUserTransactions(UUID userId) {
 
         FinanceProtos.GetUserTransactionsRequest request =
                 FinanceProtos.GetUserTransactionsRequest.newBuilder()
