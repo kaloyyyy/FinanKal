@@ -9,6 +9,10 @@
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 <Navbar />
 
-<main class="min-h-screen bg-slate-950">
-    {@render children()}
+<main class="min-h-screen bg-slate-950 ">
+
+    <div class="mx-auto w-full max-w-7xl ">
+        {@render children()}
+    </div>
+
 </main>

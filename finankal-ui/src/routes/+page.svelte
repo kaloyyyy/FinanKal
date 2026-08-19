@@ -5,7 +5,7 @@
     let { data } = $props();
 </script>
 
-<div class="mx-auto flex w-full max-w-7xl flex-col gap-4">
+<div class="mx-auto flex  flex-col gap-4">
 
     <SummaryCards
             totalCredit={data.summary.totalCredit}

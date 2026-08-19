@@ -1,5 +1,4 @@
 <script lang="ts">
-    // Replace this with your server-loaded data once the GET API is connected.
     let { data } = $props();
 
     const currency = new Intl.NumberFormat("en-PH", {
@@ -17,14 +16,57 @@
         });
     }
 
-    function formatType(type: string) {
-        return type === "DEBIT" ? "Debit" : "Credit";
+    function formatTime(date: string | null | undefined) {
+        if (!date) return "";
+
+        return new Date(date).toLocaleTimeString("en-PH", {
+            hour: "numeric",
+            minute: "2-digit"
+        });
     }
 
-    function typeClass(type: string) {
-        return type === "DEBIT"
-            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-            : "bg-blue-500/10 text-blue-400 border-blue-500/20";
+    function getTransactionAmount(transaction: any): number {
+        if (!transaction.entries?.length) {
+            return 0;
+        }
+
+        // A double-entry transaction has equal debit/credit totals.
+        // Use the debit side as the displayed transaction amount.
+        const debit = transaction.entries
+            .filter((entry: any) => entry.type === "DEBIT")
+            .reduce(
+                (total: number, entry: any) =>
+                    total + Number(entry.amount),
+                0
+            );
+
+        return debit;
+    }
+
+    function getEntrySummary(transaction: any): string {
+        if (!transaction.entries?.length) {
+            return "No entries";
+        }
+
+        return transaction.entries
+            .map((entry: any) => entry.accountId)
+            .join(" → ");
+    }
+
+    function getEntryTypes(transaction: any): string {
+        if (!transaction.entries?.length) {
+            return "—";
+        }
+
+        const debits = transaction.entries.filter(
+            (entry: any) => entry.type === "DEBIT"
+        ).length;
+
+        const credits = transaction.entries.filter(
+            (entry: any) => entry.type === "CREDIT"
+        ).length;
+
+        return `${debits} debit${debits !== 1 ? "s" : ""} · ${credits} credit${credits !== 1 ? "s" : ""}`;
     }
 </script>
 
@@ -68,27 +110,41 @@
             </p>
 
             <p class="mt-2 text-3xl font-bold text-white">
-                {data.transactions?.length ?? 0}
+                {data.total ?? data.transactions?.length ?? 0}
+            </p>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Recorded in your ledger
             </p>
         </div>
+
 
         <div class="rounded-2xl border border-slate-800 bg-slate-900 p-5">
             <p class="text-sm text-slate-400">
-                Recent Activity
+                Current Page
             </p>
 
-            <p class="mt-2 text-3xl font-bold text-emerald-400">
-                Active
+            <p class="mt-2 text-3xl font-bold text-blue-400">
+                {data.transactions?.length ?? 0}
+            </p>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Transactions displayed
             </p>
         </div>
+
 
         <div class="rounded-2xl border border-slate-800 bg-slate-900 p-5">
             <p class="text-sm text-slate-400">
                 Ledger
             </p>
 
-            <p class="mt-2 text-3xl font-bold text-blue-400">
+            <p class="mt-2 text-3xl font-bold text-emerald-400">
                 Double Entry
+            </p>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Every transaction is balanced
             </p>
         </div>
 
@@ -99,11 +155,20 @@
 
     <div class="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900">
 
-        <div class="border-b border-slate-800 px-5 py-4">
-            <h2 class="font-semibold text-white">
-                All Transactions
-            </h2>
+        <div class="flex flex-col gap-3 border-b border-slate-800 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+
+            <div>
+                <h2 class="font-semibold text-white">
+                    All Transactions
+                </h2>
+
+                <p class="mt-1 text-xs text-slate-500">
+                    Your double-entry ledger activity
+                </p>
+            </div>
+
         </div>
+
 
         {#if !data.transactions || data.transactions.length === 0}
 
@@ -139,6 +204,7 @@
                     <thead class="border-b border-slate-800 bg-slate-950/50">
 
                     <tr>
+
                         <th class="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
                             Date
                         </th>
@@ -156,19 +222,36 @@
                         </th>
 
                         <th class="px-5 py-4"></th>
+
                     </tr>
 
                     </thead>
+
 
                     <tbody class="divide-y divide-slate-800">
 
                     {#each data.transactions as transaction}
 
+                        {@const amount = getTransactionAmount(transaction)}
+
                         <tr class="transition hover:bg-slate-800/40">
 
-                            <td class="whitespace-nowrap px-5 py-4 text-sm text-slate-400">
-                                {formatDate(transaction.createdAt)}
+                            <!-- Date -->
+
+                            <td class="whitespace-nowrap px-5 py-4">
+
+                                <div class="text-sm font-medium text-slate-300">
+                                    {formatDate(transaction.createdAt)}
+                                </div>
+
+                                <div class="mt-0.5 text-xs text-slate-500">
+                                    {formatTime(transaction.createdAt)}
+                                </div>
+
                             </td>
+
+
+                            <!-- Description -->
 
                             <td class="px-5 py-4">
 
@@ -176,39 +259,73 @@
                                         href={`/transactions/${transaction.id}`}
                                         class="font-medium text-white transition hover:text-blue-400"
                                 >
-                                    {transaction.description}
+                                    {transaction.description || "Untitled transaction"}
                                 </a>
 
+                                <p class="mt-1 max-w-md truncate text-xs text-slate-500">
+                                    {getEntrySummary(transaction)}
+                                </p>
+
                             </td>
+
+
+                            <!-- Entries -->
 
                             <td class="px-5 py-4">
 
+                                <div class="flex flex-col gap-1">
+
                                     <span
-                                            class="inline-flex rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-300"
+                                            class="inline-flex w-fit rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-300"
                                     >
                                         {transaction.entries?.length ?? 0}
-                                        {transaction.entries?.length === 1 ? " entry" : " entries"}
+                                        {transaction.entries?.length === 1
+                                            ? " entry"
+                                            : " entries"}
                                     </span>
+
+                                    <span class="text-xs text-slate-500">
+                                        {getEntryTypes(transaction)}
+                                    </span>
+
+                                </div>
 
                             </td>
 
-                            <td class="px-5 py-4 text-right font-semibold text-white">
+
+                            <!-- Amount -->
+
+                            <td class="px-5 py-4 text-right">
 
                                 {#if transaction.entries?.length}
-                                    {currency.format(transaction.entries[0].amount)}
+
+                                    <span class="font-semibold text-white">
+                                        {currency.format(amount)}
+                                    </span>
+
                                 {:else}
-                                    —
+
+                                    <span class="text-slate-500">
+                                        —
+                                    </span>
+
                                 {/if}
 
                             </td>
+
+
+                            <!-- Action -->
 
                             <td class="px-5 py-4 text-right">
 
                                 <a
                                         href={`/transactions/${transaction.id}`}
-                                        class="text-sm font-medium text-blue-400 transition hover:text-blue-300"
+                                        class="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-blue-400 transition hover:bg-blue-500/10 hover:text-blue-300"
                                 >
-                                    View →
+                                    View
+                                    <span class="ml-1">
+                                        →
+                                    </span>
                                 </a>
 
                             </td>

@@ -13,7 +13,7 @@
     <title>Accounts | FinanKal</title>
 </svelte:head>
 
-<div class="space-y-8 mx-auto flex w-full max-w-7xl flex-col gap-4">
+<div class="space-y-8">
 
     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
