@@ -93,19 +93,26 @@ export type TransactionEntry = {
  *
  * GET /api/users/{userId}/transactions
  */
-export type Transaction = {
+export interface Transaction {
     id: string;
     description: string;
+    createdAt: string;
     entries: TransactionEntry[];
-};
+}
 
 
+export interface TransactionsResponse {
+    transactions: Transaction[];
+    total: number;
+    limit: number;
+    offset: number;
+}
 /**
  * Get all transactions for a user.
  */
 export async function getUserTransactions(
     userId: string
-): Promise<Transaction[]> {
+): Promise<TransactionsResponse> {
 
     const response = await fetch(
         `${API_URL}/api/users/${userId}/transactions`

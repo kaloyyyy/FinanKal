@@ -3,6 +3,7 @@ package com.finankal.api.service;
 import com.finankal.api.dto.AccountDto;
 import com.finankal.api.dto.RecentTransactionDto;
 import com.finankal.api.dto.TransactionDto;
+import com.finankal.api.dto.TransactionPageDto;
 import com.finankal.api.finance.FinanceEngineGrpc;
 import com.finankal.api.finance.FinanceProtos;
 import com.finankal.api.mapper.AccountMapper;
@@ -96,19 +97,35 @@ public class UserService {
     /**
      * Get all transactions for a user.
      */
-    public List<TransactionDto> getUserTransactions(UUID userId) {
+    public TransactionPageDto getUserTransactions(
+            UUID userId,
+            int limit,
+            int offset
+    ) {
 
         FinanceProtos.GetUserTransactionsRequest request =
                 FinanceProtos.GetUserTransactionsRequest.newBuilder()
                         .setUserId(userId.toString())
+                        .setLimit(limit)
+                        .setOffset(offset)
                         .build();
 
         FinanceProtos.GetUserTransactionsResponse response =
                 financeEngineStub.getUserTransactions(request);
 
-        return response.getTransactionsList()
-                .stream()
-                .map(transactionMapper::toDto)
-                .toList();
+        TransactionPageDto dto = new TransactionPageDto();
+
+        dto.setTransactions(
+                response.getTransactionsList()
+                        .stream()
+                        .map(transactionMapper::toDto)
+                        .toList()
+        );
+
+        dto.setTotal(response.getTotal());
+        dto.setLimit(limit);
+        dto.setOffset(offset);
+
+        return dto;
     }
 }

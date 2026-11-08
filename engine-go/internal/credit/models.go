@@ -10,9 +10,8 @@ import (
 type StatementStatus string
 
 const (
-	StatementOpen   StatementStatus = "OPEN"
-	StatementClosed StatementStatus = "CLOSED"
-	StatementPaid   StatementStatus = "PAID"
+	StatementOpen StatementStatus = "OPEN"
+	StatementPaid StatementStatus = "PAID"
 )
 
 type CreditCard struct {
@@ -21,7 +20,6 @@ type CreditCard struct {
 	CreditLimit       decimal.Decimal
 	BillingDay        int
 	PaymentDueDays    int
-	CutoffTime        time.Time
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 }
@@ -33,18 +31,14 @@ type CreditCardStatement struct {
 	EndDate       time.Time
 	StatementDate time.Time
 	DueDate       time.Time
-	TotalAmount   decimal.Decimal
-	Status        StatementStatus
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	// TotalAmount is the amount still owed, except on a PAID statement,
+	// which keeps the amount of its final payment.
+	TotalAmount decimal.Decimal
+	Status      StatementStatus
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
-type CreditCardEntry struct {
-	ID          uuid.UUID
-	StatementID uuid.UUID
-	EntryID     uuid.UUID
-	CreatedAt   time.Time
-}
 type CreditCardTransactionRequest struct {
 	CardID       uuid.UUID
 	Amount       decimal.Decimal
@@ -59,28 +53,10 @@ type BillingCycle struct {
 	DueDate        time.Time
 }
 
-type CreditCardPayment struct {
-	ID            uuid.UUID
-	CardID        uuid.UUID
-	BankAccountID uuid.UUID
-	Amount        decimal.Decimal
-	TransactionID uuid.UUID
-	PaymentDate   time.Time
-	CreatedAt     time.Time
-}
-
 type CreditCardPaymentRequest struct {
 	CardID           uuid.UUID
 	StatementID      uuid.UUID
 	PaymentAccountID uuid.UUID // cash/bank account
 	Amount           decimal.Decimal
 	Description      string
-	PaymentDate      time.Time
-}
-
-type CreditCardBalance struct {
-	CardID          uuid.UUID
-	CreditLimit     decimal.Decimal
-	UsedCredit      decimal.Decimal
-	AvailableCredit decimal.Decimal
 }

@@ -10,6 +10,12 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+const balanceQuery = `
+	SELECT COALESCE(SUM(CASE WHEN type = 'DEBIT' THEN amount ELSE -amount END), 0)
+	FROM entries
+	WHERE account_id = $1
+`
+
 type LedgerRepository struct {
 	db *pgxpool.Pool
 }
@@ -18,65 +24,18 @@ func NewLedgerRepository(db *pgxpool.Pool) *LedgerRepository {
 	return &LedgerRepository{db: db}
 }
 
-func (r *LedgerRepository) CreateTransaction(ctx context.Context, userID uuid.UUID, description string) (uuid.UUID, error) {
-	var txID uuid.UUID
-
-	err := r.db.QueryRow(ctx,
-		"INSERT INTO transactions (user_id, description) VALUES ($1, $2) RETURNING id",
-		userID, description,
-	).Scan(&txID)
-
-	return txID, err
-}
-
-func (r *LedgerRepository) InsertEntry(
-	ctx context.Context,
-	txID uuid.UUID,
-	accountID uuid.UUID,
-	amount decimal.Decimal,
-	entryType EntryType,
-) (uuid.UUID, error) {
-
-	var id uuid.UUID
-
-	const query = `
-INSERT INTO entries (
-	transaction_id,
-	account_id,
-	amount,
-	type
-)
-VALUES (
-	$1,
-	$2,
-	$3,
-	$4
-)
-RETURNING id
-`
-
-	err := r.db.QueryRow(
-		ctx,
-		query,
-		txID,
-		accountID,
-		amount,
-		entryType,
-	).Scan(&id)
-
-	return id, err
-}
-
 func (r *LedgerRepository) GetBalance(ctx context.Context, accountID uuid.UUID) (decimal.Decimal, error) {
 	var balance decimal.Decimal
 
-	err := r.db.QueryRow(ctx, `
-		SELECT COALESCE(
-			SUM(CASE WHEN type='DEBIT' THEN amount ELSE 0 END) -
-			SUM(CASE WHEN type='CREDIT' THEN amount ELSE 0 END), 0)
-		FROM entries
-		WHERE account_id = $1
-	`, accountID).Scan(&balance)
+	err := r.db.QueryRow(ctx, balanceQuery, accountID).Scan(&balance)
+
+	return balance, err
+}
+
+func (r *LedgerRepository) GetBalanceTx(ctx context.Context, tx pgx.Tx, accountID uuid.UUID) (decimal.Decimal, error) {
+	var balance decimal.Decimal
+
+	err := tx.QueryRow(ctx, balanceQuery, accountID).Scan(&balance)
 
 	return balance, err
 }
@@ -93,8 +52,9 @@ func (r *LedgerRepository) GetAccount(ctx context.Context, accountID uuid.UUID) 
 	return name, accountType, createAt, err
 }
 
-func (r *LedgerRepository) CreateAccount(
+func (r *LedgerRepository) CreateAccountTx(
 	ctx context.Context,
+	tx pgx.Tx,
 	userID uuid.UUID,
 	name string,
 	accountType AccountType,
@@ -102,7 +62,7 @@ func (r *LedgerRepository) CreateAccount(
 
 	var accountID uuid.UUID
 
-	err := r.db.QueryRow(
+	err := tx.QueryRow(
 		ctx,
 		`
 		INSERT INTO accounts (
@@ -110,11 +70,7 @@ func (r *LedgerRepository) CreateAccount(
 			name,
 			type
 		)
-		VALUES (
-			$1,
-			$2,
-			$3
-		)
+		VALUES ($1,$2,$3)
 		RETURNING id
 		`,
 		userID,
@@ -122,11 +78,17 @@ func (r *LedgerRepository) CreateAccount(
 		accountType,
 	).Scan(&accountID)
 
-	if err != nil {
-		return uuid.Nil, err
-	}
+	return accountID, err
+}
 
-	return accountID, nil
+func (r *LedgerRepository) CreateClearingAccountTx(
+	ctx context.Context,
+	tx pgx.Tx,
+	userID uuid.UUID,
+	cardName string,
+) (uuid.UUID, error) {
+
+	return r.CreateAccountTx(ctx, tx, userID, cardName+" Clearing", CLEARING)
 }
 
 func (r *LedgerRepository) GetLedgerEntries(ctx context.Context, accountID uuid.UUID) ([]Entry, error) {
@@ -349,8 +311,6 @@ func (r *LedgerRepository) InsertEntryTx(
 		entryType,
 	).Scan(&entryID)
 
-	//clear cache for getuserAccounts
-
 	return entryID, err
 }
 
@@ -384,7 +344,8 @@ func (r *LedgerRepository) GetUserAccounts(
 			a.user_id,
 			a.name,
 			a.type,
-			a.created_at;
+			a.created_at
+		ORDER BY a.created_at, a.id
 	`, userID)
 	if err != nil {
 		return nil, err
@@ -558,12 +519,10 @@ func (r *LedgerRepository) GetUserRecentTransactions(
 	for rows.Next() {
 		var transaction RecentTransaction
 
-		var createdAt time.Time
-
 		err := rows.Scan(
 			&transaction.ID,
 			&transaction.Description,
-			&createdAt,
+			&transaction.CreatedAt,
 			&transaction.Amount,
 			&transaction.Direction,
 			&transaction.AccountName,
@@ -572,8 +531,6 @@ func (r *LedgerRepository) GetUserRecentTransactions(
 		if err != nil {
 			return nil, err
 		}
-
-		transaction.CreatedAt = createdAt
 
 		transactions = append(
 			transactions,
@@ -685,10 +642,10 @@ func (r *LedgerRepository) GetUserTransactions(
 	err := r.db.QueryRow(
 		ctx,
 		`
-		SELECT COUNT(*)
-		FROM transactions
-		WHERE user_id = $1
-		`,
+        SELECT COUNT(*)
+        FROM transactions
+        WHERE user_id = $1
+        `,
 		userID,
 	).Scan(&total)
 
@@ -699,16 +656,47 @@ func (r *LedgerRepository) GetUserTransactions(
 	rows, err := r.db.Query(
 		ctx,
 		`
+	WITH paginated_transactions AS (
 		SELECT
-			id,
-			description,
-			created_at
-		FROM transactions
-		WHERE user_id = $1
-		ORDER BY created_at DESC
+			t.id,
+			t.description,
+			t.created_at
+		FROM transactions t
+		WHERE t.user_id = $1
+		ORDER BY
+			t.created_at DESC,
+			t.id DESC
 		LIMIT $2
 		OFFSET $3
-		`,
+	)
+
+	SELECT
+		pt.id,
+		pt.description,
+		pt.created_at,
+
+		e.id,
+		e.transaction_id,
+		e.account_id,
+		a.name,
+		a.type,
+		e.amount,
+		e.type
+
+	FROM paginated_transactions pt
+
+	LEFT JOIN entries e
+		ON e.transaction_id = pt.id
+
+	LEFT JOIN accounts a
+		ON a.id = e.account_id
+
+	ORDER BY
+		pt.created_at DESC,
+		pt.id DESC,
+		e.id
+
+	`,
 		userID,
 		limit,
 		offset,
@@ -720,90 +708,81 @@ func (r *LedgerRepository) GetUserTransactions(
 
 	defer rows.Close()
 
+	transactionMap := make(map[uuid.UUID]int)
 	transactions := make([]TransactionDetail, 0)
 
 	for rows.Next() {
 
-		var transaction TransactionDetail
+		var (
+			transactionID uuid.UUID
+			description   string
+			createdAt     time.Time
+
+			entryID     *uuid.UUID
+			entryTxID   *uuid.UUID
+			accountID   *uuid.UUID
+			accountName *string
+			accountType *AccountType
+			amount      *decimal.Decimal
+			entryType   *EntryType
+		)
 
 		err := rows.Scan(
-			&transaction.ID,
-			&transaction.Description,
-			&transaction.CreatedAt,
+			&transactionID,
+			&description,
+			&createdAt,
+
+			&entryID,
+			&entryTxID,
+			&accountID,
+			&accountName,
+			&accountType,
+			&amount,
+			&entryType,
 		)
 
 		if err != nil {
 			return nil, 0, err
 		}
 
-		transactions = append(
-			transactions,
-			transaction,
-		)
+		index, exists := transactionMap[transactionID]
+
+		if !exists {
+
+			index = len(transactions)
+
+			transactionMap[transactionID] = index
+
+			transactions = append(
+				transactions,
+				TransactionDetail{
+					ID:          transactionID,
+					Description: description,
+					CreatedAt:   createdAt,
+					Entries:     make([]TransactionEntry, 0),
+				},
+			)
+		}
+
+		if entryID != nil {
+
+			transactions[index].Entries = append(
+				transactions[index].Entries,
+				TransactionEntry{
+					ID:            *entryID,
+					TransactionID: *entryTxID,
+					AccountID:     *accountID,
+					AccountName:   *accountName,
+					AccountType:   *accountType,
+					Amount:        *amount,
+					Type:          *entryType,
+				},
+			)
+		}
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, 0, err
-	}
-
-	// Load entries for the returned transactions.
-	for i := range transactions {
-
-		entryRows, err := r.db.Query(
-			ctx,
-			`
-			SELECT
-				e.id,
-				e.transaction_id,
-				e.account_id,
-				a.name,
-				a.type,
-				e.amount,
-				e.type
-			FROM entries e
-			JOIN accounts a
-				ON a.id = e.account_id
-			WHERE e.transaction_id = $1
-			ORDER BY e.id
-			`,
-			transactions[i].ID,
-		)
-
-		if err != nil {
-			return nil, 0, err
-		}
-
-		for entryRows.Next() {
-
-			var entry TransactionEntry
-
-			err := entryRows.Scan(
-				&entry.ID,
-				&entry.TransactionID,
-				&entry.AccountID,
-				&entry.AccountName,
-				&entry.AccountType,
-				&entry.Amount,
-				&entry.Type,
-			)
-
-			if err != nil {
-				entryRows.Close()
-				return nil, 0, err
-			}
-
-			transactions[i].Entries = append(
-				transactions[i].Entries,
-				entry,
-			)
-		}
-
-		if err := entryRows.Err(); err != nil {
-			entryRows.Close()
-			return nil, 0, err
-		}
-
-		entryRows.Close()
 	}
 
 	return transactions, total, nil

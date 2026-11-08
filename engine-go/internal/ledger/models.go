@@ -45,12 +45,6 @@ type AccountSummary struct {
 	CreatedAt time.Time
 }
 
-type User struct {
-	ID        uuid.UUID
-	Name      string
-	Username  string
-	CreatedAt time.Time
-}
 type Account struct {
 	ID        uuid.UUID
 	UserID    uuid.UUID

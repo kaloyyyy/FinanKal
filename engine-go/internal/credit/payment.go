@@ -3,24 +3,19 @@ package credit
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/kaloy/finankal/engine-go/internal/cache"
-	"github.com/shopspring/decimal"
+	"github.com/kaloy/finankal/engine-go/internal/ledger"
 )
 
 var (
-	ErrInvalidPaymentAmount = errors.New(
-		"payment amount must be greater than zero",
-	)
+	ErrStatementAlreadyPaid = errors.New("statement already paid")
+	ErrPaymentTooLarge      = errors.New("payment exceeds statement balance")
 
-	ErrStatementAlreadyPaid = errors.New(
-		"statement already paid",
-	)
-
-	ErrPaymentTooLarge = errors.New(
-		"payment exceeds statement balance",
-	)
+	ErrStatementCardMismatch = fmt.Errorf("%w: statement does not belong to this card", ErrInvalidRequest)
+	ErrInvalidPaymentAccount = fmt.Errorf("%w: payment account must be an asset account owned by the cardholder", ErrInvalidRequest)
 )
 
 func (s *Service) PayCreditCardStatement(
@@ -28,155 +23,92 @@ func (s *Service) PayCreditCardStatement(
 	request CreditCardPaymentRequest,
 ) (uuid.UUID, error) {
 
-	if request.Amount.LessThanOrEqual(decimal.Zero) {
-		return uuid.Nil, ErrInvalidPaymentAmount
+	if err := validateAmount(request.Amount); err != nil {
+		return uuid.Nil, err
 	}
 
-	statement, err :=
-		s.statementRepo.GetStatement(
-			ctx,
-			request.StatementID,
-		)
-
+	card, err := s.cardRepo.GetCreditCard(ctx, request.CardID)
 	if err != nil {
 		return uuid.Nil, err
 	}
 
+	userID, err := s.ledgerRepo.GetUserIDFromAccount(ctx, card.CardID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	if err := s.validatePaymentAccount(ctx, request.PaymentAccountID, userID); err != nil {
+		return uuid.Nil, err
+	}
+
+	tx, err := s.ledgerRepo.BeginTx(ctx)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	// Locked until commit, so two concurrent payments cannot both pass the balance check.
+	statement, err := s.statementRepo.GetStatementForUpdateTx(ctx, tx, request.StatementID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	if statement.CardID != request.CardID {
+		return uuid.Nil, ErrStatementCardMismatch
+	}
 	if statement.Status == StatementPaid {
 		return uuid.Nil, ErrStatementAlreadyPaid
 	}
-
 	if request.Amount.GreaterThan(statement.TotalAmount) {
 		return uuid.Nil, ErrPaymentTooLarge
 	}
 
-	card, err :=
-		s.cardRepo.GetCreditCard(
-			ctx,
-			request.CardID,
-		)
-
+	transactionID, err := s.ledgerRepo.CreateTransactionTx(ctx, tx, userID, request.Description)
 	if err != nil {
 		return uuid.Nil, err
 	}
 
-	userID, err :=
-		s.ledgerRepo.GetUserIDFromAccount(
-			ctx,
-			card.CardID,
-		)
-
-	if err != nil {
+	// Debiting the card reduces what is owed; crediting the bank is the money leaving.
+	if _, err := s.ledgerRepo.InsertEntryTx(ctx, tx, transactionID, card.CardID, request.Amount, ledger.DEBIT); err != nil {
+		return uuid.Nil, err
+	}
+	if _, err := s.ledgerRepo.InsertEntryTx(ctx, tx, transactionID, request.PaymentAccountID, request.Amount, ledger.CREDIT); err != nil {
 		return uuid.Nil, err
 	}
 
-	tx, err :=
-		s.ledgerRepo.BeginTx(ctx)
-
-	if err != nil {
-		return uuid.Nil, err
-	}
-
-	defer tx.Rollback(ctx)
-
-	transactionID, err :=
-		s.ledgerRepo.CreateTransactionTx(
-			ctx,
-			tx,
-			userID,
-			request.Description,
-		)
-
-	if err != nil {
-		return uuid.Nil, err
-	}
-
-	// Debit Credit Card Liability
-	//
-	// reduces what you owe
-
-	_, err =
-		s.ledgerRepo.InsertEntryTx(
-			ctx,
-			tx,
-			transactionID,
-			card.CardID,
-			request.Amount,
-			"DEBIT",
-		)
-
-	if err != nil {
-		return uuid.Nil, err
-	}
-
-	// Credit Cash/Bank
-	//
-	// money leaves your bank
-
-	_, err =
-		s.ledgerRepo.InsertEntryTx(
-			ctx,
-			tx,
-			transactionID,
-			request.PaymentAccountID,
-			request.Amount,
-			"CREDIT",
-		)
-
-	if err != nil {
-		return uuid.Nil, err
-	}
-
-	remaining :=
-		statement.TotalAmount.Sub(
-			request.Amount,
-		)
-
-	if remaining.Equal(decimal.Zero) {
-
-		err =
-			s.statementRepo.UpdateStatementStatusTx(
-				ctx,
-				tx,
-				request.StatementID,
-				StatementPaid,
-			)
-
-		if err != nil {
-			return uuid.Nil, err
-		}
-
+	remaining := statement.TotalAmount.Sub(request.Amount)
+	if remaining.IsZero() {
+		err = s.statementRepo.UpdateStatementStatusTx(ctx, tx, request.StatementID, StatementPaid)
 	} else {
-
-		err =
-			s.statementRepo.UpdateStatementTotalTx(
-				ctx,
-				tx,
-				request.StatementID,
-				remaining,
-			)
-
-		if err != nil {
-			return uuid.Nil, err
-		}
+		err = s.statementRepo.UpdateStatementTotalTx(ctx, tx, request.StatementID, remaining)
 	}
-
-	err =
-		tx.Commit(ctx)
-
 	if err != nil {
 		return uuid.Nil, err
 	}
 
-	_ = cache.InvalidateCreditCardPayment(
-		ctx,
-		s.redis,
-		request.CardID,
-		request.StatementID,
-		userID,
-		card.CardID,
-		request.PaymentAccountID,
-	)
+	if err := tx.Commit(ctx); err != nil {
+		return uuid.Nil, err
+	}
+
+	cache.InvalidateCreditCard(ctx, s.redis, card.CardID, userID, request.PaymentAccountID)
 
 	return transactionID, nil
+}
+
+func (s *Service) validatePaymentAccount(ctx context.Context, accountID, userID uuid.UUID) error {
+	owner, err := s.ledgerRepo.GetUserIDFromAccount(ctx, accountID)
+	if err != nil {
+		return err
+	}
+
+	_, accountType, _, err := s.ledgerRepo.GetAccount(ctx, accountID)
+	if err != nil {
+		return err
+	}
+
+	if owner != userID || accountType != ledger.ASSET {
+		return ErrInvalidPaymentAccount
+	}
+
+	return nil
 }

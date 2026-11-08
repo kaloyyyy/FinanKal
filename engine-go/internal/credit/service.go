@@ -2,18 +2,19 @@ package credit
 
 import (
 	"context"
-	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kaloy/finankal/engine-go/internal/cache"
 	"github.com/kaloy/finankal/engine-go/internal/ledger"
 	"github.com/redis/go-redis/v9"
 	"github.com/shopspring/decimal"
 )
 
+// shortcut: new card accounts all belong to this user because CreateCreditCardRequest
+// has no user_id. Add one to the proto once the API has real users.
 const DefaultUserID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 
 type Service struct {
@@ -22,11 +23,9 @@ type Service struct {
 	entryRepo     *EntryRepository
 	ledgerRepo    *ledger.LedgerRepository
 	redis         *redis.Client
-	db            *pgxpool.Pool
 }
 
 func NewService(
-	db *pgxpool.Pool,
 	cardRepo *CardRepository,
 	ledgerRepo *ledger.LedgerRepository,
 	statementRepo *StatementRepository,
@@ -35,7 +34,6 @@ func NewService(
 ) *Service {
 
 	return &Service{
-		db:            db,
 		cardRepo:      cardRepo,
 		ledgerRepo:    ledgerRepo,
 		statementRepo: statementRepo,
@@ -44,10 +42,8 @@ func NewService(
 	}
 }
 
-// =========================
-// Credit Card CRUD
-// =========================
-
+// CreateCreditCard creates a card on accountID, or on a new account when accountID is uuid.Nil.
+// Everything is created in one transaction, so a failure leaves no orphaned accounts.
 func (s *Service) CreateCreditCard(
 	ctx context.Context,
 	accountID uuid.UUID,
@@ -57,175 +53,79 @@ func (s *Service) CreateCreditCard(
 	paymentDueDays int,
 ) (uuid.UUID, error) {
 
-	// Validate inputs
-	if billingDay < 1 || billingDay > 28 {
-		return uuid.Nil, errors.New("billing day must be between 1 and 28")
+	if err := validateCardTerms(creditLimit, billingDay, paymentDueDays); err != nil {
+		return uuid.Nil, err
 	}
 
-	if paymentDueDays < 1 || paymentDueDays > 28 {
-		return uuid.Nil, errors.New("payment due days must be between 1 and 28")
-	}
+	userID := uuid.MustParse(DefaultUserID)
+	createAccount := accountID == uuid.Nil
 
-	if creditLimit.IsNegative() {
-		return uuid.Nil, errors.New("credit limit cannot be negative")
-	}
-
-	var (
-		userID            uuid.UUID
-		clearingAccountID uuid.UUID
-		err               error
-	)
-
-	// Create a new ledger account if none was supplied
-	userID = uuid.MustParse(DefaultUserID)
-
-	if accountID == uuid.Nil {
-
-		accountID, err = s.ledgerRepo.CreateAccount(
-			ctx,
-			userID,
-			accountName,
-			ledger.CREDIT_CARD,
-		)
-
-		if err != nil {
-			return uuid.Nil, err
+	if createAccount {
+		if strings.TrimSpace(accountName) == "" {
+			return uuid.Nil, fmt.Errorf("%w: account name is required for a new card account", ErrInvalidRequest)
 		}
-
-		clearingAccountID, err = s.ledgerRepo.CreateClearingAccount(
-			ctx,
-			userID,
-			accountName,
-		)
-		if err != nil {
-			return uuid.Nil, err
-		}
-
 	} else {
+		var err error
 
 		userID, err = s.ledgerRepo.GetUserIDFromAccount(ctx, accountID)
 		if err != nil {
 			return uuid.Nil, err
 		}
 
-		accountType, err := s.cardRepo.GetAccountType(ctx, accountID)
+		existingName, accountType, _, err := s.ledgerRepo.GetAccount(ctx, accountID)
 		if err != nil {
 			return uuid.Nil, err
 		}
-
 		if accountType != ledger.CREDIT_CARD {
-			return uuid.Nil, errors.New("account is not a credit card account")
+			return uuid.Nil, ErrInvalidCreditAccount
 		}
+		if accountName == "" {
+			accountName = existingName
+		}
+	}
 
-		// Existing credit card account. Create its clearing account.
-		clearingAccountID, err = s.ledgerRepo.CreateClearingAccount(
-			ctx,
-			userID,
-			accountName,
-		)
+	tx, err := s.ledgerRepo.BeginTx(ctx)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	if createAccount {
+		accountID, err = s.ledgerRepo.CreateAccountTx(ctx, tx, userID, accountName, ledger.CREDIT_CARD)
 		if err != nil {
 			return uuid.Nil, err
 		}
 	}
 
-	cardID, err := s.cardRepo.CreateCreditCard(
-		ctx,
-		accountID,
-		clearingAccountID,
-		creditLimit,
-		billingDay,
-		paymentDueDays,
-	)
+	clearingAccountID, err := s.ledgerRepo.CreateClearingAccountTx(ctx, tx, userID, accountName)
 	if err != nil {
 		return uuid.Nil, err
 	}
 
-	_ = cache.InvalidateCreditCard(
-		ctx,
-		s.redis,
-		cardID,
-		userID,
-	)
+	cardID, err := s.cardRepo.CreateCreditCardTx(ctx, tx, accountID, clearingAccountID, creditLimit, billingDay, paymentDueDays)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return uuid.Nil, err
+	}
+
+	cache.InvalidateCreditCard(ctx, s.redis, cardID, userID, clearingAccountID)
 
 	return cardID, nil
 }
 
-func (s *Service) GetCreditCard(
-	ctx context.Context,
-	cardID uuid.UUID,
-) (*CreditCard, error) {
-
-	key := cache.CreditCardKey(cardID)
-
-	// Try Redis cache first
-	card, err := cache.Get[CreditCard](
-		ctx,
-		s.redis,
-		key,
-	)
-
-	if err == nil && card != nil {
-		return card, nil
-	}
-
-	// Cache miss -> database
-	cardDB, err := s.cardRepo.GetCreditCard(
-		ctx,
-		cardID,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	// Store in Redis
-	// Cache failure should not fail request
-	_ = cache.Set(
-		ctx,
-		s.redis,
-		key,
-		cardDB,
-		30*time.Minute,
-	)
-
-	return cardDB, nil
+func (s *Service) GetCreditCard(ctx context.Context, cardID uuid.UUID) (*CreditCard, error) {
+	return cache.GetOrLoad(ctx, s.redis, cache.CreditCardKey(cardID), 30*time.Minute, func() (*CreditCard, error) {
+		return s.cardRepo.GetCreditCard(ctx, cardID)
+	})
 }
 
-func (s *Service) ListCreditCards(
-	ctx context.Context,
-	userID uuid.UUID,
-) ([]CreditCard, error) {
-
-	key := cache.UserCreditCardsKey(userID)
-
-	cards, err := cache.Get[[]CreditCard](
-		ctx,
-		s.redis,
-		key,
-	)
-
-	if err == nil && cards != nil {
-		return *cards, nil
-	}
-
-	cardsDB, err := s.cardRepo.ListCreditCards(
-		ctx,
-		userID,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	_ = cache.Set(
-		ctx,
-		s.redis,
-		key,
-		cardsDB,
-		30*time.Minute,
-	)
-
-	return cardsDB, nil
+func (s *Service) ListCreditCards(ctx context.Context, userID uuid.UUID) ([]CreditCard, error) {
+	return cache.GetOrLoad(ctx, s.redis, cache.UserCreditCardsKey(userID), 30*time.Minute, func() ([]CreditCard, error) {
+		return s.cardRepo.ListCreditCards(ctx, userID)
+	})
 }
 
 func (s *Service) UpdateCreditCard(
@@ -235,103 +135,36 @@ func (s *Service) UpdateCreditCard(
 	billingDay int,
 	paymentDueDays int,
 ) error {
-	card, err := s.cardRepo.GetCreditCard(ctx, cardID)
+
+	if err := validateCardTerms(creditLimit, billingDay, paymentDueDays); err != nil {
+		return err
+	}
+
+	userID, err := s.ledgerRepo.GetUserIDFromAccount(ctx, cardID)
 	if err != nil {
 		return err
 	}
 
-	userID, err := s.ledgerRepo.GetUserIDFromAccount(ctx, card.CardID)
-	if err != nil {
-		return err
-	}
-	if billingDay < 1 || billingDay > 28 {
-		return errors.New("billing day must be between 1 and 28")
-	}
-
-	if paymentDueDays < 1 || paymentDueDays > 28 {
-		return errors.New("payment due days must be between 1 and 28")
-	}
-
-	if creditLimit.IsNegative() {
-		return errors.New("credit limit cannot be negative")
-	}
-
-	err = s.cardRepo.UpdateCreditCard(
-		ctx,
-		cardID,
-		creditLimit,
-		billingDay,
-		paymentDueDays,
-	)
-
-	if err != nil {
+	if err := s.cardRepo.UpdateCreditCard(ctx, cardID, creditLimit, billingDay, paymentDueDays); err != nil {
 		return err
 	}
 
-	_ = cache.InvalidateCreditCard(
-		ctx,
-		s.redis,
-		cardID,
-		userID,
-	)
+	cache.InvalidateCreditCard(ctx, s.redis, cardID, userID)
 
 	return nil
 }
 
-func (s *Service) DeleteCreditCard(
-	ctx context.Context,
-	cardID uuid.UUID,
-) error {
-
-	card, err := s.cardRepo.GetCreditCard(ctx, cardID)
+func (s *Service) DeleteCreditCard(ctx context.Context, cardID uuid.UUID) error {
+	userID, err := s.ledgerRepo.GetUserIDFromAccount(ctx, cardID)
 	if err != nil {
 		return err
 	}
 
-	userID, err := s.ledgerRepo.GetUserIDFromAccount(ctx, card.CardID)
-	if err != nil {
+	if err := s.cardRepo.DeleteCreditCard(ctx, cardID); err != nil {
 		return err
 	}
 
-	err = s.cardRepo.DeleteCreditCard(ctx, cardID)
+	cache.InvalidateCreditCard(ctx, s.redis, cardID, userID)
 
-	if err != nil {
-		return err
-	}
-
-	_ = cache.InvalidateUser(
-		ctx,
-		s.redis,
-		userID,
-	)
-
-	_ = cache.InvalidateCreditCard(
-		ctx,
-		s.redis,
-		cardID,
-		userID,
-	)
 	return nil
-}
-
-func (r *StatementRepository) UpdateStatementStatusTx(
-	ctx context.Context,
-	tx pgx.Tx,
-	statementID uuid.UUID,
-	status StatementStatus,
-) error {
-
-	_, err := tx.Exec(
-		ctx,
-		`
-		UPDATE credit_card_statements
-		SET status=$2,
-		    updated_at=NOW()
-		WHERE id=$1
-		`,
-		statementID,
-		status,
-	)
-
-	return err
 }

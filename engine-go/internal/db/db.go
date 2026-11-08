@@ -5,15 +5,37 @@ import (
 	"errors"
 	"log"
 	"os"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+const connectAttempts = 30
+
 func NewDB() (*pgxpool.Pool, error) {
-	println("Connecting to database...", os.Getenv("DATABASE_URL"))
-	return pgxpool.New(context.Background(), os.Getenv("DATABASE_URL"))
+	ctx := context.Background()
+
+	pool, err := pgxpool.New(ctx, os.Getenv("DATABASE_URL"))
+	if err != nil {
+		return nil, err
+	}
+
+	// pgxpool connects lazily, so without this a bad URL only fails on the first request.
+	// Retries because docker compose starts this service before Postgres accepts connections.
+	for attempt := 1; ; attempt++ {
+		err := pool.Ping(ctx)
+		if err == nil {
+			return pool, nil
+		}
+		if attempt == connectAttempts {
+			pool.Close()
+			return nil, err
+		}
+		time.Sleep(time.Second)
+	}
 }
+
 func LogPgError(err error) {
 	if err == nil {
 		return

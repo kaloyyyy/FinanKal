@@ -49,7 +49,7 @@
         }
 
         return transaction.entries
-            .map((entry: any) => entry.accountId)
+            .map((entry: any) => entry.accountName ?? entry.accountId)
             .join(" → ");
     }
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net"
 	"os"
@@ -12,16 +13,16 @@ import (
 	"github.com/kaloy/finankal/engine-go/internal/credit"
 	"github.com/kaloy/finankal/engine-go/internal/db"
 	"github.com/kaloy/finankal/engine-go/internal/ledger"
+	"github.com/kaloy/finankal/engine-go/internal/schedule"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
 func main() {
-
 	loadEnvFromRepoRoot()
 
 	// =====================
-	// Database
+	// Infrastructure
 	// =====================
 
 	dbConn, err := db.NewDB()
@@ -29,55 +30,78 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("✓ Connected to PostgreSQL")
+	defer dbConn.Close()
 
-	// =====================
-	// Redis
-	// =====================
+	log.Println("✓ Connected to PostgreSQL")
 
 	redisClient := cache.NewRedis()
 
-	if err := redisClient.Ping(cache.Ctx).Err(); err != nil {
+	if err := redisClient.Ping(context.Background()).Err(); err != nil {
 		log.Fatalf("Redis connection failed: %v", err)
 	}
 
 	log.Println("✓ Connected to Redis")
 
 	// =====================
-	// Ledger Module
+	// Ledger
 	// =====================
 
 	ledgerRepo := ledger.NewLedgerRepository(dbConn)
 
-	ledgerService := ledger.NewService(ledgerRepo, redisClient)
+	ledgerService := ledger.NewService(
+		ledgerRepo,
+		redisClient,
+	)
 
 	// =====================
-	// Credit Card Module
+	// Credit Card
 	// =====================
 
 	cardRepo := credit.NewCardRepository(dbConn)
-
 	statementRepo := credit.NewStatementRepository(dbConn)
-
 	entryRepo := credit.NewEntryRepository(dbConn)
 
-	creditService := credit.NewService(dbConn, cardRepo, ledgerRepo, statementRepo, entryRepo, redisClient)
+	creditService := credit.NewService(
+		cardRepo,
+		ledgerRepo,
+		statementRepo,
+		entryRepo,
+		redisClient,
+	)
 
 	// =====================
-	// gRPC Server
+	// Scheduling
 	// =====================
 
-	server := NewServer(ledgerService, creditService)
+	scheduleRepo := schedule.NewScheduleRepository(dbConn)
+
+	scheduleService := schedule.NewService(
+		scheduleRepo,
+		ledgerRepo,
+		redisClient,
+	)
+
+	// =====================
+	// gRPC
+	// =====================
+
+	server := NewServer(
+		ledgerService,
+		creditService,
+		scheduleService,
+	)
 
 	lis, err := net.Listen("tcp", ":50051")
-
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	grpcServer := grpc.NewServer()
 
-	finance.RegisterFinanceEngineServer(grpcServer, server)
+	finance.RegisterFinanceEngineServer(
+		grpcServer,
+		server,
+	)
 
 	reflection.Register(grpcServer)
 

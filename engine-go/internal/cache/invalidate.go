@@ -8,201 +8,60 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func Delete(
-	ctx context.Context,
-	rdb *redis.Client,
-	keys ...string,
-) error {
-
-	if rdb == nil {
-		log.Println("redis disabled: skip cache delete")
-		return nil
-	}
-
-	if len(keys) == 0 {
-		return nil
-	}
-
-	log.Printf(
-		"redis delete keys: %v",
-		keys,
-	)
-
-	err := rdb.Del(ctx, keys...).Err()
-
-	if err != nil {
-		log.Printf(
-			"redis delete failed: %v keys=%v",
-			err,
-			keys,
-		)
-		return err
-	}
-
-	log.Printf(
-		"redis delete success: %d keys",
-		len(keys),
-	)
-
-	return nil
-}
-
-func InvalidateAccount(
-	ctx context.Context,
-	rdb *redis.Client,
-	accountID uuid.UUID,
-) error {
-
-	log.Printf(
-		"invalidate account cache: %s",
-		accountID,
-	)
-
-	return Delete(
-		ctx,
-		rdb,
-
+func accountKeys(accountID uuid.UUID) []string {
+	return []string{
 		AccountBalanceKey(accountID),
 		AccountSummaryKey(accountID),
 		AccountLedgerEntriesKey(accountID),
-	)
+	}
 }
 
-func InvalidateUser(
-	ctx context.Context,
-	rdb *redis.Client,
-	userID uuid.UUID,
-) error {
-
-	log.Printf(
-		"invalidate user cache: %s",
-		userID,
-	)
-
-	return Delete(
-		ctx,
-		rdb,
-
+func userKeys(userID uuid.UUID) []string {
+	return []string{
 		UserAccountsKey(userID),
-
-		UserBalanceKey(userID),
 		UserTotalCreditKey(userID),
 		UserTotalDebitKey(userID),
 		UserNetWorthKey(userID),
-
 		UserCreditCardsKey(userID),
-	)
+	}
 }
 
-func Invalidate(
-	ctx context.Context,
-	rdb *redis.Client,
-	keys ...string,
-) error {
+// deleteKeys logs failures instead of returning them: the write being invalidated has
+// already committed, so a stale cache must not fail the request. TTLs bound the staleness.
+func deleteKeys(ctx context.Context, rdb *redis.Client, keys []string) {
+	if rdb == nil {
+		return
+	}
 
-	return Delete(
-		ctx,
-		rdb,
-		keys...,
-	)
+	if err := rdb.Del(ctx, keys...).Err(); err != nil {
+		log.Printf("cache delete failed: %v keys=%v", err, keys)
+	}
 }
 
-func InvalidateCreditCard(
-	ctx context.Context,
-	rdb *redis.Client,
-	cardID uuid.UUID,
-	userID uuid.UUID,
-) error {
-
-	log.Printf(
-		"invalidate credit card cache card=%s user=%s",
-		cardID,
-		userID,
-	)
-
-	return Invalidate(
-		ctx,
-		rdb,
-
-		CreditCardKey(cardID),
-		UserCreditCardsKey(userID),
-
-		AccountBalanceKey(cardID),
-		UserBalanceKey(userID),
-	)
-}
-
+// InvalidateTransaction clears everything derived from the balances of accountIDs.
 func InvalidateTransaction(
 	ctx context.Context,
 	rdb *redis.Client,
 	userID uuid.UUID,
 	accountIDs ...uuid.UUID,
-) error {
-
-	log.Printf(
-		"invalidate transaction cache user=%s accounts=%v",
-		userID,
-		accountIDs,
-	)
-
+) {
+	keys := userKeys(userID)
 	for _, accountID := range accountIDs {
-
-		if err := InvalidateAccount(
-			ctx,
-			rdb,
-			accountID,
-		); err != nil {
-			return err
-		}
+		keys = append(keys, accountKeys(accountID)...)
 	}
 
-	return InvalidateUser(
-		ctx,
-		rdb,
-		userID,
-	)
+	deleteKeys(ctx, rdb, keys)
 }
 
-func InvalidateCreditCardPayment(
+// InvalidateCreditCard clears the card itself and everything derived from the balances
+// of the card account and accountIDs.
+func InvalidateCreditCard(
 	ctx context.Context,
 	rdb *redis.Client,
 	cardID uuid.UUID,
-	statementID uuid.UUID,
 	userID uuid.UUID,
 	accountIDs ...uuid.UUID,
-) error {
-
-	log.Printf(
-		"invalidate credit card payment cache card=%s statement=%s user=%s accounts=%v",
-		cardID,
-		statementID,
-		userID,
-		accountIDs,
-	)
-
-	keys := []string{
-		CreditCardKey(cardID),
-		CreditCardStatementKey(statementID),
-		UserCreditCardsKey(userID),
-
-		UserBalanceKey(userID),
-		UserTotalCreditKey(userID),
-		UserTotalDebitKey(userID),
-		UserNetWorthKey(userID),
-	}
-
-	for _, accountID := range accountIDs {
-		keys = append(
-			keys,
-			AccountBalanceKey(accountID),
-			AccountSummaryKey(accountID),
-			AccountLedgerEntriesKey(accountID),
-		)
-	}
-
-	return Delete(
-		ctx,
-		rdb,
-		keys...,
-	)
+) {
+	deleteKeys(ctx, rdb, []string{CreditCardKey(cardID)})
+	InvalidateTransaction(ctx, rdb, userID, append(accountIDs, cardID)...)
 }

@@ -97,6 +97,7 @@ public class TransactionMapper {
     ) {
         LedgerEntryDto dto = new LedgerEntryDto();
 
+        dto.setId(entry.getId());
         dto.setAccountId(entry.getAccountId());
         dto.setAccountName(entry.getAccountName());
         dto.setAccountType(entry.getAccountType());

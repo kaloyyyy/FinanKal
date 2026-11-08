@@ -2,26 +2,50 @@ package credit
 
 import (
 	"context"
-	_ "time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/kaloy/finankal/engine-go/internal/ledger"
 	"github.com/shopspring/decimal"
 )
+
+const cardColumns = `
+	cc.id,
+	cc.clearing_account_id,
+	cc.credit_limit,
+	cc.billing_day,
+	cc.payment_due_days,
+	cc.created_at,
+	cc.updated_at
+`
 
 type CardRepository struct {
 	db *pgxpool.Pool
 }
 
 func NewCardRepository(db *pgxpool.Pool) *CardRepository {
-	return &CardRepository{
-		db: db,
-	}
+	return &CardRepository{db: db}
 }
 
-func (r *CardRepository) CreateCreditCard(
+func scanCard(row pgx.Row) (CreditCard, error) {
+	var card CreditCard
+
+	err := row.Scan(
+		&card.CardID,
+		&card.ClearingAccountId,
+		&card.CreditLimit,
+		&card.BillingDay,
+		&card.PaymentDueDays,
+		&card.CreatedAt,
+		&card.UpdatedAt,
+	)
+
+	return card, err
+}
+
+func (r *CardRepository) CreateCreditCardTx(
 	ctx context.Context,
+	tx pgx.Tx,
 	accountID uuid.UUID,
 	clearingAccountID uuid.UUID,
 	creditLimit decimal.Decimal,
@@ -31,7 +55,7 @@ func (r *CardRepository) CreateCreditCard(
 
 	var cardID uuid.UUID
 
-	err := r.db.QueryRow(ctx, `
+	err := tx.QueryRow(ctx, `
 		INSERT INTO credit_cards (id, clearing_account_id, credit_limit, billing_day, payment_due_days)
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id
@@ -47,27 +71,26 @@ func (r *CardRepository) GetCreditCard(
 	cardID uuid.UUID,
 ) (*CreditCard, error) {
 
-	var card CreditCard
-
-	err := r.db.QueryRow(ctx, `
-		SELECT id, clearing_account_id, credit_limit, billing_day, payment_due_days, created_at, 
-			updated_at 
-		FROM credit_cards WHERE id = $1
-	`, cardID).Scan(
-		&card.CardID,
-		&card.ClearingAccountId,
-		&card.CreditLimit,
-		&card.BillingDay,
-		&card.PaymentDueDays,
-		&card.CreatedAt,
-		&card.UpdatedAt,
-	)
-
+	card, err := scanCard(r.db.QueryRow(ctx, `SELECT `+cardColumns+` FROM credit_cards cc WHERE cc.id = $1`, cardID))
 	if err != nil {
 		return nil, err
 	}
 
 	return &card, nil
+}
+
+// LockCreditLimitTx locks the card row until tx ends and returns its current limit.
+func (r *CardRepository) LockCreditLimitTx(
+	ctx context.Context,
+	tx pgx.Tx,
+	cardID uuid.UUID,
+) (decimal.Decimal, error) {
+
+	var limit decimal.Decimal
+
+	err := tx.QueryRow(ctx, `SELECT credit_limit FROM credit_cards WHERE id = $1 FOR UPDATE`, cardID).Scan(&limit)
+
+	return limit, err
 }
 
 func (r *CardRepository) ListCreditCards(
@@ -76,51 +99,20 @@ func (r *CardRepository) ListCreditCards(
 ) ([]CreditCard, error) {
 
 	rows, err := r.db.Query(ctx, `
-		SELECT
-			cc.id,
-			cc.clearing_account_id,
-			cc.credit_limit,
-			cc.billing_day,
-			cc.payment_due_days,
-			cc.created_at,
-			cc.updated_at
+		SELECT `+cardColumns+`
 		FROM credit_cards cc
 		JOIN accounts a
 			ON cc.id = a.id
 		WHERE a.user_id = $1
 		ORDER BY cc.created_at
 	`, userID)
-
 	if err != nil {
 		return nil, err
 	}
 
-	defer rows.Close()
-
-	var cards []CreditCard
-
-	for rows.Next() {
-
-		var card CreditCard
-
-		err := rows.Scan(
-			&card.CardID,
-			&card.ClearingAccountId,
-			&card.CreditLimit,
-			&card.BillingDay,
-			&card.PaymentDueDays,
-			&card.CreatedAt,
-			&card.UpdatedAt,
-		)
-
-		if err != nil {
-			return nil, err
-		}
-
-		cards = append(cards, card)
-	}
-
-	return cards, rows.Err()
+	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (CreditCard, error) {
+		return scanCard(row)
+	})
 }
 
 func (r *CardRepository) UpdateCreditCard(
@@ -154,118 +146,7 @@ func (r *CardRepository) DeleteCreditCard(
 	cardID uuid.UUID,
 ) error {
 
-	_, err := r.db.Exec(ctx,
-		`DELETE FROM credit_cards WHERE id = $1`,
-		cardID,
-	)
+	_, err := r.db.Exec(ctx, `DELETE FROM credit_cards WHERE id = $1`, cardID)
 
 	return err
-}
-
-func (r *CardRepository) GetCreditCardByAccount(
-	ctx context.Context,
-	accountID uuid.UUID,
-) (*CreditCard, error) {
-
-	var card CreditCard
-
-	err := r.db.QueryRow(ctx, `
-		SELECT
-			id,
-			clearing_account_id,
-			credit_limit,
-			billing_day,
-			payment_due_days,
-			created_at,
-			updated_at
-		FROM credit_cards
-		WHERE account_id = $1
-	`, accountID).Scan(
-		&card.CardID,
-		&card.ClearingAccountId,
-		&card.CreditLimit,
-		&card.BillingDay,
-		&card.PaymentDueDays,
-		&card.CreatedAt,
-		&card.UpdatedAt,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &card, nil
-}
-
-func (r *CardRepository) GetAccountType(
-	ctx context.Context,
-	accountID uuid.UUID,
-) (ledger.AccountType, error) {
-
-	var accountType ledger.AccountType
-
-	err := r.db.QueryRow(ctx,
-		`SELECT type FROM accounts WHERE id = $1`,
-		accountID,
-	).Scan(&accountType)
-
-	return accountType, err
-}
-
-func (r *CardRepository) GetUserCreditCards(
-	ctx context.Context,
-	userID uuid.UUID,
-) ([]CreditCard, error) {
-
-	rows, err := r.db.Query(
-		ctx,
-		`
-		SELECT
-			cc.id,
-			cc.clearing_account_id,
-			cc.credit_limit,
-			cc.billing_day,
-			cc.payment_due_days,
-			cc.created_at,
-			cc.updated_at
-		FROM credit_cards cc
-		JOIN accounts a
-			ON cc.id = a.id
-		WHERE a.user_id = $1
-		ORDER BY cc.created_at DESC
-		`,
-		userID,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-
-	var cards []CreditCard
-
-	for rows.Next() {
-
-		var card CreditCard
-
-		err := rows.Scan(
-			&card.CardID,
-			&card.ClearingAccountId,
-			&card.CreditLimit,
-			&card.BillingDay,
-			&card.PaymentDueDays,
-
-			&card.CreatedAt,
-			&card.UpdatedAt,
-		)
-
-		if err != nil {
-			return nil, err
-		}
-
-		cards = append(cards, card)
-	}
-
-	return cards, rows.Err()
 }

@@ -3,6 +3,7 @@ package com.finankal.api.controller;
 import com.finankal.api.dto.AccountDto;
 import com.finankal.api.dto.RecentTransactionDto;
 import com.finankal.api.dto.TransactionDto;
+import com.finankal.api.dto.TransactionPageDto;
 import com.finankal.api.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,16 +72,28 @@ public class UserController {
     }
 
     @GetMapping("/{userId}/transactions")
-    public ResponseEntity<List<TransactionDto>> getUserTransactions(
-            @PathVariable UUID userId
+    public ResponseEntity<TransactionPageDto> getUserTransactions(
+            @PathVariable UUID userId,
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(defaultValue = "0") int offset
     ) {
+
+        limit = Math.clamp(limit, 1, 100);
+        offset = Math.max(offset, 0);
+
         logger.info(
-                "Getting transactions for user: {}",
-                userId
+                "Getting transactions for user: {} limit={} offset={}",
+                userId,
+                limit,
+                offset
         );
 
         return ResponseEntity.ok(
-                userService.getUserTransactions(userId)
+                userService.getUserTransactions(
+                        userId,
+                        limit,
+                        offset
+                )
         );
     }
 }

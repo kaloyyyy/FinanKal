@@ -1,15 +1,12 @@
 package cache
 
 import (
-	"context"
 	"log"
 	"os"
 	"strconv"
 
 	"github.com/redis/go-redis/v9"
 )
-
-var Ctx = context.Background()
 
 func NewRedis() *redis.Client {
 	addr := getEnv("REDIS_ADDR", "localhost:6379")

@@ -2,17 +2,13 @@ package ledger
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"log"
 	"time"
 
-	"github.com/kaloy/finankal/engine-go/internal/cache"
-	"github.com/shopspring/decimal"
-
 	"github.com/google/uuid"
+	"github.com/kaloy/finankal/engine-go/internal/cache"
 	"github.com/redis/go-redis/v9"
+	"github.com/shopspring/decimal"
 )
 
 type Service struct {
@@ -24,427 +20,132 @@ func NewService(repo *LedgerRepository, redis *redis.Client) *Service {
 	return &Service{repo: repo, redis: redis}
 }
 
-func (s *Service) CreateTransaction(ctx context.Context, description string, entries []Entry) (uuid.UUID, error) {
-	if err := validateEntries(entries); err != nil {
-		return uuid.UUID{}, err
-	}
-
-	// prevent panic if caller passed empty entries slice
-	if len(entries) == 0 {
-		return uuid.UUID{}, errors.New("create transaction: no entries provided")
-	}
-
-	// Get user_id from the first account
-	userID, err := s.repo.GetUserIDFromAccount(ctx, entries[0].AccountID)
-	if err != nil {
-		return uuid.UUID{}, err
-	}
-
-	txID, err := s.repo.CreateTransaction(ctx, userID, description)
-	if err != nil {
-		return uuid.UUID{}, err
-	}
-
-	for _, e := range entries {
-		_, err := s.repo.InsertEntry(ctx, txID, e.AccountID, e.Amount, e.Type)
-		if err != nil {
-			return uuid.UUID{}, err
-		}
-	}
-
-	// Invalidate account-level caches using shared helper (safe if redis == nil)
-	var accountIDs []uuid.UUID
-	for _, e := range entries {
-		accountIDs = append(accountIDs, e.AccountID)
-	}
-
-	_ = cache.InvalidateTransaction(
-		ctx,
-		s.redis,
-		userID,
-		accountIDs...,
-	)
-
-	return txID, nil
-}
-
-func (s *Service) GetUserAccounts(
+func (s *Service) CreateTransaction(
 	ctx context.Context,
-	userID uuid.UUID,
-) ([]Account, error) {
-	log.Default().Println("GetUserAccounts called for userID:", userID)
-	cacheKey := fmt.Sprintf("user:%s:accounts", userID)
-
-	// Try Redis
-	if data, err := s.redis.Get(ctx, cacheKey).Result(); err == nil {
-		var accounts []Account
-		if err := json.Unmarshal([]byte(data), &accounts); err == nil {
-			// log.Default().Println("GetUserAccounts unmarshalled from redis:", data)
-			return accounts, nil
-		}
-	}
-
-	// Cache mis
-	//log.Default().Println("GetUserAccounts from postgres:", userID)
-	accounts, err := s.repo.GetUserAccounts(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Store in Redis (ignore cache errors)
-	if bytes, err := json.Marshal(accounts); err == nil {
-		_ = s.redis.Set(ctx, cacheKey, bytes, 5*time.Minute).Err()
-		//log.Default().Println("GetUserAccounts from redis:", userID)
-	}
-
-	for _, account := range accounts {
-		log.Printf(
-			"%s = %s",
-			account.Name,
-			account.Balance.String(),
-		)
-	}
-
-	return accounts, nil
-}
-
-func (s *Service) GetBalance(
-	ctx context.Context,
-	accountID uuid.UUID,
-) (decimal.Decimal, error) {
-
-	key := cache.AccountBalanceKey(accountID)
-
-	value, err := cache.Get[string](
-		ctx,
-		s.redis,
-		key,
-	)
-
-	if err == nil && value != nil {
-
-		return decimal.NewFromString(*value)
-	}
-
-	balance, err := s.repo.GetBalance(
-		ctx,
-		accountID,
-	)
-
-	if err != nil {
-		return decimal.Zero, err
-	}
-
-	_ = cache.Set(
-		ctx,
-		s.redis,
-		key,
-		balance.String(),
-		5*time.Minute,
-	)
-
-	return balance, nil
-}
-
-func (s *Service) GetAccountSummary(
-	ctx context.Context,
-	accountID uuid.UUID,
-) (*AccountSummary, error) {
-
-	key := cache.AccountSummaryKey(accountID)
-
-	summary, err := cache.Get[AccountSummary](
-		ctx,
-		s.redis,
-		key,
-	)
-
-	if err == nil && summary != nil {
-		return summary, nil
-	}
-
-	name, accountType, createdAt, err :=
-		s.repo.GetAccount(
-			ctx,
-			accountID,
-		)
-
-	if err != nil {
-		return nil, err
-	}
-
-	balance, err :=
-		s.repo.GetBalance(
-			ctx,
-			accountID,
-		)
-
-	if err != nil {
-		return nil, err
-	}
-
-	result := &AccountSummary{
-		AccountID: accountID,
-		Name:      name,
-		Type:      accountType,
-		Balance:   balance,
-		CreatedAt: createdAt,
-	}
-
-	_ = cache.Set(
-		ctx,
-		s.redis,
-		key,
-		result,
-		10*time.Minute,
-	)
-
-	return result, nil
-}
-
-func (s *Service) CreateAccount(
-	ctx context.Context,
-	userID uuid.UUID,
-	name string,
-	accountType AccountType,
+	description string,
+	entries []Entry,
 ) (uuid.UUID, error) {
 
-	accountID, err := s.repo.CreateAccount(
-		ctx,
-		userID,
-		name,
-		accountType,
-	)
+	if err := validateEntries(entries); err != nil {
+		return uuid.Nil, err
+	}
 
+	userID, err := s.repo.GetUserIDFromAccount(ctx, entries[0].AccountID)
 	if err != nil {
 		return uuid.Nil, err
 	}
 
-	// invalidate user caches
-	_ = cache.InvalidateUser(
-		ctx,
-		s.redis,
-		userID,
-	)
-
-	return accountID, nil
-}
-
-func (s *Service) GetLedgerEntries(
-	ctx context.Context,
-	accountID uuid.UUID,
-) ([]Entry, error) {
-
-	key := cache.AccountLedgerEntriesKey(accountID)
-
-	entries, err :=
-		cache.Get[[]Entry](
-			ctx,
-			s.redis,
-			key,
-		)
-
-	if err == nil && entries != nil {
-		return *entries, nil
+	// The transaction is stored against one user, so an entry on another user's account
+	// would change their balance without appearing in their transaction list.
+	for _, entry := range entries[1:] {
+		owner, err := s.repo.GetUserIDFromAccount(ctx, entry.AccountID)
+		if err != nil {
+			return uuid.Nil, err
+		}
+		if owner != userID {
+			return uuid.Nil, fmt.Errorf("%w: all accounts must belong to the same user", ErrInvalidTransaction)
+		}
 	}
 
-	entriesDB, err :=
-		s.repo.GetLedgerEntries(
-			ctx,
-			accountID,
-		)
-
+	tx, err := s.repo.BeginTx(ctx)
 	if err != nil {
-		return nil, err
+		return uuid.Nil, err
 	}
 
-	_ = cache.Set(
-		ctx,
-		s.redis,
-		key,
-		entriesDB,
-		2*time.Minute,
-	)
+	// If Commit succeeds, Rollback does nothing.
+	defer tx.Rollback(ctx)
 
-	return entriesDB, nil
-}
-
-func (s *Service) GetUserTotalCredit(
-	ctx context.Context,
-	userID uuid.UUID,
-) (decimal.Decimal, error) {
-
-	key := cache.UserTotalCreditKey(userID)
-
-	value, err :=
-		cache.Get[string](
-			ctx,
-			s.redis,
-			key,
-		)
-
-	if err == nil && value != nil {
-		return decimal.NewFromString(*value)
-	}
-
-	total, err :=
-		s.repo.GetUserTotalCredit(
-			ctx,
-			userID,
-		)
-
+	transactionID, err := s.repo.CreateTransactionTx(ctx, tx, userID, description)
 	if err != nil {
-		return decimal.Zero, err
+		return uuid.Nil, err
 	}
 
-	_ = cache.Set(
-		ctx,
-		s.redis,
-		key,
-		total.String(),
-		5*time.Minute,
-	)
+	accountIDs := make([]uuid.UUID, 0, len(entries))
 
-	return total, nil
+	for _, entry := range entries {
+		if _, err := s.repo.InsertEntryTx(ctx, tx, transactionID, entry.AccountID, entry.Amount, entry.Type); err != nil {
+			return uuid.Nil, err
+		}
+
+		accountIDs = append(accountIDs, entry.AccountID)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return uuid.Nil, err
+	}
+
+	// Invalidate caches only AFTER successful commit.
+	cache.InvalidateTransaction(ctx, s.redis, userID, accountIDs...)
+
+	return transactionID, nil
 }
 
-func (s *Service) GetUserTotalDebit(
-	ctx context.Context,
-	userID uuid.UUID,
-) (decimal.Decimal, error) {
-
-	key := cache.UserTotalDebitKey(userID)
-
-	value, err :=
-		cache.Get[string](
-			ctx,
-			s.redis,
-			key,
-		)
-
-	if err == nil && value != nil {
-		return decimal.NewFromString(*value)
-	}
-
-	total, err :=
-		s.repo.GetUserTotalDebit(
-			ctx,
-			userID,
-		)
-
-	if err != nil {
-		return decimal.Zero, err
-	}
-
-	_ = cache.Set(
-		ctx,
-		s.redis,
-		key,
-		total.String(),
-		5*time.Minute,
-	)
-
-	return total, nil
+func (s *Service) GetUserAccounts(ctx context.Context, userID uuid.UUID) ([]Account, error) {
+	return cache.GetOrLoad(ctx, s.redis, cache.UserAccountsKey(userID), 5*time.Minute, func() ([]Account, error) {
+		return s.repo.GetUserAccounts(ctx, userID)
+	})
 }
 
-func (s *Service) GetUserNetWorth(
-	ctx context.Context,
-	userID uuid.UUID,
-) (decimal.Decimal, error) {
-
-	key := cache.UserNetWorthKey(userID)
-
-	value, err :=
-		cache.Get[string](
-			ctx,
-			s.redis,
-			key,
-		)
-
-	if err == nil && value != nil {
-		return decimal.NewFromString(*value)
-	}
-
-	total, err :=
-		s.repo.GetUserNetWorth(
-			ctx,
-			userID,
-		)
-
-	if err != nil {
-		return decimal.Zero, err
-	}
-
-	_ = cache.Set(
-		ctx,
-		s.redis,
-		key,
-		total.String(),
-		5*time.Minute,
-	)
-
-	return total, nil
+func (s *Service) GetBalance(ctx context.Context, accountID uuid.UUID) (decimal.Decimal, error) {
+	return cache.GetOrLoad(ctx, s.redis, cache.AccountBalanceKey(accountID), 5*time.Minute, func() (decimal.Decimal, error) {
+		return s.repo.GetBalance(ctx, accountID)
+	})
 }
 
-func (r *LedgerRepository) CreateClearingAccount(
-	ctx context.Context,
-	userID uuid.UUID,
-	cardName string,
-) (uuid.UUID, error) {
+func (s *Service) GetAccountSummary(ctx context.Context, accountID uuid.UUID) (*AccountSummary, error) {
+	return cache.GetOrLoad(ctx, s.redis, cache.AccountSummaryKey(accountID), 10*time.Minute, func() (*AccountSummary, error) {
+		name, accountType, createdAt, err := s.repo.GetAccount(ctx, accountID)
+		if err != nil {
+			return nil, err
+		}
 
-	accountName := fmt.Sprintf("%s Clearing", cardName)
+		balance, err := s.repo.GetBalance(ctx, accountID)
+		if err != nil {
+			return nil, err
+		}
 
-	return r.CreateAccount(
-		ctx,
-		userID,
-		accountName,
-		CLEARING,
-	)
+		return &AccountSummary{
+			AccountID: accountID,
+			Name:      name,
+			Type:      accountType,
+			Balance:   balance,
+			CreatedAt: createdAt,
+		}, nil
+	})
 }
 
-func (s *Service) GetUserRecentTransactions(
-	ctx context.Context,
-	userID uuid.UUID,
-	limit int,
-) ([]RecentTransaction, error) {
-
-	if limit <= 0 {
-		limit = 5
-	}
-
-	if limit > 20 {
-		limit = 20
-	}
-
-	return s.repo.GetUserRecentTransactions(
-		ctx,
-		userID,
-		limit,
-	)
+func (s *Service) GetLedgerEntries(ctx context.Context, accountID uuid.UUID) ([]Entry, error) {
+	return cache.GetOrLoad(ctx, s.redis, cache.AccountLedgerEntriesKey(accountID), 2*time.Minute, func() ([]Entry, error) {
+		return s.repo.GetLedgerEntries(ctx, accountID)
+	})
 }
 
-func (s *Service) GetTransaction(
-	ctx context.Context,
-	transactionID uuid.UUID,
-) (*TransactionDetail, error) {
-
-	return s.repo.GetTransaction(
-		ctx,
-		transactionID,
-	)
+func (s *Service) GetUserTotalCredit(ctx context.Context, userID uuid.UUID) (decimal.Decimal, error) {
+	return cache.GetOrLoad(ctx, s.redis, cache.UserTotalCreditKey(userID), 5*time.Minute, func() (decimal.Decimal, error) {
+		return s.repo.GetUserTotalCredit(ctx, userID)
+	})
 }
 
-func (s *Service) GetUserTransactions(
-	ctx context.Context,
-	userID uuid.UUID,
-	limit int,
-	offset int,
-) ([]TransactionDetail, int, error) {
+func (s *Service) GetUserTotalDebit(ctx context.Context, userID uuid.UUID) (decimal.Decimal, error) {
+	return cache.GetOrLoad(ctx, s.redis, cache.UserTotalDebitKey(userID), 5*time.Minute, func() (decimal.Decimal, error) {
+		return s.repo.GetUserTotalDebit(ctx, userID)
+	})
+}
 
-	return s.repo.GetUserTransactions(
-		ctx,
-		userID,
-		limit,
-		offset,
-	)
+func (s *Service) GetUserNetWorth(ctx context.Context, userID uuid.UUID) (decimal.Decimal, error) {
+	return cache.GetOrLoad(ctx, s.redis, cache.UserNetWorthKey(userID), 5*time.Minute, func() (decimal.Decimal, error) {
+		return s.repo.GetUserNetWorth(ctx, userID)
+	})
+}
+
+func (s *Service) GetUserRecentTransactions(ctx context.Context, userID uuid.UUID, limit int) ([]RecentTransaction, error) {
+	return s.repo.GetUserRecentTransactions(ctx, userID, limit)
+}
+
+func (s *Service) GetTransaction(ctx context.Context, transactionID uuid.UUID) (*TransactionDetail, error) {
+	return s.repo.GetTransaction(ctx, transactionID)
+}
+
+func (s *Service) GetUserTransactions(ctx context.Context, userID uuid.UUID, limit int, offset int) ([]TransactionDetail, int, error) {
+	return s.repo.GetUserTransactions(ctx, userID, limit, offset)
 }
