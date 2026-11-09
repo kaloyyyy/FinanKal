@@ -28,7 +28,7 @@ public final class BankStatementParser {
     public enum Bank {
         MARIBANK("MariBank", "maribank|seabank"),
         BDO("BDO", "bdo unibank|\\bbdo\\b"),
-        MAYA("Maya", "maya bank|maya philippines|maya wallet"),
+        MAYA("Maya", "maya bank|maya savings|maya philippines|maya wallet"),
         GCASH("GCash", "gcash"),
         GOTYME("GoTyme", "gotyme"),
         BPI("BPI", "bank of the philippine islands|\\bbpi\\b"),
@@ -170,11 +170,14 @@ public final class BankStatementParser {
         return bank == Bank.MAYA && line.debit() && MAYA_LOAN_PAYMENT.matcher(line.description()).find() ? "Maya Personal Loan" : null;
     }
 
-    /** Name for an account created from a statement: Maya's mobile-number account is the wallet. */
+    /** Name for an account created from a statement: Maya's mobile-number account is the wallet, any other its bank savings. */
     public static String accountLabel(Bank bank, String accountNumber) {
         boolean mobile = accountNumber != null && accountNumber.matches("(63|0)9\\d{9}");
-        return bank == Bank.MAYA && mobile ? "Maya Wallet" : bank.label;
+        return bank == Bank.MAYA ? (mobile ? "Maya Wallet" : "Maya Savings") : bank.label;
     }
+
+    /** Maya Savings prints its number unlabelled, as the first thing on the line under "Consumer Savings": "8083 0917 0005". */
+    private static final Pattern MAYA_SAVINGS_NUMBER = Pattern.compile("(?m)^(\\d{4} \\d{4} \\d{4})(?!\\d)");
 
     /** The statement's account number as digits only, or null when none is printed. */
     public static String accountNumber(String text, Bank bank) {
@@ -189,7 +192,12 @@ public final class BankStatementParser {
             Matcher m = CARD_LAST4.matcher(text);
             return m.find() ? m.group(1).replaceAll("\\D", "") : null;
         }
-        return accountNumber(text);
+        String number = accountNumber(text);
+        if (number == null && bank == Bank.MAYA) {
+            Matcher m = MAYA_SAVINGS_NUMBER.matcher(text);
+            return m.find() ? m.group(1).replace(" ", "") : null;
+        }
+        return number;
     }
 
     public static String accountNumber(String text) {
@@ -240,6 +248,8 @@ public final class BankStatementParser {
     private static final Pattern PERIOD = Pattern.compile(
             "(\\d{1,2}\\s+[A-Za-z]{3}\\s+20\\d{2})\\s+(?:to|-)\\s+(\\d{1,2}\\s+[A-Za-z]{3}\\s+20\\d{2})",
             Pattern.CASE_INSENSITIVE);
+    private static final Pattern LONE_AMOUNT = Pattern.compile("-?[\\d,]+\\.\\d{2}");
+    private static final Pattern PERIOD_DAYS = Pattern.compile("(?m)^(\\d{1,2})-(\\d{1,2}) ([A-Za-z]{3} 20\\d{2})$");
     /** Sections after the transaction list whose dated rows are not transactions (e.g. MariBank's daily interest table). */
     private static final Pattern STOP = Pattern.compile("interest & tax details");
     /** MariBank's monthly interest row has a month but no day ("OCT 21.82"). */
@@ -280,6 +290,10 @@ public final class BankStatementParser {
         for (String raw : text.split("\\R")) {
             // "-PHP 7,862.36" (Maya) keeps its sign: "-7,862.36".
             String line = CURRENCY.matcher(NEGATIVE_CURRENCY.matcher(raw).replaceAll("-")).replaceAll("").replaceAll("\\s+", " ").trim();
+            if (detailBelow) {
+                // Maya Savings: "- 4,990.28" → "-4,990.28".
+                line = line.replaceAll("(^| )- (?=\\d)", "$1-");
+            }
             if (line.isEmpty()) {
                 continue;
             }
@@ -320,6 +334,11 @@ public final class BankStatementParser {
                         closingBalance = amounts.get(amounts.size() - 1).signed();
                     }
                 }
+                continue;
+            }
+            // Maya Savings' summary starts with the opening balance, unlabelled, on a line of its own.
+            if (detailBelow && openingBalance == null && rows.isEmpty() && LONE_AMOUNT.matcher(line).matches()) {
+                openingBalance = new BigDecimal(line.replace(",", ""));
                 continue;
             }
 
@@ -487,6 +506,17 @@ public final class BankStatementParser {
                 // fall through to the first year mentioned
             }
         }
+        // Maya Savings: "1-30 Sep 2026" (its statement date, printed first, can be next year's).
+        Matcher days = PERIOD_DAYS.matcher(text);
+        if (days.find()) {
+            try {
+                LocalDate start = LocalDate.parse(days.group(1) + " " + days.group(3), fmt("d MMM yyyy"));
+                LocalDate end = LocalDate.parse(days.group(2) + " " + days.group(3), fmt("d MMM yyyy"));
+                return new YearRule(start.getYear(), start, end, end.getYear());
+            } catch (DateTimeParseException ignored) {
+                // fall through to the first year mentioned
+            }
+        }
         // shortcut: without a "d MMM yyyy to d MMM yyyy" period, year-less dates take the first 20xx year in the text; Dec–Jan statements get Dec rows wrong. Add the bank's period format to PERIOD when one turns up.
         Matcher yearMatch = YEAR.matcher(text);
         int year = yearMatch.find() ? Integer.parseInt(yearMatch.group(1)) : LocalDate.now().getYear();
@@ -509,7 +539,8 @@ public final class BankStatementParser {
                 if (!format.hasYear() && years.periodStart() != null && date.isBefore(years.periodStart())) {
                     date = date.withYear(years.endYear());
                 }
-                String rest = TIME.matcher(line.substring(m.end()).trim()).replaceFirst("").trim();
+                // Maya Savings: "7 Sep, 04:35 PM Wallet Transfer …".
+                String rest = TIME.matcher(line.substring(m.end()).replaceFirst("^,", "").trim()).replaceFirst("").trim();
                 return new Dated(date, rest);
             } catch (DateTimeParseException ignored) {
                 // e.g. "Ref 12" looks like "MMM d" but isn't a month

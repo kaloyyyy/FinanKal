@@ -222,7 +222,46 @@ class BankStatementParserTest {
     void mayaCreditStatementsAreRefused() {
         assertNotNull(BankStatementParser.unsupported("Maya Easy Credit\nStatement of Account", Bank.MAYA));
         assertNotNull(BankStatementParser.unsupported("Maya Personal Loan\nStatement", Bank.MAYA));
-        assertEquals("Maya", BankStatementParser.accountLabel(Bank.MAYA, "1234567890"));
+        assertEquals("Maya Savings", BankStatementParser.accountLabel(Bank.MAYA, "1234567890"));
+    }
+
+    /** Maya Savings as StatementPdfText produces it (name, number and refs made up). */
+    @Test
+    void mayaSavings() {
+        String text = """
+                Statement of Account
+                Statement date: 2 January 2027
+                Consumer Savings
+                0.28 PHP
+                1234 5678 0005 7,503.50 PHP
+                - 5,000.28 PHP
+                JUAN DELA CRUZ 3.08 PHP
+                Transactions
+                1-31 Dec 2026
+                7 Dec, 04:35 PM Wallet Transfer 5,000.00 5,000.28
+                Reference ID: 1e85d4205b1d
+                7 Dec, 04:35 PM Transfer is successfully sent to BancNet - 4,990.28 10.00
+                Reference ID: 2741f4f84b62
+                7 Dec, 04:35 PM Fee Applied - 10.00 0.00
+                23 Dec, 03:49 AM Interest Applied (at 3.0% p.a.) 0.19 0.19
+                Page 1 of 2
+                Maya Savings (0005) Statement date: 2 January 2027
+                23 Dec, 03:49 AM Base Interest Withholding Tax - 0.04 0.15
+                Maya Bank, Inc.
+                """;
+        assertEquals(Bank.MAYA, BankStatementParser.detectBank(text));
+        assertEquals("123456780005", BankStatementParser.accountNumber(text, Bank.MAYA));
+        assertEquals("Maya Savings", BankStatementParser.accountLabel(Bank.MAYA, "123456780005"));
+
+        Result r = BankStatementParser.parse(text, Bank.MAYA);
+        assertEquals(new Line(LocalDate.of(2026, 12, 7), "Wallet Transfer", new BigDecimal("5000.00"), false), r.lines().get(0));
+        assertEquals(new Line(LocalDate.of(2026, 12, 7), "Transfer is successfully sent to BancNet", new BigDecimal("4990.28"), true), r.lines().get(1));
+        assertEquals(new Line(LocalDate.of(2026, 12, 23), "Base Interest Withholding Tax", new BigDecimal("0.04"), true), r.lines().get(4));
+        assertEquals(5, r.lines().size());
+        assertEquals(new BigDecimal("0.28"), r.openingBalance());
+        assertEquals(new BigDecimal("0.15"), r.closingBalance());
+        assertEquals(LocalDate.of(2026, 12, 1), r.periodStart());
+        assertEquals(LocalDate.of(2026, 12, 31), r.periodEnd());
     }
 
     @Test

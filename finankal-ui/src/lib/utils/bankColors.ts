@@ -36,6 +36,7 @@ const BRANDS: Brand[] = [
     },
     { match: /maribank|maricard/i, base: "#f26b21", lines: [{ color: "#2563eb", angle: 45 }], mark: "MB", ink: WHITE },
     { match: /unionbank/i, base: "#f7941d", mark: "UB", ink: WHITE },
+    { match: /maya\s*savings/i, base: "#00c853", mark: "MY", ink: WHITE }, // Maya Bank, not the wallet
     { match: /maya/i, base: "#00c853", mark: "MY", ink: WHITE, wallet: true },
     { match: /gcash/i, base: "#007dfe", mark: "GC", ink: WHITE, wallet: true },
     { match: /\bbpi\b/i, base: "#b5121b", mark: "BPI", ink: WHITE },
