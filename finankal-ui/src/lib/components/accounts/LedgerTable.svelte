@@ -95,9 +95,17 @@
                     </td>
 
                     <td class="px-5 py-4">
-                        <p class="font-medium text-white">
-                            {entry.description || "No description"}
-                        </p>
+                        {#if entry.transactionId}
+                            <!-- Opens the transaction to view, edit or delete it; "back" returns to this account. -->
+                            <a href={`/transactions/${entry.transactionId}?from=${encodeURIComponent(`/accounts/${entry.accountId}`)}`}
+                               class="font-medium text-white underline-offset-4 transition hover:text-blue-400 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500">
+                                {entry.description || "No description"}
+                            </a>
+                        {:else}
+                            <p class="font-medium text-white">
+                                {entry.description || "No description"}
+                            </p>
+                        {/if}
                     </td>
 
                     <td class="px-5 py-4">
