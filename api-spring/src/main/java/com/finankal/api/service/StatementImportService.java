@@ -175,6 +175,16 @@ public class StatementImportService {
 
     private StatementImportResultDto send(Parsed p, String userId, String accountId) {
         String number = p.accountNumber() == null ? "" : p.accountNumber();
+        List<AccountDto> accounts = userService.getUserAccounts(UUID.fromString(userId));
+        if (accountId == null && number.isEmpty() && p.bank() == Bank.MAYA) {
+            // Some Maya Savings statements print no number ("Maya Savings ()"): use the user's only Maya Savings account.
+            List<String> savings = accounts.stream()
+                    .filter(a -> "ASSET".equals(a.getType()) && a.getName().startsWith("Maya Savings"))
+                    .map(AccountDto::getId).toList();
+            if (savings.size() == 1) {
+                accountId = savings.get(0);
+            }
+        }
         FinanceProtos.ImportBankStatementRequest.Builder request = FinanceProtos.ImportBankStatementRequest.newBuilder()
                 .setUserId(userId)
                 .setAccountId(accountId == null ? "" : accountId)
@@ -194,7 +204,7 @@ public class StatementImportService {
                 .setFileSha256(p.sha256());
         // A payment naming one of the user's loans goes into it (the engine moves money to an own account named
         // by the category), so its interest and deadlines follow. Without that loan it stays an Outgoing Transfer.
-        List<String> loans = userService.getUserAccounts(UUID.fromString(userId)).stream()
+        List<String> loans = accounts.stream()
                 .filter(a -> "LIABILITY".equals(a.getType())).map(AccountDto::getName).toList();
         for (Line line : p.result().lines()) {
             String loan = BankStatementParser.loanPaidBy(p.bank(), line);
