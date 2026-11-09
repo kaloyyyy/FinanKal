@@ -262,6 +262,37 @@ class BankStatementParserTest {
         assertTrue(r.skipped().isEmpty());
     }
 
+    /** GCash lists failed loads as debits and doesn't list their reversals; the running balance is followed. */
+    @Test
+    void gcashFollowsRunningBalance() {
+        String text = """
+                GCash Transaction History
+                2026-01-16 to 2026-01-16
+                Date and Time Description Reference No. Debit Credit Balance
+                STARTING BALANCE 2107.80
+                2026-01-16 04:30 PM Buy Load Transaction for 09170000001 0000970170394 11.00DR 2096.80
+                2026-01-16 05:12 PM Buy Load Transaction for 09170000002 0000970328603 11.00DR 2085.80
+                2026-01-16 05:13 PM Buy Load Transaction for 09170000002 0000970317473 11.00DR 2085.80
+                2026-01-16 05:19 PM Buy Load Transaction for 09170000002 0000970379561 12.00DR 2084.80
+                ENDING BALANCE 2084.80
+                """;
+        Result r = BankStatementParser.parse(text, Bank.GCASH);
+
+        LocalDate day = LocalDate.of(2026, 1, 16);
+        assertEquals(1, r.skipped().size()); // 05:13: the balance didn't move
+        assertTrue(r.skipped().get(0).contains("0000970317473"));
+        assertEquals(4, r.lines().size());
+        assertEquals(new Line(day, "Buy Load Transaction for 09170000002 0000970379561", new BigDecimal("12.00"), true), r.lines().get(2));
+        assertEquals(new Line(day, BankStatementParser.GCASH_CORRECTION, new BigDecimal("11.00"), false), r.lines().get(3));
+
+        // The rows now add up to what GCash says it holds.
+        BigDecimal end = r.openingBalance();
+        for (Line line : r.lines()) {
+            end = line.debit() ? end.subtract(line.amount()) : end.add(line.amount());
+        }
+        assertEquals(r.closingBalance(), end);
+    }
+
     /** GCash transaction history as StatementPdfText produces it (numbers and refs made up). */
     @Test
     void gcashHistory() {

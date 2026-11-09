@@ -250,7 +250,9 @@ public final class BankStatementParser {
     private static final Pattern PERIOD = Pattern.compile(
             "(\\d{1,2}\\s+[A-Za-z]{3}\\s+20\\d{2})\\s+(?:to|-)\\s+(\\d{1,2}\\s+[A-Za-z]{3}\\s+20\\d{2})",
             Pattern.CASE_INSENSITIVE);
-    private static final Pattern PAGE_FOOTER = Pattern.compile("(?i)page \\d+ of \\d+");
+    /** A row the parser adds where GCash's running balance moved by more or less than the row says. */
+    public static final String GCASH_CORRECTION = "GCash balance correction (unlisted reversal or charge)";
+    private static final Pattern PAGE_FOOTER =Pattern.compile("(?i)page \\d+ of \\d+");
     private static final Pattern PERIOD_ISO = Pattern.compile("(20\\d{2}-[01]\\d-[0-3]\\d) to (20\\d{2}-[01]\\d-[0-3]\\d)");
     private static final Pattern LONE_AMOUNT =Pattern.compile("-?[\\d,]+\\.\\d{2}");
     private static final Pattern PERIOD_DAYS = Pattern.compile("(?m)^(\\d{1,2})-(\\d{1,2}) ([A-Za-z]{3} 20\\d{2})$");
@@ -454,10 +456,23 @@ public final class BankStatementParser {
                     debit = false;
                 }
             }
-            if (debit == null) {
+            // GCash's history lists failed attempts as debits and their reversals not at all; its running
+            // balance is what really moved, so the ledger follows it.
+            boolean checked = bank == Bank.GCASH && debit != null && before != null && row.balance() != null;
+            if (checked && row.balance().compareTo(before) == 0) {
+                skipped.add(row.raw() + " (the balance didn't change: a failed transaction)");
+            } else if (debit == null) {
                 skipped.add(row.raw());
             } else {
                 lines.add(new Line(row.date(), row.description(), row.amount(), debit));
+                if (checked) {
+                    BigDecimal expected = debit ? before.subtract(row.amount()) : before.add(row.amount());
+                    BigDecimal gap = row.balance().subtract(expected);
+                    if (gap.signum() != 0) {
+                        // shortcut: the gap is booked on this row's date; which earlier row was reversed isn't printed.
+                        lines.add(new Line(row.date(), GCASH_CORRECTION, gap.abs(), gap.signum() < 0));
+                    }
+                }
                 if (first && openingBalance == null && row.balance() != null) {
                     openingBalance = debit ? row.balance().add(row.amount()) : row.balance().subtract(row.amount());
                 }
