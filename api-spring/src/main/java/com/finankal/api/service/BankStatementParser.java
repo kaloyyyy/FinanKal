@@ -27,7 +27,8 @@ public final class BankStatementParser {
 
     public enum Bank {
         MARIBANK("MariBank", "maribank|seabank"),
-        BDO("BDO", "bdo unibank|\\bbdo\\b"),
+        // BDO's "Account Activities" export names the bank only in transactions; its header has "Exported date range".
+        BDO("BDO", "bdo unibank|\\bbdo\\b|exported date range"),
         MAYA("Maya", "maya bank|maya savings|maya philippines|maya wallet"),
         GCASH("GCash", "gcash"),
         GOTYME("GoTyme", "gotyme"),
@@ -133,8 +134,9 @@ public final class BankStatementParser {
         return null;
     }
 
-    // "OFF-US ATM WITHDRAWAL" (UnionBank), "Overseas ATM Cash Withdrawal" (MariBank), "Withdrawal from ARANETA CENTER 2" (Maya).
-    private static final Pattern CASH_WITHDRAWAL = Pattern.compile("(?i)\\batm\\b.*withdrawal|cash withdrawal|^withdrawal from\\b");
+    // "OFF-US ATM WITHDRAWAL" (UnionBank), "Overseas ATM Cash Withdrawal" (MariBank), "Withdrawal from ARANETA CENTER 2" (Maya),
+    // "W/D FR SAV BDO" (BDO, at the branch).
+    private static final Pattern CASH_WITHDRAWAL = Pattern.compile("(?i)\\batm\\b.*withdrawal|cash withdrawal|^withdrawal from\\b|^w/d fr sav\\b");
 
     // Card charges that are the bank's own: interest, and its named fees. "Rent Fees" paid to a landlord isn't one.
     private static final Pattern CARD_INTEREST = Pattern.compile("(?i)\\binterest\\b|finance charge");
@@ -248,6 +250,7 @@ public final class BankStatementParser {
     private static final Pattern PERIOD = Pattern.compile(
             "(\\d{1,2}\\s+[A-Za-z]{3}\\s+20\\d{2})\\s+(?:to|-)\\s+(\\d{1,2}\\s+[A-Za-z]{3}\\s+20\\d{2})",
             Pattern.CASE_INSENSITIVE);
+    private static final Pattern PAGE_FOOTER = Pattern.compile("(?i)page \\d+ of \\d+");
     private static final Pattern PERIOD_ISO = Pattern.compile("(20\\d{2}-[01]\\d-[0-3]\\d) to (20\\d{2}-[01]\\d-[0-3]\\d)");
     private static final Pattern LONE_AMOUNT =Pattern.compile("-?[\\d,]+\\.\\d{2}");
     private static final Pattern PERIOD_DAYS = Pattern.compile("(?m)^(\\d{1,2})-(\\d{1,2}) ([A-Za-z]{3} 20\\d{2})$");
@@ -257,7 +260,8 @@ public final class BankStatementParser {
     private static final Pattern MONTH_ONLY = Pattern.compile("^([A-Za-z]{3}) (?=\\(?-?[\\d,]+\\.\\d{2})");
 
     private static final Pattern TIME = Pattern.compile("^\\d{1,2}:\\d{2}(?::\\d{2})?\\s*(?:[AaPp][Mm])?");
-    private static final Pattern CURRENCY = Pattern.compile("(?i)\\bPHP\\b|₱");
+    // "PHP44,000.00" (BDO) has no space before the amount.
+    private static final Pattern CURRENCY = Pattern.compile("(?i)\\bPHP(?![A-Za-z])|₱");
     private static final Pattern NEGATIVE_CURRENCY = Pattern.compile("(?i)-\\s*(?:PHP|₱)\\s*(?=\\d)");
     private static final Pattern AMOUNT = Pattern.compile(
             "^(\\()?(-)?((?:\\d{1,3}(?:,\\d{3})+|\\d+)\\.\\d{2})\\)?(-)?(DR|CR)?$",
@@ -275,8 +279,8 @@ public final class BankStatementParser {
         YearRule years = yearRule(text);
         // MariBank prints the counterparty on the line above the date/amount and the type on the line below.
         boolean nameAboveTypeBelow = bank == Bank.MARIBANK;
-        // UnionBank wraps long descriptions onto the line below the row.
-        boolean wrapsBelow = bank == Bank.UNIONBANK;
+        // UnionBank and BDO wrap long descriptions onto the line below the row.
+        boolean wrapsBelow = bank == Bank.UNIONBANK || bank == Bank.BDO;
         // Maya puts the time and the transaction's details on the line below ("11:08:52 PM Credit via InstaPay").
         boolean detailBelow = bank == Bank.MAYA;
         // GCash wraps a long description and prints the row's amounts on the wrapped line ("… ending in 2043 and" / "invno:… 150.00 282.56").
@@ -311,6 +315,10 @@ public final class BankStatementParser {
                 held = null;
             }
             String lower = line.toLowerCase(Locale.ROOT);
+            if (PAGE_FOOTER.matcher(line).matches()) {
+                awaitingType = -1; // not a wrapped description
+                continue;
+            }
             if (STOP.matcher(lower).find()) {
                 break;
             }
@@ -402,6 +410,9 @@ public final class BankStatementParser {
             BigDecimal balance = amounts.size() >= 2 ? amounts.get(amounts.size() - 1).signed() : null;
             // On a card statement a positive amount is a charge (money out: you owe more), a negative one a payment.
             Boolean debit = bank.card ? Boolean.valueOf(first.signed().signum() > 0) : first.debit();
+            if (debit == null && balance == null && bank == Bank.BDO) {
+                debit = false; // BDO prints money out as "-PHP…" and money in unsigned, with no balance column.
+            }
             if (debit == null && balance == null) {
                 skipped.add(raw.trim());
                 continue;

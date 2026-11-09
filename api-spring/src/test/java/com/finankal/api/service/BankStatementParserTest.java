@@ -225,6 +225,43 @@ class BankStatementParserTest {
         assertEquals("Maya Savings", BankStatementParser.accountLabel(Bank.MAYA, "1234567890"));
     }
 
+    /** BDO "Account Activities" export as StatementPdfText produces it (numbers and refs made up). */
+    @Test
+    void bdoAccountActivities() {
+        String text = """
+                Dear customer, Exported date range
+                Oct 22, 2025
+                The transactions are listed below for the current account BBAN 001234567890 Oct 20, 2026
+                Account number: 001234567890 Available balance PHP100.08
+                Date Counterparty Description Amount
+                Oct 20, 2026 Sent via InstaPay POB IBFT BN-20261020- -PHP44,000.00
+                UBP ****0000 30895000 IBTW
+                Oct 20, 2026 Received from IBTD 000004555282 PHP44,000.00
+                Other Bank
+                Page 1 of 2
+                Account number 001234567890 Available balance PHP100.08
+                Date Counterparty Description Amount
+                Mar 4, 2026 W/D FR SAV BDO W/D FR SAV BDO/008332 -PHP25,000.00
+                /008332 33RVERBNKSFL BDO
+                33RVERBNKSFL
+                BDO
+                Mar 4, 2026 W/D FR SAV BDO W/D FR SAV BDO/008332 -PHP25,000.00
+                Page 2 of 2
+                """;
+        assertEquals(Bank.BDO, BankStatementParser.detectBank(text));
+        assertEquals("001234567890", BankStatementParser.accountNumber(text, Bank.BDO));
+
+        Result r = BankStatementParser.parse(text, Bank.BDO);
+        assertEquals(4, r.lines().size());
+        assertEquals(new Line(LocalDate.of(2026, 10, 20), "Sent via InstaPay POB IBFT BN-20261020- UBP ****0000 30895000 IBTW",
+                new BigDecimal("44000.00"), true), r.lines().get(0));
+        assertEquals(new Line(LocalDate.of(2026, 10, 20), "Received from IBTD 000004555282 Other Bank",
+                new BigDecimal("44000.00"), false), r.lines().get(1));
+        assertEquals("Cash", BankStatementParser.category(Bank.BDO, r.lines().get(2)));
+        assertEquals(r.lines().get(2), r.lines().get(3));
+        assertTrue(r.skipped().isEmpty());
+    }
+
     /** GCash transaction history as StatementPdfText produces it (numbers and refs made up). */
     @Test
     void gcashHistory() {
