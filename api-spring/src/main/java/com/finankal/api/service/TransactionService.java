@@ -5,6 +5,7 @@ import com.finankal.api.dto.TransactionDto;
 import com.finankal.api.finance.FinanceEngineGrpc;
 import com.finankal.api.finance.FinanceProtos;
 import com.finankal.api.mapper.TransactionMapper;
+import io.grpc.StatusRuntimeException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -50,6 +51,34 @@ public class TransactionService {
         return transactionMapper.toDto(response);
     }
 
+
+    /** Edits one of the user's transactions; a rejected edit (doesn't balance, not theirs) is a 400 with the reason. */
+    public void updateTransaction(String userId, UUID transactionId, CreateTransactionRequestDto requestDto) {
+        try {
+            financeEngineStub.updateTransaction(transactionMapper.toUpdateProto(userId, transactionId, requestDto));
+        } catch (StatusRuntimeException e) {
+            throw rejected(e);
+        }
+    }
+
+    public void deleteTransaction(String userId, UUID transactionId) {
+        try {
+            financeEngineStub.deleteTransaction(FinanceProtos.DeleteTransactionRequest.newBuilder()
+                    .setUserId(userId)
+                    .setTransactionId(transactionId.toString())
+                    .build());
+        } catch (StatusRuntimeException e) {
+            throw rejected(e);
+        }
+    }
+
+    private static RuntimeException rejected(StatusRuntimeException e) {
+        return switch (e.getStatus().getCode()) {
+            case INVALID_ARGUMENT -> new IllegalArgumentException(e.getStatus().getDescription());
+            case NOT_FOUND -> new IllegalArgumentException("Transaction not found");
+            default -> e;
+        };
+    }
 
     public List<TransactionDto> getUserTransactions(
             UUID userId,

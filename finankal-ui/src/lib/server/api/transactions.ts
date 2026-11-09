@@ -81,7 +81,9 @@ export async function getRecentTransactions(
  * Ledger entry belonging to a transaction.
  */
 export type TransactionEntry = {
+    id?: string;
     accountId: string;
+    accountName?: string;
     amount: number;
     type: "DEBIT" | "CREDIT";
     description?: string | null;
@@ -155,6 +157,57 @@ export async function clearUserTransactions(
     }
 
     return response.json();
+}
+
+
+/**
+ * Edit a transaction: its description, day and every entry (by id) with its account and amount.
+ *
+ * PUT /api/transactions/{id}?userId=...
+ */
+export async function updateTransaction(
+    userId: string,
+    transactionId: string,
+    payload: {
+        description: string;
+        /** yyyy-MM-dd */
+        date: string;
+        entries: { id: string; accountId: string; amount: number; type: "DEBIT" | "CREDIT" }[];
+    }
+): Promise<void> {
+    const response = await fetch(
+        `${API_URL}/api/transactions/${transactionId}?userId=${encodeURIComponent(userId)}`,
+        {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        }
+    );
+    if (!response.ok) {
+        throw new Error(await rejection(response, "Couldn't save the transaction."));
+    }
+}
+
+
+/**
+ * Delete a transaction.
+ *
+ * DELETE /api/transactions/{id}?userId=...
+ */
+export async function deleteTransaction(userId: string, transactionId: string): Promise<void> {
+    const response = await fetch(
+        `${API_URL}/api/transactions/${transactionId}?userId=${encodeURIComponent(userId)}`,
+        { method: "DELETE" }
+    );
+    if (!response.ok) {
+        throw new Error(await rejection(response, "Couldn't delete the transaction."));
+    }
+}
+
+/** Spring's GlobalExceptionHandler answers 400s with { message }: a reason the user can read. */
+async function rejection(response: Response, fallback: string): Promise<string> {
+    const body = await response.json().catch(() => null);
+    return response.status === 400 && body?.message ? String(body.message).replace(/^invalid transaction: /, "") : fallback;
 }
 
 

@@ -31,6 +31,8 @@ const (
 	FinanceEngine_GetRecentTransactions_FullMethodName       = "/finance.FinanceEngine/GetRecentTransactions"
 	FinanceEngine_GetTransaction_FullMethodName              = "/finance.FinanceEngine/GetTransaction"
 	FinanceEngine_GetUserTransactions_FullMethodName         = "/finance.FinanceEngine/GetUserTransactions"
+	FinanceEngine_UpdateTransaction_FullMethodName           = "/finance.FinanceEngine/UpdateTransaction"
+	FinanceEngine_DeleteTransaction_FullMethodName           = "/finance.FinanceEngine/DeleteTransaction"
 	FinanceEngine_GetMoneyFlows_FullMethodName               = "/finance.FinanceEngine/GetMoneyFlows"
 	FinanceEngine_GetPayables_FullMethodName                 = "/finance.FinanceEngine/GetPayables"
 	FinanceEngine_CreateInstallments_FullMethodName          = "/finance.FinanceEngine/CreateInstallments"
@@ -62,6 +64,11 @@ type FinanceEngineClient interface {
 	GetRecentTransactions(ctx context.Context, in *GetRecentTransactionsRequest, opts ...grpc.CallOption) (*GetRecentTransactionsResponse, error)
 	GetTransaction(ctx context.Context, in *GetTransactionRequest, opts ...grpc.CallOption) (*TransactionResponse, error)
 	GetUserTransactions(ctx context.Context, in *GetUserTransactionsRequest, opts ...grpc.CallOption) (*GetUserTransactionsResponse, error)
+	// Changes one transaction's description, date and its entries' accounts and amounts (entries can't be
+	// added or removed). NOT_FOUND when it isn't the user's; INVALID_ARGUMENT when it doesn't balance.
+	UpdateTransaction(ctx context.Context, in *UpdateTransactionRequest, opts ...grpc.CallOption) (*UpdateTransactionResponse, error)
+	// Deletes one transaction; installments it paid go back to pending. NOT_FOUND when it isn't the user's.
+	DeleteTransaction(ctx context.Context, in *DeleteTransactionRequest, opts ...grpc.CallOption) (*DeleteTransactionResponse, error)
 	GetMoneyFlows(ctx context.Context, in *GetMoneyFlowsRequest, opts ...grpc.CallOption) (*GetMoneyFlowsResponse, error)
 	GetPayables(ctx context.Context, in *GetPayablesRequest, opts ...grpc.CallOption) (*GetPayablesResponse, error)
 	// Records a loan's repayment schedule: one pending installment per row, paid from source into the loan.
@@ -210,6 +217,26 @@ func (c *financeEngineClient) GetUserTransactions(ctx context.Context, in *GetUs
 	return out, nil
 }
 
+func (c *financeEngineClient) UpdateTransaction(ctx context.Context, in *UpdateTransactionRequest, opts ...grpc.CallOption) (*UpdateTransactionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateTransactionResponse)
+	err := c.cc.Invoke(ctx, FinanceEngine_UpdateTransaction_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *financeEngineClient) DeleteTransaction(ctx context.Context, in *DeleteTransactionRequest, opts ...grpc.CallOption) (*DeleteTransactionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteTransactionResponse)
+	err := c.cc.Invoke(ctx, FinanceEngine_DeleteTransaction_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *financeEngineClient) GetMoneyFlows(ctx context.Context, in *GetMoneyFlowsRequest, opts ...grpc.CallOption) (*GetMoneyFlowsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetMoneyFlowsResponse)
@@ -338,6 +365,11 @@ type FinanceEngineServer interface {
 	GetRecentTransactions(context.Context, *GetRecentTransactionsRequest) (*GetRecentTransactionsResponse, error)
 	GetTransaction(context.Context, *GetTransactionRequest) (*TransactionResponse, error)
 	GetUserTransactions(context.Context, *GetUserTransactionsRequest) (*GetUserTransactionsResponse, error)
+	// Changes one transaction's description, date and its entries' accounts and amounts (entries can't be
+	// added or removed). NOT_FOUND when it isn't the user's; INVALID_ARGUMENT when it doesn't balance.
+	UpdateTransaction(context.Context, *UpdateTransactionRequest) (*UpdateTransactionResponse, error)
+	// Deletes one transaction; installments it paid go back to pending. NOT_FOUND when it isn't the user's.
+	DeleteTransaction(context.Context, *DeleteTransactionRequest) (*DeleteTransactionResponse, error)
 	GetMoneyFlows(context.Context, *GetMoneyFlowsRequest) (*GetMoneyFlowsResponse, error)
 	GetPayables(context.Context, *GetPayablesRequest) (*GetPayablesResponse, error)
 	// Records a loan's repayment schedule: one pending installment per row, paid from source into the loan.
@@ -401,6 +433,12 @@ func (UnimplementedFinanceEngineServer) GetTransaction(context.Context, *GetTran
 }
 func (UnimplementedFinanceEngineServer) GetUserTransactions(context.Context, *GetUserTransactionsRequest) (*GetUserTransactionsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUserTransactions not implemented")
+}
+func (UnimplementedFinanceEngineServer) UpdateTransaction(context.Context, *UpdateTransactionRequest) (*UpdateTransactionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateTransaction not implemented")
+}
+func (UnimplementedFinanceEngineServer) DeleteTransaction(context.Context, *DeleteTransactionRequest) (*DeleteTransactionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteTransaction not implemented")
 }
 func (UnimplementedFinanceEngineServer) GetMoneyFlows(context.Context, *GetMoneyFlowsRequest) (*GetMoneyFlowsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetMoneyFlows not implemented")
@@ -672,6 +710,42 @@ func _FinanceEngine_GetUserTransactions_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FinanceEngine_UpdateTransaction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateTransactionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FinanceEngineServer).UpdateTransaction(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FinanceEngine_UpdateTransaction_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FinanceEngineServer).UpdateTransaction(ctx, req.(*UpdateTransactionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FinanceEngine_DeleteTransaction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteTransactionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FinanceEngineServer).DeleteTransaction(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FinanceEngine_DeleteTransaction_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FinanceEngineServer).DeleteTransaction(ctx, req.(*DeleteTransactionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _FinanceEngine_GetMoneyFlows_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetMoneyFlowsRequest)
 	if err := dec(in); err != nil {
@@ -924,6 +998,14 @@ var FinanceEngine_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUserTransactions",
 			Handler:    _FinanceEngine_GetUserTransactions_Handler,
+		},
+		{
+			MethodName: "UpdateTransaction",
+			Handler:    _FinanceEngine_UpdateTransaction_Handler,
+		},
+		{
+			MethodName: "DeleteTransaction",
+			Handler:    _FinanceEngine_DeleteTransaction_Handler,
 		},
 		{
 			MethodName: "GetMoneyFlows",

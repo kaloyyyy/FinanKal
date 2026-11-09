@@ -47,6 +47,15 @@ service FinanceEngine {
   rpc GetUserTransactions(GetUserTransactionsRequest)
       returns (GetUserTransactionsResponse);
 
+  // Changes one transaction's description, date and its entries' accounts and amounts (entries can't be
+  // added or removed). NOT_FOUND when it isn't the user's; INVALID_ARGUMENT when it doesn't balance.
+  rpc UpdateTransaction(UpdateTransactionRequest)
+      returns (UpdateTransactionResponse);
+
+  // Deletes one transaction; installments it paid go back to pending. NOT_FOUND when it isn't the user's.
+  rpc DeleteTransaction(DeleteTransactionRequest)
+      returns (DeleteTransactionResponse);
+
   rpc GetMoneyFlows(GetMoneyFlowsRequest)
       returns (GetMoneyFlowsResponse);
 
@@ -270,6 +279,25 @@ message CreateInstallmentsRequest {
 message CreateInstallmentsResponse {
   string schedule_id = 1;
 }
+
+message UpdateTransactionRequest {
+  string user_id = 1;
+  string transaction_id = 2;
+  string description = 3;
+  // Unset = keep the current date.
+  google.protobuf.Timestamp occurred_at = 4;
+  // Every current entry, by id, with its new account, amount and type.
+  repeated TransactionEntry entries = 5;
+}
+
+message UpdateTransactionResponse {}
+
+message DeleteTransactionRequest {
+  string user_id = 1;
+  string transaction_id = 2;
+}
+
+message DeleteTransactionResponse {}
 
 message ClearUserTransactionsRequest {
   string user_id = 1;

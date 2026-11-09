@@ -77,4 +77,37 @@ public class TransactionController {
 
         return ResponseEntity.ok(transaction);
     }
+
+
+    /**
+     * Edit a transaction's description, date and its entries' accounts and amounts.
+     *
+     * PUT /api/transactions/{id}?userId=...
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<Void> updateTransaction(
+            @PathVariable UUID id,
+            @RequestParam UUID userId,
+            @RequestBody CreateTransactionRequestDto request
+    ) {
+        logger.info("Updating transaction: {}", id);
+        transactionService.updateTransaction(userId.toString(), id, request);
+        return ResponseEntity.noContent().build();
+    }
+
+
+    /**
+     * Delete a transaction.
+     *
+     * DELETE /api/transactions/{id}?userId=...
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTransaction(
+            @PathVariable UUID id,
+            @RequestParam UUID userId
+    ) {
+        logger.info("Deleting transaction: {}", id);
+        transactionService.deleteTransaction(userId.toString(), id);
+        return ResponseEntity.noContent().build();
+    }
 }

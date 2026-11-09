@@ -333,6 +333,49 @@ func (r *LedgerRepository) DeleteUserTransactionsTx(
 	return tag.RowsAffected(), nil
 }
 
+// UpdateTransactionTx rewrites a transaction's description and date (nil keeps it) and each entry in place,
+// so an entry keeps its id (and a card charge its statement link).
+func (r *LedgerRepository) UpdateTransactionTx(
+	ctx context.Context,
+	tx pgx.Tx,
+	transactionID uuid.UUID,
+	description string,
+	occurredAt *time.Time,
+	entries []Entry,
+) error {
+	if _, err := tx.Exec(ctx, `
+		UPDATE transactions
+		SET description = $2, created_at = COALESCE($3::timestamptz, created_at)
+		WHERE id = $1
+	`, transactionID, description, occurredAt); err != nil {
+		return err
+	}
+	for _, e := range entries {
+		if _, err := tx.Exec(ctx, `
+			UPDATE entries
+			SET account_id = $3, amount = $4, type = $5
+			WHERE id = $2 AND transaction_id = $1
+		`, transactionID, e.ID, e.AccountID, e.Amount, e.Type); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// DeleteTransactionTx deletes one transaction (its entries, card statement links and loan charge cascade)
+// and puts an installment it paid back to pending.
+func (r *LedgerRepository) DeleteTransactionTx(ctx context.Context, tx pgx.Tx, transactionID uuid.UUID) error {
+	if _, err := tx.Exec(ctx, `
+		UPDATE scheduled_transaction_occurrences
+		SET transaction_id = NULL, status = 'PENDING'
+		WHERE transaction_id = $1
+	`, transactionID); err != nil {
+		return err
+	}
+	_, err := tx.Exec(ctx, `DELETE FROM transactions WHERE id = $1`, transactionID)
+	return err
+}
+
 func (r *LedgerRepository) InsertEntryTx(
 	ctx context.Context,
 	tx pgx.Tx,

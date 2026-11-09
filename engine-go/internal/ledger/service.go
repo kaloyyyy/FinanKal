@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/kaloy/finankal/engine-go/internal/cache"
 	"github.com/redis/go-redis/v9"
 	"github.com/shopspring/decimal"
@@ -113,6 +114,121 @@ func (s *Service) ClearTransactions(ctx context.Context, userID uuid.UUID) (int6
 	cache.InvalidateTransaction(ctx, s.redis, userID, accountIDs...)
 
 	return deleted, nil
+}
+
+// UpdateTransaction changes one of the user's transactions: its description, date (nil keeps it) and each
+// entry's account, amount and type. Every current entry must be given, by id; none can be added or removed.
+func (s *Service) UpdateTransaction(
+	ctx context.Context,
+	userID uuid.UUID,
+	transactionID uuid.UUID,
+	description string,
+	occurredAt *time.Time,
+	entries []Entry,
+) error {
+	if err := validateEntries(entries); err != nil {
+		return err
+	}
+	current, err := s.ownTransaction(ctx, userID, transactionID)
+	if err != nil {
+		return err
+	}
+	if len(entries) != len(current.Entries) {
+		return fmt.Errorf("%w: entries can't be added or removed", ErrInvalidTransaction)
+	}
+
+	remaining := map[uuid.UUID]bool{}
+	touched := make([]uuid.UUID, 0, 2*len(entries))
+	for _, e := range current.Entries {
+		remaining[e.ID] = true
+		touched = append(touched, e.AccountID)
+	}
+	for _, e := range entries {
+		if !remaining[e.ID] {
+			return fmt.Errorf("%w: entry %s isn't part of this transaction", ErrInvalidTransaction, e.ID)
+		}
+		delete(remaining, e.ID) // each entry once
+		owner, err := s.repo.GetUserIDFromAccount(ctx, e.AccountID)
+		if err != nil {
+			return err
+		}
+		if owner != userID {
+			return fmt.Errorf("%w: all accounts must belong to the same user", ErrInvalidTransaction)
+		}
+		touched = append(touched, e.AccountID)
+	}
+
+	tx, err := s.repo.BeginTx(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if err := s.repo.UpdateTransactionTx(ctx, tx, transactionID, description, occurredAt, entries); err != nil {
+		return err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	s.invalidate(ctx, userID, touched)
+	return nil
+}
+
+// DeleteTransaction deletes one of the user's transactions.
+func (s *Service) DeleteTransaction(ctx context.Context, userID, transactionID uuid.UUID) error {
+	current, err := s.ownTransaction(ctx, userID, transactionID)
+	if err != nil {
+		return err
+	}
+
+	tx, err := s.repo.BeginTx(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if err := s.repo.DeleteTransactionTx(ctx, tx, transactionID); err != nil {
+		return err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	touched := make([]uuid.UUID, 0, len(current.Entries))
+	for _, e := range current.Entries {
+		touched = append(touched, e.AccountID)
+	}
+	s.invalidate(ctx, userID, touched)
+	return nil
+}
+
+// ownTransaction loads a transaction, or pgx.ErrNoRows (not found) when it isn't one of the user's.
+func (s *Service) ownTransaction(ctx context.Context, userID, transactionID uuid.UUID) (*TransactionDetail, error) {
+	t, err := s.repo.GetTransaction(ctx, transactionID)
+	if err != nil {
+		return nil, err
+	}
+	// Every entry is on one user's accounts (CreateTransaction checks), so the first one tells whose it is.
+	if len(t.Entries) == 0 {
+		return nil, pgx.ErrNoRows
+	}
+	owner, err := s.repo.GetUserIDFromAccount(ctx, t.Entries[0].AccountID)
+	if err != nil {
+		return nil, err
+	}
+	if owner != userID {
+		return nil, pgx.ErrNoRows
+	}
+	return t, nil
+}
+
+// invalidate drops the cached balances, ledgers and summaries of the accounts a change touched.
+func (s *Service) invalidate(ctx context.Context, userID uuid.UUID, accountIDs []uuid.UUID) {
+	for _, id := range accountIDs {
+		if _, accountType, _, err := s.repo.GetAccount(ctx, id); err == nil && accountType == CREDIT_CARD {
+			cache.InvalidateCreditCard(ctx, s.redis, id, userID)
+		}
+	}
+	cache.InvalidateTransaction(ctx, s.redis, userID, accountIDs...)
 }
 
 func (s *Service) GetUserAccounts(ctx context.Context, userID uuid.UUID) ([]Account, error) {

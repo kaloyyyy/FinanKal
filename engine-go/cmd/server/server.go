@@ -696,6 +696,64 @@ func (s *Server) GetTransaction(ctx context.Context, req *finance.GetTransaction
 	return toProtoTransaction(*transaction), nil
 }
 
+func (s *Server) UpdateTransaction(ctx context.Context, req *finance.UpdateTransactionRequest) (*finance.UpdateTransactionResponse, error) {
+	userID, err := parseID(req.GetUserId(), "user id")
+	if err != nil {
+		return nil, err
+	}
+	transactionID, err := parseID(req.GetTransactionId(), "transaction id")
+	if err != nil {
+		return nil, err
+	}
+
+	entries := make([]ledger.Entry, len(req.Entries))
+	for i, e := range req.Entries {
+		entryID, err := parseID(e.Id, "entry id")
+		if err != nil {
+			return nil, err
+		}
+		accountID, err := parseID(e.AccountId, "account id")
+		if err != nil {
+			return nil, err
+		}
+		amount, err := parseAmount(e.Amount, "amount")
+		if err != nil {
+			return nil, err
+		}
+		entries[i] = ledger.Entry{ID: entryID, AccountID: accountID, Amount: amount, Type: ledger.EntryType(e.Type)}
+	}
+
+	var occurredAt *time.Time
+	if req.OccurredAt != nil {
+		if err := req.OccurredAt.CheckValid(); err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid occurred_at: %v", err)
+		}
+		t := req.OccurredAt.AsTime()
+		occurredAt = &t
+	}
+
+	if err := s.ledgerService.UpdateTransaction(ctx, userID, transactionID, req.Description, occurredAt, entries); err != nil {
+		return nil, toStatus(err)
+	}
+	return &finance.UpdateTransactionResponse{}, nil
+}
+
+func (s *Server) DeleteTransaction(ctx context.Context, req *finance.DeleteTransactionRequest) (*finance.DeleteTransactionResponse, error) {
+	userID, err := parseID(req.GetUserId(), "user id")
+	if err != nil {
+		return nil, err
+	}
+	transactionID, err := parseID(req.GetTransactionId(), "transaction id")
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.ledgerService.DeleteTransaction(ctx, userID, transactionID); err != nil {
+		return nil, toStatus(err)
+	}
+	return &finance.DeleteTransactionResponse{}, nil
+}
+
 func (s *Server) GetUserTransactions(ctx context.Context, req *finance.GetUserTransactionsRequest) (*finance.GetUserTransactionsResponse, error) {
 	userID, err := parseID(req.GetUserId(), "user id")
 	if err != nil {

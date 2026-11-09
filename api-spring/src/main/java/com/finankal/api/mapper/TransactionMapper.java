@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.UUID;
 
 @Component
 public class TransactionMapper {
@@ -28,9 +29,7 @@ public class TransactionMapper {
                         .setDescription(dto.getDescription());
 
         if (dto.getDate() != null) {
-            // Dates from statements and the form are Philippine calendar days.
-            Instant start = dto.getDate().atStartOfDay(ZoneId.of("Asia/Manila")).toInstant();
-            builder.setOccurredAt(Timestamp.newBuilder().setSeconds(start.getEpochSecond()).build());
+            builder.setOccurredAt(startOfDay(dto));
         }
 
         for (CreateTransactionEntryDto entry : dto.getEntries()) {
@@ -48,6 +47,41 @@ public class TransactionMapper {
         return builder.build();
     }
 
+
+    /**
+     * Maps an edit of an existing transaction: every entry by id, with its new account, amount and type.
+     */
+    public FinanceProtos.UpdateTransactionRequest toUpdateProto(
+            String userId,
+            UUID transactionId,
+            CreateTransactionRequestDto dto
+    ) {
+        FinanceProtos.UpdateTransactionRequest.Builder builder =
+                FinanceProtos.UpdateTransactionRequest.newBuilder()
+                        .setUserId(userId)
+                        .setTransactionId(transactionId.toString())
+                        .setDescription(dto.getDescription() == null ? "" : dto.getDescription());
+
+        if (dto.getDate() != null) {
+            builder.setOccurredAt(startOfDay(dto));
+        }
+
+        for (CreateTransactionEntryDto entry : dto.getEntries()) {
+            builder.addEntries(FinanceProtos.TransactionEntry.newBuilder()
+                    .setId(entry.getId() == null ? "" : entry.getId())
+                    .setAccountId(entry.getAccountId())
+                    .setAmount(entry.getAmount().toString())
+                    .setType(entry.getType()));
+        }
+
+        return builder.build();
+    }
+
+    /** Dates from statements and the form are Philippine calendar days. */
+    private static Timestamp startOfDay(CreateTransactionRequestDto dto) {
+        Instant start = dto.getDate().atStartOfDay(ZoneId.of("Asia/Manila")).toInstant();
+        return Timestamp.newBuilder().setSeconds(start.getEpochSecond()).build();
+    }
 
     /**
      * Response after creating a transaction.
