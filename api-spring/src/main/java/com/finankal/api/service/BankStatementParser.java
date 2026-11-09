@@ -250,8 +250,8 @@ public final class BankStatementParser {
     private static final Pattern PERIOD = Pattern.compile(
             "(\\d{1,2}\\s+[A-Za-z]{3}\\s+20\\d{2})\\s+(?:to|-)\\s+(\\d{1,2}\\s+[A-Za-z]{3}\\s+20\\d{2})",
             Pattern.CASE_INSENSITIVE);
-    /** A row the parser adds where GCash's balance at the end of a day differs from that day's rows. */
-    public static final String GCASH_CORRECTION = "GCash balance correction (refunds or charges it doesn't list)";
+    /** A row the parser adds where GCash's running balance moved by more or less than the row says. */
+    public static final String GCASH_CORRECTION = "GCash balance correction (unlisted reversal or charge)";
     private static final Pattern PAGE_FOOTER =Pattern.compile("(?i)page \\d+ of \\d+");
     private static final Pattern PERIOD_ISO = Pattern.compile("(20\\d{2}-[01]\\d-[0-3]\\d) to (20\\d{2}-[01]\\d-[0-3]\\d)");
     private static final Pattern LONE_AMOUNT =Pattern.compile("-?[\\d,]+\\.\\d{2}");
@@ -441,17 +441,7 @@ public final class BankStatementParser {
         List<Line> lines = new ArrayList<>();
         BigDecimal before = openingBalance;
         boolean first = true;
-        // GCash's history leaves out refunds and reversals (Angkas holds, failed loads) and prints rows of the same
-        // moment in shuffled order, so its balance only holds at the end of each day. Every row is booked as printed,
-        // and where a day's closing balance differs from its rows, one correction row books the difference.
-        boolean followBalance = bank == Bank.GCASH && openingBalance != null;
-        BigDecimal running = openingBalance;
-        LocalDate day = null;
-        BigDecimal dayEnd = null;
         for (Row row : oldestFirst) {
-            if (followBalance && day != null && !row.date().equals(day)) {
-                running = closeDay(lines, day, dayEnd, running);
-            }
             Boolean debit = row.debit();
             if (debit == null) {
                 if (before != null) {
@@ -466,12 +456,22 @@ public final class BankStatementParser {
                     debit = false;
                 }
             }
-            if (debit == null) {
+            // GCash's history lists failed attempts as debits and their reversals not at all; its running
+            // balance is what really moved, so the ledger follows it.
+            boolean checked = bank == Bank.GCASH && debit != null && before != null && row.balance() != null;
+            if (checked && row.balance().compareTo(before) == 0) {
+                skipped.add(row.raw() + " (the balance didn't change: a failed transaction)");
+            } else if (debit == null) {
                 skipped.add(row.raw());
             } else {
                 lines.add(new Line(row.date(), row.description(), row.amount(), debit));
-                if (followBalance) {
-                    running = debit ? running.subtract(row.amount()) : running.add(row.amount());
+                if (checked) {
+                    BigDecimal expected = debit ? before.subtract(row.amount()) : before.add(row.amount());
+                    BigDecimal gap = row.balance().subtract(expected);
+                    if (gap.signum() != 0) {
+                        // shortcut: the gap is booked on this row's date; which earlier row was reversed isn't printed.
+                        lines.add(new Line(row.date(), GCASH_CORRECTION, gap.abs(), gap.signum() < 0));
+                    }
                 }
                 if (first && openingBalance == null && row.balance() != null) {
                     openingBalance = debit ? row.balance().add(row.amount()) : row.balance().subtract(row.amount());
@@ -480,12 +480,7 @@ public final class BankStatementParser {
             first = false;
             if (row.balance() != null) {
                 before = row.balance();
-                day = row.date();
-                dayEnd = row.balance();
             }
-        }
-        if (followBalance && day != null) {
-            closeDay(lines, day, dayEnd, running);
         }
         if (closingBalance == null && !oldestFirst.isEmpty() && oldestFirst.get(oldestFirst.size() - 1).balance() != null) {
             closingBalance = oldestFirst.get(oldestFirst.size() - 1).balance();
@@ -506,15 +501,6 @@ public final class BankStatementParser {
             }
         }
         return new Result(lines, skipped, openingBalance, closingBalance, years.periodStart(), years.periodEnd());
-    }
-
-    /** Books a correction where a day's printed closing balance differs from its rows; returns that balance. */
-    private static BigDecimal closeDay(List<Line> lines, LocalDate day, BigDecimal printed, BigDecimal running) {
-        BigDecimal gap = printed.subtract(running);
-        if (gap.signum() != 0) {
-            lines.add(new Line(day, GCASH_CORRECTION, gap.abs(), gap.signum() < 0));
-        }
-        return printed;
     }
 
     /**
