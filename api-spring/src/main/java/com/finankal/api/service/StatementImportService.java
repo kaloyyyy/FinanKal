@@ -176,13 +176,15 @@ public class StatementImportService {
     private StatementImportResultDto send(Parsed p, String userId, String accountId) {
         String number = p.accountNumber() == null ? "" : p.accountNumber();
         List<AccountDto> accounts = userService.getUserAccounts(UUID.fromString(userId));
-        if (accountId == null && number.isEmpty() && p.bank() == Bank.MAYA) {
-            // Some Maya Savings statements print no number ("Maya Savings ()"): use the user's only Maya Savings account.
-            List<String> savings = accounts.stream()
-                    .filter(a -> "ASSET".equals(a.getType()) && a.getName().startsWith("Maya Savings"))
+        if (accountId == null && number.isEmpty() && !p.bank().card) {
+            // No number printed (GCash's transaction history, some Maya Savings statements): use the user's only
+            // account of that kind, e.g. their one "GCash…" or "Maya Savings…" account.
+            String label = BankStatementParser.accountLabel(p.bank(), null);
+            List<String> same = accounts.stream()
+                    .filter(a -> "ASSET".equals(a.getType()) && a.getName().startsWith(label))
                     .map(AccountDto::getId).toList();
-            if (savings.size() == 1) {
-                accountId = savings.get(0);
+            if (same.size() == 1) {
+                accountId = same.get(0);
             }
         }
         FinanceProtos.ImportBankStatementRequest.Builder request = FinanceProtos.ImportBankStatementRequest.newBuilder()

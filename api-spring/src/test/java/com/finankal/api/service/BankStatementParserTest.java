@@ -225,6 +225,38 @@ class BankStatementParserTest {
         assertEquals("Maya Savings", BankStatementParser.accountLabel(Bank.MAYA, "1234567890"));
     }
 
+    /** GCash transaction history as StatementPdfText produces it (numbers and refs made up). */
+    @Test
+    void gcashHistory() {
+        String text = """
+                GCash Transaction History
+                2026-09-10 to 2026-11-08
+                Date and Time Description Reference No. Debit Credit Balance
+                STARTING BALANCE 1253.56
+                2026-09-10 07:46 AM Transfer from 09170000000 to 09180000000 9044879765879 250.00DR 1003.56
+                2026-09-23 12:21 AM Received GCash from MariBank with account ending in 0000 and
+                invno:20260923LAUIPHM2XXXB000000000000001 9045339782233 150.00CR 1153.56
+                2026-09-23 12:21 AM Payment to Angkas 0000911838547 133.00DR 1020.56
+                ENDING BALANCE 1020.56
+                Total Debit 383.00DR
+                Total Credit 150.00CR
+                """;
+        assertEquals(Bank.GCASH, BankStatementParser.detectBank(text));
+        assertNull(BankStatementParser.accountNumber(text, Bank.GCASH));
+
+        Result r = BankStatementParser.parse(text, Bank.GCASH);
+        assertEquals(3, r.lines().size());
+        assertEquals(new Line(LocalDate.of(2026, 9, 23),
+                "Received GCash from MariBank with account ending in 0000 and invno:20260923LAUIPHM2XXXB000000000000001 9045339782233",
+                new BigDecimal("150.00"), false), r.lines().get(1));
+        assertEquals(new Line(LocalDate.of(2026, 9, 23), "Payment to Angkas 0000911838547", new BigDecimal("133.00"), true), r.lines().get(2));
+        assertEquals(new BigDecimal("1253.56"), r.openingBalance());
+        assertEquals(new BigDecimal("1020.56"), r.closingBalance());
+        assertEquals(LocalDate.of(2026, 9, 10), r.periodStart());
+        assertEquals(LocalDate.of(2026, 11, 8), r.periodEnd());
+        assertTrue(r.skipped().isEmpty());
+    }
+
     /** Maya Savings as StatementPdfText produces it (name, number and refs made up). */
     @Test
     void mayaSavings() {

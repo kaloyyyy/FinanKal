@@ -248,7 +248,8 @@ public final class BankStatementParser {
     private static final Pattern PERIOD = Pattern.compile(
             "(\\d{1,2}\\s+[A-Za-z]{3}\\s+20\\d{2})\\s+(?:to|-)\\s+(\\d{1,2}\\s+[A-Za-z]{3}\\s+20\\d{2})",
             Pattern.CASE_INSENSITIVE);
-    private static final Pattern LONE_AMOUNT = Pattern.compile("-?[\\d,]+\\.\\d{2}");
+    private static final Pattern PERIOD_ISO = Pattern.compile("(20\\d{2}-[01]\\d-[0-3]\\d) to (20\\d{2}-[01]\\d-[0-3]\\d)");
+    private static final Pattern LONE_AMOUNT =Pattern.compile("-?[\\d,]+\\.\\d{2}");
     private static final Pattern PERIOD_DAYS = Pattern.compile("(?m)^(\\d{1,2})-(\\d{1,2}) ([A-Za-z]{3} 20\\d{2})$");
     /** Sections after the transaction list whose dated rows are not transactions (e.g. MariBank's daily interest table). */
     private static final Pattern STOP = Pattern.compile("interest & tax details");
@@ -278,6 +279,9 @@ public final class BankStatementParser {
         boolean wrapsBelow = bank == Bank.UNIONBANK;
         // Maya puts the time and the transaction's details on the line below ("11:08:52 PM Credit via InstaPay").
         boolean detailBelow = bank == Bank.MAYA;
+        // GCash wraps a long description and prints the row's amounts on the wrapped line ("… ending in 2043 and" / "invno:… 150.00 282.56").
+        boolean amountsBelow = bank == Bank.GCASH;
+        String held = null;
 
         List<Row> rows = new ArrayList<>();
         List<String> skipped = new ArrayList<>();
@@ -296,6 +300,15 @@ public final class BankStatementParser {
             }
             if (line.isEmpty()) {
                 continue;
+            }
+            boolean joined = false;
+            if (held != null) {
+                // Only an undated line can be the held row's wrapped part; join once, so a dated title doesn't swallow the page.
+                if (leadingDate(line, years) == null) {
+                    line = held + " " + line;
+                    joined = true;
+                }
+                held = null;
             }
             String lower = line.toLowerCase(Locale.ROOT);
             if (STOP.matcher(lower).find()) {
@@ -379,6 +392,9 @@ public final class BankStatementParser {
             List<String> tokens = new ArrayList<>(List.of(rest.split(" ")));
             List<Amount> amounts = trailingAmounts(tokens);
             if (amounts.isEmpty()) {
+                if (amountsBelow && !joined) {
+                    held = line;
+                }
                 continue;
             }
 
@@ -505,6 +521,13 @@ public final class BankStatementParser {
             } catch (DateTimeParseException ignored) {
                 // fall through to the first year mentioned
             }
+        }
+        // GCash: "2026-09-10 to 2026-11-08".
+        Matcher iso = PERIOD_ISO.matcher(text);
+        if (iso.find()) {
+            LocalDate start = LocalDate.parse(iso.group(1));
+            LocalDate end = LocalDate.parse(iso.group(2));
+            return new YearRule(start.getYear(), start, end, end.getYear());
         }
         // Maya Savings: "1-30 Sep 2026" (its statement date, printed first, can be next year's).
         Matcher days = PERIOD_DAYS.matcher(text);
