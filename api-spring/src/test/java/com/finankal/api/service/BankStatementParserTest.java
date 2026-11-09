@@ -262,7 +262,7 @@ class BankStatementParserTest {
         assertTrue(r.skipped().isEmpty());
     }
 
-    /** GCash lists failed loads as debits and doesn't list their reversals; the running balance is followed. */
+    /** GCash leaves refunds out and shuffles same-moment rows; every row is kept and each day closes on its balance. */
     @Test
     void gcashFollowsRunningBalance() {
         String text = """
@@ -274,16 +274,19 @@ class BankStatementParserTest {
                 2026-01-16 05:12 PM Buy Load Transaction for 09170000002 0000970328603 11.00DR 2085.80
                 2026-01-16 05:13 PM Buy Load Transaction for 09170000002 0000970317473 11.00DR 2085.80
                 2026-01-16 05:19 PM Buy Load Transaction for 09170000002 0000970379561 12.00DR 2084.80
-                ENDING BALANCE 2084.80
+                2026-01-17 08:00 AM International Remittance 0000000000001 10002.22CR 0.00
+                2026-01-17 08:00 AM Sent GCash to Bank 0000000000002 10015.00DR 2072.02
+                ENDING BALANCE 2072.02
                 """;
         Result r = BankStatementParser.parse(text, Bank.GCASH);
 
         LocalDate day = LocalDate.of(2026, 1, 16);
-        assertEquals(1, r.skipped().size()); // 05:13: the balance didn't move
-        assertTrue(r.skipped().get(0).contains("0000970317473"));
-        assertEquals(4, r.lines().size());
-        assertEquals(new Line(day, "Buy Load Transaction for 09170000002 0000970379561", new BigDecimal("12.00"), true), r.lines().get(2));
-        assertEquals(new Line(day, BankStatementParser.GCASH_CORRECTION, new BigDecimal("11.00"), false), r.lines().get(3));
+        assertTrue(r.skipped().isEmpty()); // every printed row is kept
+        // Jan 16: four loads (45.00) but the balance fell 23.00, so 22.00 came back unlisted.
+        assertEquals(new Line(day, "Buy Load Transaction for 09170000002 0000970379561", new BigDecimal("12.00"), true), r.lines().get(3));
+        assertEquals(new Line(day, BankStatementParser.GCASH_CORRECTION, new BigDecimal("22.00"), false), r.lines().get(4));
+        // Jan 17: the rows' balances are swapped, but the day adds up, so no correction.
+        assertEquals(7, r.lines().size());
 
         // The rows now add up to what GCash says it holds.
         BigDecimal end = r.openingBalance();
