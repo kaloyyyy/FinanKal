@@ -34,6 +34,13 @@ const (
 
 	// How many days apart two banks may date the same transfer (sent late at night, received next day).
 	transferDays = 2
+	// Where the fee goes when the sender paid more than arrived (GCash and InstaPay charge ₱10–15).
+	transferFeeAccount = "Transfer Fees"
+)
+
+var (
+	minTransferFee = decimal.NewFromInt(10)
+	maxTransferFee = decimal.NewFromInt(15)
 )
 
 // Statement dates are Philippine calendar days; Spring's TransactionMapper uses the same zone.
@@ -136,7 +143,7 @@ func (s *Service) Import(ctx context.Context, st Statement) (Result, error) {
 	}
 
 	touched := []uuid.UUID{st.AccountID}
-	counters := map[string]uuid.UUID{} // income / expense accounts by type and name, looked up once each
+	counters := map[string]uuid.UUID{}   // income / expense accounts by type and name, looked up once each
 	cashAccounts := map[uuid.UUID]bool{} // the user's own Cash account, once a withdrawal has found it
 	var duplicates, transfers []string
 
@@ -159,12 +166,12 @@ func (s *Service) Import(ctx context.Context, st Statement) (Result, error) {
 		// through the card that comes back to a bank account is money moved from the card to that bank.
 		var match *transferCandidate
 		if row.Category == "" {
-			if match, err = counterpart(ctx, tx, userID, st.AccountID, row); err != nil {
+			if match, err = counterpart(ctx, tx, userID, st.AccountID, st.Bank, row); err != nil {
 				return Result{}, err
 			}
 		}
 		if match != nil {
-			if err := moveEntry(ctx, tx, match.counterEntryID, st.AccountID); err != nil {
+			if err := moveEntry(ctx, tx, match.counterEntryID, st.AccountID, row.Amount); err != nil {
 				return Result{}, err
 			}
 			touched = append(touched, match.otherAccountID, match.counterAccountID)
@@ -172,8 +179,21 @@ func (s *Service) Import(ctx context.Context, st Statement) (Result, error) {
 			if row.MoneyOut {
 				direction = "to"
 			}
-			transfers = append(transfers, fmt.Sprintf("%s · ₱%s %s %s",
-				row.Date.Format("2 Jan 2006"), row.Amount.StringFixed(2), direction, match.otherName))
+			note := fmt.Sprintf("%s · ₱%s %s %s",
+				row.Date.Format("2 Jan 2006"), row.Amount.StringFixed(2), direction, match.otherName)
+			// The sender paid more than arrived: the difference is a fee, in the same transaction so it balances.
+			if match.fee.IsPositive() {
+				feeID, err := s.ensureAccount(ctx, tx, userID, ledger.EXPENSE, transferFeeAccount)
+				if err != nil {
+					return Result{}, err
+				}
+				if _, err := s.ledgerRepo.InsertEntryTx(ctx, tx, match.transactionID, feeID, match.fee, ledger.DEBIT); err != nil {
+					return Result{}, err
+				}
+				touched = append(touched, feeID)
+				note += fmt.Sprintf(" (₱%s fee)", match.fee.StringFixed(2))
+			}
+			transfers = append(transfers, note)
 			continue
 		}
 

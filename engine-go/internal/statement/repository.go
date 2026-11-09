@@ -3,6 +3,8 @@ package statement
 import (
 	"context"
 	"errors"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -169,26 +171,34 @@ func existingRows(ctx context.Context, tx pgx.Tx, accountID uuid.UUID, start, en
 
 // transferCandidate is the other bank's half of a transfer, still booked as income or spending.
 type transferCandidate struct {
+	transactionID    uuid.UUID
 	counterEntryID   uuid.UUID // its Incoming / Outgoing Transfers entry, which moves to this account
 	counterAccountID uuid.UUID
 	otherAccountID   uuid.UUID
 	otherName        string
-	gap              int // days between the two banks' dates
+	gap              int             // days between the two banks' dates
+	fee              decimal.Decimal // what the sender paid on top of what arrived (GCash, InstaPay: ₱10–15)
+	named            bool            // one side's description names the other side's bank
 }
 
 // counterpart finds the row on another of the user's bank accounts that is the other end of row:
-// imported from a statement, the same amount going the other way, within transferDays, and still on
-// Incoming / Outgoing Transfers (not matched yet, and not categorised as salary or the like). Returns nil when there is none, or when the two closest are equally close.
-func counterpart(ctx context.Context, tx pgx.Tx, userID, accountID uuid.UUID, row Row) (*transferCandidate, error) {
+// imported from a statement, going the other way, within transferDays, and still on Incoming / Outgoing
+// Transfers (not matched yet, and not categorised as salary or the like). The amount must be the same, or
+// the sender's ₱10–15 more (a transfer fee) when one description names the other bank ("Received GCash
+// from MariBank…", "Transfer to GCash"). bank is this statement's bank.
+// Returns nil when there is none, or when the two best are equally good.
+func counterpart(ctx context.Context, tx pgx.Tx, userID, accountID uuid.UUID, bank string, row Row) (*transferCandidate, error) {
 	otherSide := "DEBIT" // money leaving this account arrives in the other one
 	if !row.MoneyOut {
 		otherSide = "CREDIT"
 	}
 	day := calendarDate(row.Date)
 	rows, err := tx.Query(ctx, `
-		SELECT ce.id, ce.account_id, oa.id, oa.name,
-		       abs((t.created_at AT TIME ZONE 'Asia/Manila')::date - $4::date)
+		SELECT t.id, ce.id, ce.account_id, oa.id, oa.name,
+		       abs((t.created_at AT TIME ZONE 'Asia/Manila')::date - $4::date),
+		       oe.amount, t.description, bs.bank
 		FROM transactions t
+		JOIN bank_statements bs ON bs.id = t.statement_id
 		JOIN entries oe ON oe.transaction_id = t.id
 		JOIN accounts oa ON oa.id = oe.account_id
 		JOIN entries ce ON ce.transaction_id = t.id AND ce.id <> oe.id
@@ -196,34 +206,86 @@ func counterpart(ctx context.Context, tx pgx.Tx, userID, accountID uuid.UUID, ro
 		WHERE oa.user_id = $1 AND oa.id <> $2
 		  -- another bank or wallet, or a card (a payment to it, or money drawn from it into a bank)
 		  AND oa.type IN ('ASSET', 'CREDIT_CARD')
-		  AND t.statement_id IS NOT NULL AND NOT t.opening_balance
-		  AND oe.amount = $3 AND oe.type = $5
+		  AND NOT t.opening_balance
+		  AND oe.amount BETWEEN $3::numeric - $10 AND $3::numeric + $10 AND oe.type = $5
 		  AND ca.type IN ('INCOME', 'EXPENSE') AND ca.name IN ($8, $9) -- not a categorised row such as salary
 		  AND (SELECT count(*) FROM entries x WHERE x.transaction_id = t.id) = 2
 		  AND t.created_at >= $6 AND t.created_at < $7
-		ORDER BY 5
-		LIMIT 2
 	`, userID, accountID, row.Amount, day, otherSide,
 		dayStart(day.AddDate(0, 0, -transferDays)), dayStart(day.AddDate(0, 0, transferDays+1)),
-		defaultIncomeAccount, defaultExpenseAccount)
+		defaultIncomeAccount, defaultExpenseAccount, maxTransferFee)
 	if err != nil {
 		return nil, err
 	}
-	found, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (transferCandidate, error) {
-		var c transferCandidate
-		err := row.Scan(&c.counterEntryID, &c.counterAccountID, &c.otherAccountID, &c.otherName, &c.gap)
+	type scanned struct {
+		transferCandidate
+		amount      decimal.Decimal
+		description string
+		otherBank   string
+	}
+	found, err := pgx.CollectRows(rows, func(r pgx.CollectableRow) (scanned, error) {
+		var c scanned
+		err := r.Scan(&c.transactionID, &c.counterEntryID, &c.counterAccountID, &c.otherAccountID, &c.otherName,
+			&c.gap, &c.amount, &c.description, &c.otherBank)
 		return c, err
 	})
-	if err != nil || len(found) == 0 || (len(found) == 2 && found[0].gap == found[1].gap) {
+	if err != nil {
 		return nil, err
 	}
-	return &found[0], nil
+	var best []transferCandidate
+	for _, c := range found {
+		c.named = names(row.Description, c.otherBank) || names(c.description, bank)
+		fee, ok := transferFee(row, c.amount, c.named)
+		if !ok {
+			continue
+		}
+		c.fee = fee
+		best = append(best, c.transferCandidate)
+	}
+	sort.Slice(best, func(i, j int) bool { return better(best[i], best[j]) })
+	if len(best) == 0 || (len(best) > 1 && !better(best[0], best[1])) {
+		return nil, nil
+	}
+	return &best[0], nil
+}
+
+// better ranks transfer candidates: named first, then an exact amount, then the closest date.
+func better(a, b transferCandidate) bool {
+	if a.named != b.named {
+		return a.named
+	}
+	if a.fee.IsZero() != b.fee.IsZero() {
+		return a.fee.IsZero()
+	}
+	return a.gap < b.gap
+}
+
+// transferFee is what the sender paid on top of what arrived: zero for the same amount, ₱10–15 when the
+// two rows name each other's bank. ok=false when other (the other bank's amount) can't be the other end.
+func transferFee(row Row, other decimal.Decimal, named bool) (decimal.Decimal, bool) {
+	fee := row.Amount.Sub(other) // this side sent
+	if !row.MoneyOut {
+		fee = other.Sub(row.Amount) // the other side sent
+	}
+	if fee.IsZero() {
+		return fee, true
+	}
+	return fee, named && fee.GreaterThanOrEqual(minTransferFee) && fee.LessThanOrEqual(maxTransferFee)
+}
+
+// names reports whether a statement description mentions bank ("Received GCash from MariBank…" names
+// MARIBANK). Case and spaces are ignored, so "Union Bank" names UNIONBANK.
+// shortcut: matches the bank's short name only; add aliases ("Bank of the Philippine Islands") if real rows use them.
+func names(description, bank string) bool {
+	squash := func(s string) string { return strings.ToLower(strings.ReplaceAll(s, " ", "")) }
+	b := squash(bank)
+	return len(b) >= 3 && strings.Contains(squash(description), b)
 }
 
 // moveEntry turns the other bank's income / spending row into a transfer by moving its
-// Incoming / Outgoing Transfers side onto this account.
-func moveEntry(ctx context.Context, tx pgx.Tx, entryID, accountID uuid.UUID) error {
-	_, err := tx.Exec(ctx, `UPDATE entries SET account_id = $2 WHERE id = $1`, entryID, accountID)
+// Incoming / Outgoing Transfers side onto this account, at this account's amount (a fee is booked apart).
+func moveEntry(ctx context.Context, tx pgx.Tx, entryID, accountID uuid.UUID, amount decimal.Decimal) error {
+	_, err := tx.Exec(ctx, `UPDATE entries SET account_id = $2, amount = $3 WHERE id = $1`, entryID, accountID, amount)
 	return err
 }
 

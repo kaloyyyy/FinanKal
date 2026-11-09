@@ -481,6 +481,30 @@ func TestJoinedTransferIsADuplicateInAnOverlappingStatement(t *testing.T) {
 	}
 }
 
+func TestNamedTransferWithFeeJoinsAndBooksTheFee(t *testing.T) {
+	f := setup(t)
+	f.importOK(f.october()) // ₱126,502.50 arrived in MariBank on 10 Oct
+	sent := payrollOut
+	sent.Description, sent.Amount = "Send to MariBank", decimal.RequireFromString("126517.50")
+	result := f.importOK(f.payroll(sent))
+
+	if len(result.Transfers) != 1 || result.Imported != 0 {
+		t.Fatalf("transfers %v, imported %d; want 1 transfer with a fee", result.Transfers, result.Imported)
+	}
+	if got := f.entriesOn("Transfer Fees"); got != 1 {
+		t.Fatalf("Transfer Fees has %d entries, want 1", got)
+	}
+	f.wantBalance("1496.63")
+
+	// Without the bank's name, a ₱15 gap is a different movement.
+	f2 := setup(t)
+	f2.importOK(f2.october())
+	sent.Description = "Sent to SEA"
+	if result := f2.importOK(f2.payroll(sent)); len(result.Transfers) != 0 {
+		t.Fatalf("transfers = %v, want none", result.Transfers)
+	}
+}
+
 func TestEquallyCloseCandidatesAreNotGuessed(t *testing.T) {
 	f := setup(t)
 	st := f.october()
