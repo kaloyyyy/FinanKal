@@ -1,18 +1,33 @@
-import { getUserTransactions } from "$lib/server/api/transactions";
+import { fail } from "@sveltejs/kit";
+import type { Actions } from "./$types";
+
+import { clearUserTransactions, getUserTransactions } from "$lib/server/api/transactions";
+import { getUserAccounts } from "$lib/server/api/accounts";
+
+const userId = "bcc539f6-fc94-4a2e-9ce6-3c03c0560204";
 
 export async function load() {
-    const userId = "bcc539f6-fc94-4a2e-9ce6-3c03c0560204";
-
-    const result = await getUserTransactions(userId);
-
-    console.log("TRANSACTION RESULT:", result);
-    console.log("TRANSACTION COUNT:", result.transactions.length);
-    console.log("TOTAL:", result.total);
+    // Accounts let the page show names instead of account ids on each entry.
+    const [result, accounts] = await Promise.all([
+        getUserTransactions(userId),
+        getUserAccounts(userId)
+    ]);
 
     return {
         transactions: result.transactions,
         total: result.total,
-        limit: result.limit,
-        offset: result.offset
+        accounts
     };
 }
+
+export const actions: Actions = {
+    clear: async () => {
+        try {
+            const { deletedTransactions } = await clearUserTransactions(userId);
+            return { cleared: deletedTransactions };
+        } catch (error) {
+            console.error("Clearing transactions failed:", error);
+            return fail(500, { clearError: "Transactions couldn't be cleared. Check that the API is running and try again." });
+        }
+    }
+};

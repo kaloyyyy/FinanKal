@@ -261,6 +261,7 @@ func (r *LedgerRepository) CreateTransactionTx(
 	tx pgx.Tx,
 	userID uuid.UUID,
 	description string,
+	occurredAt *time.Time, // nil = now
 ) (uuid.UUID, error) {
 
 	var transactionID uuid.UUID
@@ -270,16 +271,66 @@ func (r *LedgerRepository) CreateTransactionTx(
 		`
 		INSERT INTO transactions (
 			user_id,
-			description
+			description,
+			created_at
 		)
-		VALUES ($1,$2)
+		VALUES ($1,$2,COALESCE($3::timestamptz, now()))
 		RETURNING id
 		`,
 		userID,
 		description,
+		occurredAt,
 	).Scan(&transactionID)
 
 	return transactionID, err
+}
+
+// DeleteUserTransactionsTx deletes every transaction touching the user's accounts (entries and
+// statement links cascade) plus the user's credit card and bank statements, which are built from
+// those transactions (and would otherwise block re-importing). Accounts and credit card settings
+// are kept. Returns the number of transactions deleted.
+func (r *LedgerRepository) DeleteUserTransactionsTx(
+	ctx context.Context,
+	tx pgx.Tx,
+	userID uuid.UUID,
+) (int64, error) {
+
+	if _, err := tx.Exec(ctx, `
+		DELETE FROM credit_card_statements s
+		USING accounts a
+		WHERE a.id = s.credit_card_id
+		  AND a.user_id = $1
+	`, userID); err != nil {
+		return 0, err
+	}
+
+	// user_id can be NULL on older rows, so also match through the entries' accounts.
+	tag, err := tx.Exec(ctx, `
+		DELETE FROM transactions t
+		WHERE t.user_id = $1
+		   OR EXISTS (
+				SELECT 1
+				FROM entries e
+				JOIN accounts a ON a.id = e.account_id
+				WHERE e.transaction_id = t.id
+				  AND a.user_id = $1
+		   )
+	`, userID)
+	if err != nil {
+		return 0, err
+	}
+
+	// After the transactions, so imported rows are counted above rather than cascading away here.
+	if _, err := tx.Exec(ctx, `
+		DELETE FROM bank_statements s
+		USING accounts a
+		WHERE a.id = s.account_id
+		  AND a.user_id = $1
+	`, userID); err != nil {
+		return 0, err
+	}
+
+	return tag.RowsAffected(), nil
 }
 
 func (r *LedgerRepository) InsertEntryTx(
@@ -786,4 +837,40 @@ func (r *LedgerRepository) GetUserTransactions(
 	}
 
 	return transactions, total, nil
+}
+
+// MoneyFlow is money that moved from one account (the credited side) to another (the debited side).
+type MoneyFlow struct {
+	FromAccountID uuid.UUID
+	ToAccountID   uuid.UUID
+	Amount        decimal.Decimal
+	Transactions  int
+}
+
+// GetMoneyFlows totals the user's money movements per (from, to) account pair, for transactions
+// dated in [from, to) when those are given. Opening balances are a starting point, not a movement.
+// shortcut: only two-entry transactions count (every import and hand entry); a split transaction
+// has no single source for each destination, so it's left out until one exists.
+func (r *LedgerRepository) GetMoneyFlows(ctx context.Context, userID uuid.UUID, from, to *time.Time) ([]MoneyFlow, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT c.account_id, d.account_id, SUM(d.amount), COUNT(*)
+		FROM transactions t
+		JOIN entries d ON d.transaction_id = t.id AND d.type = 'DEBIT'
+		JOIN entries c ON c.transaction_id = t.id AND c.type = 'CREDIT'
+		WHERE t.user_id = $1
+		  AND NOT t.opening_balance
+		  AND ($2::timestamptz IS NULL OR t.created_at >= $2)
+		  AND ($3::timestamptz IS NULL OR t.created_at < $3)
+		  AND (SELECT count(*) FROM entries x WHERE x.transaction_id = t.id) = 2
+		GROUP BY 1, 2
+		ORDER BY 3 DESC
+	`, userID, from, to)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (MoneyFlow, error) {
+		var f MoneyFlow
+		err := row.Scan(&f.FromAccountID, &f.ToAccountID, &f.Amount, &f.Transactions)
+		return f, err
+	})
 }

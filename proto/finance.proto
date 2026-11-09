@@ -46,6 +46,38 @@ service FinanceEngine {
 
   rpc GetUserTransactions(GetUserTransactionsRequest)
       returns (GetUserTransactionsResponse);
+
+  rpc GetMoneyFlows(GetMoneyFlowsRequest)
+      returns (GetMoneyFlowsResponse);
+
+  rpc GetPayables(GetPayablesRequest)
+      returns (GetPayablesResponse);
+
+  // Records a loan's repayment schedule: one pending installment per row, paid from source into the loan.
+  rpc CreateInstallments(CreateInstallmentsRequest)
+      returns (CreateInstallmentsResponse);
+
+  // Deletes all of the user's transactions (and card / bank statements built from them); accounts stay.
+  rpc ClearUserTransactions(ClearUserTransactionsRequest)
+      returns (ClearUserTransactionsResponse);
+
+  // ============================
+  // Bank statements (docs/adr/0001-bank-statement-import.md)
+  // ============================
+
+  // Records a parsed statement and its rows atomically, keeps one opening balance per account,
+  // and reconciles the account's statements. ALREADY_EXISTS for a file or period imported before.
+  rpc ListBankStatements(ListBankStatementsRequest)
+      returns (ListBankStatementsResponse);
+
+  rpc ImportBankStatement(ImportBankStatementRequest)
+      returns (ImportBankStatementResponse);
+
+  // Records a loan from the lender's disclosure statement: the loan account, the money lent, the fees
+  // deducted and its installments. Interest is charged each due date on what's still owed, so paying
+  // ahead lowers it. ALREADY_EXISTS when the loan or file was imported before.
+  rpc ImportLoan(ImportLoanRequest)
+      returns (ImportLoanResponse);
   // ============================
   // Credit Card
   // ============================
@@ -82,7 +114,9 @@ message HealthResponse {string status = 1;}
 // =========================
 
 message CreateTransactionRequest {string description = 1;
-  repeated Entry entries = 2;}
+  repeated Entry entries = 2;
+  // When the transaction happened (e.g. the date on a bank statement). Unset = now.
+  google.protobuf.Timestamp occurred_at = 3;}
 
 message CreateTransactionResponse {string transaction_id = 1;}
 
@@ -180,6 +214,151 @@ message GetUserTransactionsRequest {
 message GetUserTransactionsResponse {
   repeated TransactionResponse transactions = 1;
   int32 total = 2;
+}
+
+// Dates are yyyy-MM-dd Philippine calendar days; "" = no limit. `to` is inclusive.
+message GetMoneyFlowsRequest {
+  string user_id = 1;
+  string from = 2;
+  string to = 3;
+}
+
+// Money that moved from one account to another (credited → debited side), summed over transactions.
+message MoneyFlow {
+  string from_account_id = 1;
+  string to_account_id = 2;
+  string amount = 3;
+  int32 transactions = 4;
+}
+
+message GetMoneyFlowsResponse {
+  repeated MoneyFlow flows = 1; // largest first
+}
+
+message GetPayablesRequest {
+  string user_id = 1;
+}
+
+// One unpaid installment of a loan or card. due_date is yyyy-MM-dd.
+message Payable {
+  string name = 1;
+  string account_id = 2;
+  string account_name = 3;
+  string due_date = 4;
+  string amount = 5;
+  int32 installment_number = 6; // 0 when unknown
+  int32 installments = 7;       // 0 when unknown
+}
+
+message GetPayablesResponse {
+  repeated Payable payables = 1; // soonest first
+}
+
+message Installment {
+  string due_date = 1; // yyyy-MM-dd
+  string amount = 2;
+}
+
+message CreateInstallmentsRequest {
+  string user_id = 1;
+  string name = 2;              // e.g. "Mari Loan ₱33,000 (12 months, from 21 Sep 2026)"
+  string source_account_id = 3; // where payments come from
+  string account_id = 4;        // the loan or card being paid down
+  repeated Installment installments = 5; // in due-date order, numbered from 1
+}
+
+message CreateInstallmentsResponse {
+  string schedule_id = 1;
+}
+
+message ClearUserTransactionsRequest {
+  string user_id = 1;
+}
+
+message ClearUserTransactionsResponse {
+  int64 deleted_transactions = 1;
+}
+
+// Dates are yyyy-MM-dd calendar days (Philippine time). Amounts are decimal strings.
+message ListBankStatementsRequest {
+  string user_id = 1;
+}
+
+// One imported statement. Dates are yyyy-MM-dd calendar days.
+message BankStatementSummary {
+  string id = 1;
+  string account_id = 2;
+  string bank = 3;
+  string period_start = 4;
+  string period_end = 5;
+  google.protobuf.Timestamp imported_at = 6;
+}
+
+message ListBankStatementsResponse {
+  repeated BankStatementSummary statements = 1; // oldest period first
+}
+
+// Without account_id, the account is found by account_number, or created as account_name.
+message ImportBankStatementRequest {
+  string account_id = 1;      // "" = find the account by account_number
+  string user_id = 9;
+  string account_number = 10; // digits printed on the statement, "" when not found
+  string account_name = 11;   // name for the account if it has to be created
+  string account_type = 12;   // "ASSET" (bank / wallet, default) or "CREDIT_CARD": balances owed, charges are money out
+  // A credit card statement's bill, so its deadline is tracked ("" on a bank statement or a card history).
+  string statement_date = 13; // yyyy-MM-dd
+  string due_date = 14;       // yyyy-MM-dd, "" = work it out from the card's rule
+  string total_due = 15;      // amount owed on the bill
+  string bank = 2;
+  string period_start = 3;
+  string period_end = 4;
+  string opening_balance = 5; // "" when the statement doesn't print one
+  string closing_balance = 6; // "" when the statement doesn't print one
+  string file_sha256 = 7;     // hex SHA-256 of the uploaded file, to refuse re-imports
+  repeated StatementRow rows = 8;
+}
+
+message StatementRow {
+  string date = 1;
+  string description = 2;
+  string amount = 3;  // positive
+  bool money_out = 4; // true = left the account
+  // Income / expense account to record it against, e.g. "Salary Income". "" = Incoming / Outgoing
+  // Transfers, and the row may be joined with the other end of a transfer between the user's accounts.
+  string category = 5;
+}
+
+message ImportBankStatementResponse {
+  string statement_id = 1;
+  int32 imported = 2;
+  // Where the ledger and the account's statements disagree (missing month, misread row, manual entry).
+  repeated string warnings = 3;
+  // Rows left out because the account already had a transaction on that day for that amount and direction.
+  repeated string duplicates = 4;
+  string account_id = 5;   // the account the statement went into
+  string account_name = 6;
+  // Rows joined with the other end of the transfer already imported on another of the user's accounts.
+  repeated string transfers = 7;
+}
+
+// Dates are yyyy-MM-dd calendar days (Philippine time). Amounts are decimal strings.
+message ImportLoanRequest {
+  string user_id = 1;
+  string account_number = 2;
+  string account_name = 3;          // name for the loan account if it has to be created
+  string booked_on = 4;
+  string amount = 5;                // lent
+  string deducted = 6;              // fees and taxes taken from the proceeds, booked to Loan Fees
+  string daily_rate = 7;            // interest per day on what's owed, e.g. "0.00133"
+  string source_account_id = 8;     // where payments come from, "" = not known
+  string schedule_name = 9;
+  string file_sha256 = 10;
+  repeated Installment installments = 11; // in due-date order, numbered from 1
+}
+
+message ImportLoanResponse {
+  string account_id = 1;
+  string account_name = 2;
 }
 
 message RecentTransaction {

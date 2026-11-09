@@ -13,7 +13,9 @@ import (
 	"github.com/kaloy/finankal/engine-go/internal/credit"
 	"github.com/kaloy/finankal/engine-go/internal/db"
 	"github.com/kaloy/finankal/engine-go/internal/ledger"
+	"github.com/kaloy/finankal/engine-go/internal/loan"
 	"github.com/kaloy/finankal/engine-go/internal/schedule"
+	"github.com/kaloy/finankal/engine-go/internal/statement"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -89,6 +91,8 @@ func main() {
 		ledgerService,
 		creditService,
 		scheduleService,
+		statement.NewService(ledgerRepo, redisClient),
+		loan.NewService(dbConn, redisClient),
 	)
 
 	lis, err := net.Listen("tcp", ":50051")

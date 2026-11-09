@@ -1,20 +1,13 @@
 <script lang="ts">
+    import { formatDate } from "$lib/utils/date";
     import type { RecentTransaction } from "$lib/server/api/transactions";
     import {currency} from "$lib/utils/currency.ts";
+    import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Receipt, Plus } from "lucide-svelte";
     let {
         transactions = []
     }: {
         transactions: RecentTransaction[];
     } = $props();
-
-    function formatDate(date: string) {
-        const value = new Date(date);
-
-        return value.toLocaleDateString("en-PH", {
-            month: "short",
-            day: "numeric"
-        });
-    }
 
     function amountClass(direction: RecentTransaction["direction"]) {
         if (direction === "IN") {
@@ -72,8 +65,8 @@
 
         <div class="px-5 py-12 text-center">
 
-            <div class="text-4xl">
-                🧾
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-slate-800 text-slate-400">
+                <Receipt class="h-6 w-6" />
             </div>
 
             <p class="mt-3 font-medium text-white">
@@ -86,14 +79,23 @@
 
             <a
                     href="/transactions/new"
-                    class="mt-5 inline-flex rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-500"
+                    class="mt-5 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-500"
             >
-                + New Transaction
+                <Plus class="h-4 w-4" />
+                New Transaction
             </a>
 
         </div>
 
     {:else}
+
+        <div class="hidden grid-cols-[2.5rem_1fr_160px_100px_140px] gap-4 border-b border-slate-800 px-5 py-2 text-xs font-medium uppercase tracking-wide text-slate-500 md:grid">
+            <span></span>
+            <span>Description</span>
+            <span>Account</span>
+            <span>Date</span>
+            <span class="text-right">Amount</span>
+        </div>
 
         <div class="divide-y divide-slate-800">
 
@@ -101,58 +103,48 @@
 
                 <a
                         href={`/transactions/${transaction.id}`}
-                        class="flex items-center justify-between px-5 py-4 transition hover:bg-slate-800/50"
+                        class="grid grid-cols-[2.5rem_1fr_auto] items-center gap-3 px-5 py-4 transition hover:bg-slate-800/50 md:grid-cols-[2.5rem_1fr_160px_100px_140px] md:gap-4"
                 >
 
-                    <div class="flex min-w-0 items-center gap-3">
-
-                        <div
-                                class={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-                                transaction.direction === "IN"
-                                    ? "bg-emerald-500/10"
-                                    : transaction.direction === "OUT"
-                                        ? "bg-red-500/10"
-                                        : "bg-slate-800"
-                            }`}
-                        >
-                            {#if transaction.direction === "IN"}
-                                ↓
-                            {:else if transaction.direction === "OUT"}
-                                ↑
-                            {:else}
-                                ↔
-                            {/if}
-                        </div>
-
-                        <div class="min-w-0">
-
-                            <p class="truncate font-medium text-white">
-                                {transaction.description}
-                            </p>
-
-                            <div class="mt-1 flex items-center gap-2 text-xs text-slate-500">
-
-                                <span>
-                                    {transaction.accountName}
-                                </span>
-
-                                <span>•</span>
-
-                                <span>
-                                    {formatDate(transaction.createdAt)}
-                                </span>
-
-                            </div>
-
-                        </div>
-
+                    <div
+                            class={`flex h-10 w-10 items-center justify-center rounded-full ${
+                            transaction.direction === "IN"
+                                ? "bg-emerald-500/10 text-emerald-400"
+                                : transaction.direction === "OUT"
+                                    ? "bg-red-500/10 text-red-400"
+                                    : "bg-slate-800 text-slate-300"
+                        }`}
+                    >
+                        {#if transaction.direction === "IN"}
+                            <ArrowDownLeft class="h-5 w-5" />
+                        {:else if transaction.direction === "OUT"}
+                            <ArrowUpRight class="h-5 w-5" />
+                        {:else}
+                            <ArrowLeftRight class="h-5 w-5" />
+                        {/if}
                     </div>
 
-                    <div
-                            class={`ml-4 shrink-0 text-right font-semibold ${amountClass(transaction.direction)}`}
-                    >
-                        {amountPrefix(transaction.direction)}
-                        {currency.format(transaction.amount)}
+                    <div class="min-w-0">
+                        <p class="truncate font-medium text-white">
+                            {transaction.description}
+                        </p>
+
+                        <!-- account/date inline on mobile; own columns on md+ -->
+                        <p class="mt-1 truncate text-xs text-slate-500 md:hidden">
+                            {transaction.accountName} • {formatDate(transaction.createdAt)}
+                        </p>
+                    </div>
+
+                    <span class="hidden truncate text-sm text-slate-400 md:block">
+                        {transaction.accountName}
+                    </span>
+
+                    <span class="hidden text-sm text-slate-500 md:block">
+                        {formatDate(transaction.createdAt)}
+                    </span>
+
+                    <div class={`text-right font-semibold tabular-nums ${amountClass(transaction.direction)}`}>
+                        {amountPrefix(transaction.direction)}{currency.format(transaction.amount)}
                     </div>
 
                 </a>

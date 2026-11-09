@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 
 @Component
@@ -25,6 +26,12 @@ public class TransactionMapper {
         FinanceProtos.CreateTransactionRequest.Builder builder =
                 FinanceProtos.CreateTransactionRequest.newBuilder()
                         .setDescription(dto.getDescription());
+
+        if (dto.getDate() != null) {
+            // Dates from statements and the form are Philippine calendar days.
+            Instant start = dto.getDate().atStartOfDay(ZoneId.of("Asia/Manila")).toInstant();
+            builder.setOccurredAt(Timestamp.newBuilder().setSeconds(start.getEpochSecond()).build());
+        }
 
         for (CreateTransactionEntryDto entry : dto.getEntries()) {
 

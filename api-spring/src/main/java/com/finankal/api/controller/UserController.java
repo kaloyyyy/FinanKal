@@ -1,6 +1,9 @@
 package com.finankal.api.controller;
 
 import com.finankal.api.dto.AccountDto;
+import com.finankal.api.dto.CreateInstallmentsRequestDto;
+import com.finankal.api.dto.MoneyFlowDto;
+import com.finankal.api.dto.PayableDto;
 import com.finankal.api.dto.RecentTransactionDto;
 import com.finankal.api.dto.TransactionDto;
 import com.finankal.api.dto.TransactionPageDto;
@@ -12,7 +15,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -95,5 +100,47 @@ public class UserController {
                         offset
                 )
         );
+    }
+
+    /**
+     * Delete all of the user's transactions. Accounts are kept and their balances return to zero.
+     *
+     * DELETE /api/users/{userId}/transactions
+     */
+    @DeleteMapping("/{userId}/transactions")
+    public ResponseEntity<Map<String, Long>> clearUserTransactions(@PathVariable UUID userId) {
+        long deleted = userService.clearUserTransactions(userId);
+
+        logger.warn("Cleared {} transactions for user: {}", deleted, userId);
+
+        return ResponseEntity.ok(Map.of("deletedTransactions", deleted));
+    }
+
+    /** GET /api/users/{userId}/payables: unpaid loan and card installments, soonest first. */
+    @GetMapping("/{userId}/payables")
+    public ResponseEntity<List<PayableDto>> getPayables(@PathVariable UUID userId) {
+        return ResponseEntity.ok(userService.getPayables(userId));
+    }
+
+    /** POST /api/users/{userId}/payables: adds a loan's installments; they then show up in GET payables. */
+    @PostMapping("/{userId}/payables")
+    public ResponseEntity<Map<String, String>> createInstallments(
+            @PathVariable UUID userId,
+            @RequestBody CreateInstallmentsRequestDto request
+    ) {
+        String scheduleId = userService.createInstallments(userId, request);
+        logger.info("Added {} installments for user {} (schedule {})",
+                request.installments() == null ? 0 : request.installments().size(), userId, scheduleId);
+        return ResponseEntity.status(201).body(Map.of("scheduleId", scheduleId));
+    }
+
+    /** GET /api/users/{userId}/money-flows?from=yyyy-MM-dd&to=yyyy-MM-dd (both optional, inclusive). */
+    @GetMapping("/{userId}/money-flows")
+    public ResponseEntity<List<MoneyFlowDto>> getMoneyFlows(
+            @PathVariable UUID userId,
+            @RequestParam(required = false) LocalDate from,
+            @RequestParam(required = false) LocalDate to
+    ) {
+        return ResponseEntity.ok(userService.getMoneyFlows(userId, from, to));
     }
 }

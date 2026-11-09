@@ -63,7 +63,7 @@ func (s *Service) PayCreditCardStatement(
 		return uuid.Nil, ErrPaymentTooLarge
 	}
 
-	transactionID, err := s.ledgerRepo.CreateTransactionTx(ctx, tx, userID, request.Description)
+	transactionID, err := s.ledgerRepo.CreateTransactionTx(ctx, tx, userID, request.Description, nil)
 	if err != nil {
 		return uuid.Nil, err
 	}

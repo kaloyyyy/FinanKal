@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "targets": {
+    "/": {
+      "targetKind": "existing-ui",
+      "projectId": "12515808-e6ad-4211-988e-1e42d3b7a86b",
+      "baselineDraftId": "0f75b92c-e186-47f3-af25-9947f788c58c",
+      "activeDraftId": "980a058b-96cc-4ec7-9bce-20cd18dd4ad9",
+      "designSystemPath": ".superdesign/design-system.md",
+      "referenceIds": [],
+      "contextFiles": [
+        ".superdesign/design-system.md",
+        "src/routes/layout.css",
+        "src/routes/+layout.svelte",
+        "src/lib/components/layout/Navbar.svelte",
+        "src/routes/+page.svelte",
+        "src/lib/components/dashboard/SummaryCards.svelte",
+        "src/lib/components/dashboard/SummaryCard.svelte",
+        "src/lib/components/dashboard/RecentTransactions.svelte",
+        "src/lib/utils/currency.ts"
+      ],
+      "fingerprints": {
+        ".superdesign/design-system.md": "c9a8098db4240c9d05632076574381b6671b397cebcce4a36a65501404cf1eb2",
+        "src/routes/layout.css": "c9a31daa896fdafe8bda6758099fae30b00bb516cb5ea852750c38c147c38d08",
+        "src/routes/+layout.svelte": "6be834c88eb1b0be759e310e72bab10ee6906c84aa29e73c727c2c3d9b0cd857",
+        "src/lib/components/layout/Navbar.svelte": "e3dbe682a9bd7a6d925d2d17e9bfededc0f0e1bfdc675e6b3219e8265740f2c0",
+        "src/routes/+page.svelte": "fdcdbb0507636512a33b82780f50273a0fced611d6b137f64abd9c7b1cabfae1",
+        "src/lib/components/dashboard/SummaryCards.svelte": "c59c3e65da8df6dd45de67207530fa01da4b3f1aa116f33b7474a8cf7705d5f4",
+        "src/lib/components/dashboard/SummaryCard.svelte": "76e95c5da2c98aead44a3b20bb458577c7791facc40a15cc53dc5fd813e56bf6",
+        "src/lib/components/dashboard/RecentTransactions.svelte": "5696aace5517df334b768cad48e1a9b5e9d4ebc1d001c3dcc5b8350b32095ef1",
+        "src/lib/utils/currency.ts": "81733b915fef563b0e060f0ddb7ffde10f69c1b465f53ac5b8256f3b35d47894"
+      },
+      "components": [
+        {
+          "name": "NavBar",
+          "id": "c819cecb-be64-418c-ae26-7d0eccbecb49",
+          "sourcePath": "src/lib/components/layout/Navbar.svelte"
+        }
+      ],
+      "drafts": {
+        "0f75b92c-e186-47f3-af25-9947f788c58c": {
+          "title": "Current Dashboard (reproduction)",
+          "visualDirection": "baseline",
+          "currentVersion": 1
+        },
+        "804a9403-705b-40e3-925d-a341d397fbbb": {
+          "title": "FinanKal \u2014 Dashboard",
+          "visualDirection": "polished refinement: header, lucide icons, KPI deltas, account chips",
+          "parentDraftId": "0f75b92c-e186-47f3-af25-9947f788c58c",
+          "currentVersion": 1
+        },
+        "980a058b-96cc-4ec7-9bce-20cd18dd4ad9": {
+          "title": "FinanKal Dashboard \u2014 Analytics",
+          "visualDirection": "analytical: sparklines, net worth chart, accounts side panel",
+          "parentDraftId": "0f75b92c-e186-47f3-af25-9947f788c58c",
+          "currentVersion": 1
+        }
+      },
+      "updatedAt": "2026-11-08T23:55:20.003133+00:00"
+    }
+  }
+}

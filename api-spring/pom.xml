@@ -68,6 +68,13 @@
             <version>${grpc.version}</version>
         </dependency>
 
+        <!-- PDF text extraction for bank statement import -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>3.0.3</version>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>

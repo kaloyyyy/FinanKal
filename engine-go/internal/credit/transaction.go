@@ -47,7 +47,7 @@ func (s *Service) RecordCreditCardTransaction(
 		return uuid.Nil, err
 	}
 
-	transactionID, err := s.ledgerRepo.CreateTransactionTx(ctx, tx, userID, request.Description)
+	transactionID, err := s.ledgerRepo.CreateTransactionTx(ctx, tx, userID, request.Description, nil)
 	if err != nil {
 		return uuid.Nil, err
 	}

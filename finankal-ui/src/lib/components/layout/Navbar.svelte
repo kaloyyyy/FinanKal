@@ -1,5 +1,6 @@
 <script lang="ts">
     import { page } from "$app/state";
+    import { LayoutDashboard, Wallet, ArrowLeftRight, CreditCard, Plus, FileUp, Menu, X, Waypoints } from "lucide-svelte";
 
     let mobileOpen = $state(false);
 
@@ -7,22 +8,27 @@
         {
             label: "Dashboard",
             href: "/",
-            icon: "▦"
+            icon: LayoutDashboard
         },
         {
             label: "Accounts",
             href: "/accounts",
-            icon: "◉"
+            icon: Wallet
         },
         {
             label: "Transactions",
             href: "/transactions",
-            icon: "↔"
+            icon: ArrowLeftRight
+        },
+        {
+            label: "Money flow",
+            href: "/flows",
+            icon: Waypoints
         },
         {
             label: "Credit Cards",
             href: "/credit-cards",
-            icon: "▣"
+            icon: CreditCard
         }
     ];
 
@@ -71,9 +77,7 @@
                             : "text-slate-400 hover:bg-slate-900 hover:text-white"
                     }`}
                 >
-                    <span class="text-base">
-                        {item.icon}
-                    </span>
+                    <item.icon class="h-4 w-4" />
 
                     {item.label}
                 </a>
@@ -83,11 +87,25 @@
         <!-- Right Side -->
         <div class="hidden items-center gap-3 md:flex">
 
+            <!-- Label collapses to the icon at md so the nav row still fits -->
+            <a
+                    href="/transactions/import"
+                    aria-label="Import statement"
+                    class={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition lg:px-4 ${
+                    isActive("/transactions/import")
+                        ? "border-slate-600 bg-slate-800 text-white"
+                        : "border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-600 hover:bg-slate-800 hover:text-white"
+                }`}
+            >
+                <FileUp class="h-4 w-4" />
+                <span class="hidden lg:inline">Import statement</span>
+            </a>
+
             <a
                     href="/transactions/new"
                     class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500"
             >
-                <span class="text-lg leading-none">+</span>
+                <Plus class="h-4 w-4" />
                 New Transaction
             </a>
 
@@ -109,9 +127,9 @@
                 aria-label="Toggle navigation"
         >
             {#if mobileOpen}
-                ✕
+                <X class="h-5 w-5" />
             {:else}
-                ☰
+                <Menu class="h-5 w-5" />
             {/if}
         </button>
 
@@ -133,9 +151,7 @@
                                 : "text-slate-400 hover:bg-slate-900 hover:text-white"
                         }`}
                     >
-                        <span class="w-5 text-center">
-                            {item.icon}
-                        </span>
+                        <item.icon class="h-5 w-5" />
 
                         {item.label}
                     </a>
@@ -143,14 +159,23 @@
 
             </div>
 
-            <div class="mt-4 border-t border-slate-800 pt-4">
+            <div class="mt-4 space-y-2 border-t border-slate-800 pt-4">
+
+                <a
+                        href="/transactions/import"
+                        onclick={() => (mobileOpen = false)}
+                        class="flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm font-semibold text-slate-200 transition hover:border-slate-600 hover:text-white"
+                >
+                    <FileUp class="h-4 w-4" />
+                    Import statement
+                </a>
 
                 <a
                         href="/transactions/new"
                         onclick={() => (mobileOpen = false)}
                         class="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500"
                 >
-                    <span class="text-lg leading-none">+</span>
+                    <Plus class="h-4 w-4" />
                     New Transaction
                 </a>
 

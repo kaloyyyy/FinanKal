@@ -11,5 +11,8 @@ export interface CreateTransactionRequestDto {
 
     description: string;
 
+    /** yyyy-MM-dd; omitted = now */
+    date?: string;
+
     entries: CreateLedgerEntryDto[];
 }

@@ -17,4 +17,9 @@ public class LedgerEntryDto {
     private String type;
 
     private String transactionId;
+
+    private String description;
+
+    /** RFC 3339, as sent by the engine. */
+    private String createdAt;
 }

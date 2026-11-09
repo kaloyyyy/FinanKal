@@ -466,6 +466,11 @@ components:
           type: string
           description: Transaction description
           example: "Payment for services"
+        date:
+          type: string
+          format: date
+          description: Day the transaction happened (Philippine time). Defaults to now.
+          example: "2026-10-01"
         entries:
           type: array
           minItems: 2

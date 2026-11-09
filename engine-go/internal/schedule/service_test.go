@@ -2,9 +2,14 @@ package schedule
 
 import (
 	"context"
+	"errors"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 func day(year int, month time.Month, d int) time.Time {
@@ -94,5 +99,35 @@ func TestGenerateOccurrencesSkipsInactiveSchedules(t *testing.T) {
 
 	if err != nil || occurrences != nil {
 		t.Errorf("got %v, %v", occurrences, err)
+	}
+}
+
+func TestValidateInstallments(t *testing.T) {
+	src, loan := uuid.New(), uuid.New()
+	pay := func(d time.Time, amount int64) Installment { return Installment{DueDate: d, Amount: decimal.NewFromInt(amount)} }
+	ok := []Installment{pay(day(2026, 12, 4), 900), pay(day(2027, 1, 4), 900)}
+
+	tests := []struct {
+		name         string
+		loanName     string
+		source       uuid.UUID
+		installments []Installment
+		wantErr      bool
+	}{
+		{"valid schedule", "Mari Loan", src, ok, false},
+		{"blank name", "  ", src, ok, true},
+		{"paying the loan from itself", "Mari Loan", loan, ok, true},
+		{"no installments", "Mari Loan", src, nil, true},
+		{"zero amount", "Mari Loan", src, []Installment{pay(day(2026, 12, 4), 0)}, true},
+		{"same due date twice", "Mari Loan", src, []Installment{ok[0], ok[0]}, true},
+		{"dates out of order", "Mari Loan", src, []Installment{ok[1], ok[0]}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateInstallments(strings.TrimSpace(tt.loanName), tt.source, loan, tt.installments)
+			if (err != nil) != tt.wantErr || (err != nil && !errors.Is(err, ErrInvalidSchedule)) {
+				t.Fatalf("validateInstallments() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
 	}
 }

@@ -4,10 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/kaloy/finankal/engine-go/internal/ledger"
 	"github.com/redis/go-redis/v9"
+	"github.com/shopspring/decimal"
 )
 
 type Service struct {
@@ -18,6 +21,58 @@ type Service struct {
 
 func NewService(scheduleRepo *ScheduleRepository, ledgerRepo *ledger.LedgerRepository, redis *redis.Client) *Service {
 	return &Service{scheduleRepo: scheduleRepo, ledgerRepo: ledgerRepo, redis: redis}
+}
+
+// GetPayables returns the user's unpaid loan and card installments, soonest first.
+func (s *Service) GetPayables(ctx context.Context, userID uuid.UUID) ([]Payable, error) {
+	return s.scheduleRepo.GetPayables(ctx, userID)
+}
+
+// ErrInvalidSchedule is returned for an installment schedule that can't be recorded; the message says why.
+var ErrInvalidSchedule = errors.New("invalid schedule")
+
+// Installment is one payment of a loan: how much, and when it's due (a calendar day).
+type Installment struct {
+	DueDate time.Time
+	Amount  decimal.Decimal
+}
+
+// CreateInstallments records a loan's repayment schedule, paid from sourceID into accountID, and returns its id.
+// The installments are numbered from 1 in the order given.
+func (s *Service) CreateInstallments(
+	ctx context.Context,
+	userID uuid.UUID,
+	name string,
+	sourceID, accountID uuid.UUID,
+	installments []Installment,
+) (uuid.UUID, error) {
+	name = strings.TrimSpace(name)
+	if err := validateInstallments(name, sourceID, accountID, installments); err != nil {
+		return uuid.Nil, err
+	}
+	return s.scheduleRepo.CreateInstallments(ctx, userID, name, sourceID, accountID, installments)
+}
+
+func validateInstallments(name string, sourceID, accountID uuid.UUID, installments []Installment) error {
+	switch {
+	case name == "":
+		return fmt.Errorf("%w: name is required", ErrInvalidSchedule)
+	case sourceID == accountID:
+		return fmt.Errorf("%w: pay from a different account than the loan", ErrInvalidSchedule)
+	case len(installments) == 0:
+		return fmt.Errorf("%w: add at least one installment", ErrInvalidSchedule)
+	case len(installments) > 360:
+		return fmt.Errorf("%w: a schedule can have at most 360 installments", ErrInvalidSchedule)
+	}
+	for i, in := range installments {
+		if !in.Amount.IsPositive() {
+			return fmt.Errorf("%w: installment %d must be more than zero", ErrInvalidSchedule, i+1)
+		}
+		if i > 0 && !in.DueDate.After(installments[i-1].DueDate) {
+			return fmt.Errorf("%w: installment %d must be due after installment %d", ErrInvalidSchedule, i+1, i)
+		}
+	}
+	return nil
 }
 
 func (s *Service) GenerateOccurrences(

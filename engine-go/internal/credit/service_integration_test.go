@@ -386,8 +386,77 @@ func TestLedgerRejectsCrossUserTransaction(t *testing.T) {
 	_, err := f.ledger.CreateTransaction(f.ctx, "cross user", []ledger.Entry{
 		{AccountID: f.bankID, Amount: amount("10"), Type: ledger.DEBIT},
 		{AccountID: f.insertAccount(otherUser, "Theirs", "ASSET"), Amount: amount("10"), Type: ledger.CREDIT},
-	})
+	}, nil)
 	wantErr(t, err, ledger.ErrInvalidTransaction)
+}
+
+func TestClearTransactionsKeepsAccounts(t *testing.T) {
+	f := setup(t)
+	expense := f.insertAccount(f.userID, "Spending", "EXPENSE")
+	if err := f.purchase(f.cardID, "100", time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.ledger.CreateTransaction(f.ctx, "groceries", []ledger.Entry{
+		{AccountID: expense, Amount: amount("50"), Type: ledger.DEBIT},
+		{AccountID: f.bankID, Amount: amount("50"), Type: ledger.CREDIT},
+	}, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	count := func(query string) int {
+		var n int
+		if err := f.pool.QueryRow(f.ctx, query, f.userID).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		return n
+	}
+	accountsBefore := count(`SELECT count(*) FROM accounts WHERE user_id = $1`)
+
+	deleted, err := f.ledger.ClearTransactions(f.ctx, f.userID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if deleted != 2 {
+		t.Fatalf("deleted = %d, want 2", deleted)
+	}
+
+	if n := count(`SELECT count(*) FROM transactions WHERE user_id = $1`); n != 0 {
+		t.Fatalf("%d transactions left", n)
+	}
+	if n := count(`SELECT count(*) FROM entries e JOIN accounts a ON a.id = e.account_id WHERE a.user_id = $1`); n != 0 {
+		t.Fatalf("%d entries left", n)
+	}
+	if n := count(`SELECT count(*) FROM credit_card_statements s JOIN accounts a ON a.id = s.credit_card_id WHERE a.user_id = $1`); n != 0 {
+		t.Fatalf("%d statements left", n)
+	}
+	if n := count(`SELECT count(*) FROM accounts WHERE user_id = $1`); n != accountsBefore {
+		t.Fatalf("accounts = %d, want %d", n, accountsBefore)
+	}
+	if n := count(`SELECT count(*) FROM credit_cards c JOIN accounts a ON a.id = c.id WHERE a.user_id = $1`); n != 1 {
+		t.Fatalf("credit cards = %d, want 1", n)
+	}
+}
+
+func TestLedgerKeepsTheGivenTransactionDate(t *testing.T) {
+	f := setup(t)
+	expense := f.insertAccount(f.userID, "Spending", "EXPENSE")
+	when := time.Date(2026, 10, 1, 0, 0, 0, 0, time.FixedZone("PHT", 8*60*60))
+
+	txID, err := f.ledger.CreateTransaction(f.ctx, "statement row", []ledger.Entry{
+		{AccountID: expense, Amount: amount("250"), Type: ledger.DEBIT},
+		{AccountID: f.bankID, Amount: amount("250"), Type: ledger.CREDIT},
+	}, &when)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var stored time.Time
+	if err := f.pool.QueryRow(f.ctx, `SELECT created_at FROM transactions WHERE id = $1`, txID).Scan(&stored); err != nil {
+		t.Fatal(err)
+	}
+	if !stored.Equal(when) {
+		t.Fatalf("created_at = %v, want %v", stored, when)
+	}
 }
 
 func TestMissingStatementIsNoRows(t *testing.T) {

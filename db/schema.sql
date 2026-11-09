@@ -149,3 +149,87 @@ create index idx_credit_card_entries_statement
 create index idx_credit_card_entries_entry
     on credit_card_entries (entry_id);
 
+-- ADR-0001: bank statements as stored records (same as db/migrations/001_bank_statements.sql).
+create table bank_statements
+(
+    id              uuid                     default gen_random_uuid() not null
+        primary key,
+    account_id      uuid                                               not null
+        references accounts
+            on delete cascade,
+    bank            varchar(20)                                        not null,
+    period_start    date                                               not null,
+    period_end      date                                               not null,
+    opening_balance numeric(19, 4),
+    closing_balance numeric(19, 4),
+    file_sha256     char(64)                                           not null,
+    imported_at     timestamp with time zone default now()             not null,
+    constraint bank_statements_period_check
+        check (period_end >= period_start),
+    constraint bank_statements_file_unique
+        unique (account_id, file_sha256),
+    constraint bank_statements_period_unique
+        unique (account_id, period_start, period_end)
+);
+
+alter table bank_statements
+    owner to postgres;
+
+create index idx_bank_statements_account
+    on bank_statements (account_id, period_start);
+
+alter table transactions
+    add column statement_id uuid
+        references bank_statements
+            on delete cascade,
+    add column opening_balance boolean default false not null;
+
+create index idx_transactions_statement_id
+    on transactions (statement_id);
+
+
+-- 002_account_numbers.sql
+alter table accounts
+    add column account_number varchar(34);
+
+create unique index accounts_user_account_number_unique
+    on accounts (user_id, account_number)
+    where account_number is not null;
+
+-- 003_card_bills.sql
+alter table credit_cards
+    add column due_rule varchar(20) default 'DAYS' not null,
+    add constraint credit_cards_due_rule_check check (due_rule in ('DAYS', 'DAY_OF_MONTH', 'BUSINESS_DAYS'));
+
+alter table credit_card_statements
+    alter column due_date drop not null;
+
+create unique index credit_card_statements_card_date_unique
+    on credit_card_statements (credit_card_id, statement_date);
+
+-- 004_statement_shift.sql
+alter table credit_cards
+    add column statement_shift varchar(25) default 'NEXT_BUSINESS_DAY' not null,
+    add constraint credit_cards_statement_shift_check
+        check (statement_shift in ('NONE', 'NEXT_BUSINESS_DAY', 'NEAREST_BUSINESS_DAY'));
+
+-- 005_loans.sql
+create table loans
+(
+    account_id   uuid primary key references accounts (id) on delete cascade,
+    booked_on    date           not null,
+    daily_rate   numeric(10, 8) not null check (daily_rate >= 0),
+    principal_on date           not null,
+    principal    numeric(19, 4) not null,
+    file_sha256  char(64)       not null unique,
+    paid_through date
+);
+
+create table loan_charges
+(
+    transaction_id uuid primary key references transactions (id) on delete cascade,
+    account_id     uuid not null references accounts (id) on delete cascade
+);
+
+create index loan_charges_account_id
+    on loan_charges (account_id);

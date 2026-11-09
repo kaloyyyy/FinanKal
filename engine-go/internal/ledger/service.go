@@ -24,6 +24,7 @@ func (s *Service) CreateTransaction(
 	ctx context.Context,
 	description string,
 	entries []Entry,
+	occurredAt *time.Time, // nil = now
 ) (uuid.UUID, error) {
 
 	if err := validateEntries(entries); err != nil {
@@ -55,7 +56,7 @@ func (s *Service) CreateTransaction(
 	// If Commit succeeds, Rollback does nothing.
 	defer tx.Rollback(ctx)
 
-	transactionID, err := s.repo.CreateTransactionTx(ctx, tx, userID, description)
+	transactionID, err := s.repo.CreateTransactionTx(ctx, tx, userID, description, occurredAt)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -78,6 +79,40 @@ func (s *Service) CreateTransaction(
 	cache.InvalidateTransaction(ctx, s.redis, userID, accountIDs...)
 
 	return transactionID, nil
+}
+
+// ClearTransactions deletes all of the user's transactions and keeps their accounts.
+func (s *Service) ClearTransactions(ctx context.Context, userID uuid.UUID) (int64, error) {
+	accounts, err := s.repo.GetUserAccounts(ctx, userID)
+	if err != nil {
+		return 0, err
+	}
+
+	tx, err := s.repo.BeginTx(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback(ctx)
+
+	deleted, err := s.repo.DeleteUserTransactionsTx(ctx, tx, userID)
+	if err != nil {
+		return 0, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return 0, err
+	}
+
+	// Every balance, summary and ledger of the user's accounts is now stale.
+	accountIDs := make([]uuid.UUID, 0, len(accounts))
+	for _, account := range accounts {
+		if account.Type == string(CREDIT_CARD) {
+			cache.InvalidateCreditCard(ctx, s.redis, account.ID, userID)
+		}
+		accountIDs = append(accountIDs, account.ID)
+	}
+	cache.InvalidateTransaction(ctx, s.redis, userID, accountIDs...)
+
+	return deleted, nil
 }
 
 func (s *Service) GetUserAccounts(ctx context.Context, userID uuid.UUID) ([]Account, error) {
@@ -140,6 +175,10 @@ func (s *Service) GetUserNetWorth(ctx context.Context, userID uuid.UUID) (decima
 
 func (s *Service) GetUserRecentTransactions(ctx context.Context, userID uuid.UUID, limit int) ([]RecentTransaction, error) {
 	return s.repo.GetUserRecentTransactions(ctx, userID, limit)
+}
+
+func (s *Service) GetMoneyFlows(ctx context.Context, userID uuid.UUID, from, to *time.Time) ([]MoneyFlow, error) {
+	return s.repo.GetMoneyFlows(ctx, userID, from, to)
 }
 
 func (s *Service) GetTransaction(ctx context.Context, transactionID uuid.UUID) (*TransactionDetail, error) {

@@ -16,7 +16,9 @@ const cardColumns = `
 	cc.billing_day,
 	cc.payment_due_days,
 	cc.created_at,
-	cc.updated_at
+	cc.updated_at,
+	cc.due_rule,
+	cc.statement_shift
 `
 
 type CardRepository struct {
@@ -38,6 +40,8 @@ func scanCard(row pgx.Row) (CreditCard, error) {
 		&card.PaymentDueDays,
 		&card.CreatedAt,
 		&card.UpdatedAt,
+		&card.DueRule,
+		&card.StatementShift,
 	)
 
 	return card, err

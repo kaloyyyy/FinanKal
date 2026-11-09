@@ -14,12 +14,32 @@ const (
 	StatementPaid StatementStatus = "PAID"
 )
 
+// How a card's due date follows its statement date (see CalculateDueDate).
+const (
+	DueDays         = "DAYS"
+	DueDayOfMonth   = "DAY_OF_MONTH"
+	DueBusinessDays = "BUSINESS_DAYS"
+)
+
+// Where a statement date goes when the billing day is a weekend (see StatementDateIn). Unset = NONE.
+const (
+	ShiftNone               = "NONE"
+	ShiftNextBusinessDay    = "NEXT_BUSINESS_DAY"
+	ShiftNearestBusinessDay = "NEAREST_BUSINESS_DAY"
+)
+
+// StatementEstimated marks a bill the engine worked out before its statement arrived; importing the
+// statement replaces it.
+const StatementEstimated StatementStatus = "ESTIMATED"
+
 type CreditCard struct {
 	CardID            uuid.UUID
 	ClearingAccountId uuid.UUID
 	CreditLimit       decimal.Decimal
 	BillingDay        int
 	PaymentDueDays    int
+	DueRule           string // DueDays, DueDayOfMonth or DueBusinessDays
+	StatementShift    string // ShiftNone, ShiftNextBusinessDay or ShiftNearestBusinessDay
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 }

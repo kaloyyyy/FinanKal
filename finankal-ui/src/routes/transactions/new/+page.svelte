@@ -83,6 +83,7 @@
                 name="transaction"
                 value={JSON.stringify({
             description,
+            date: transactionDate,
             entries
         })}
         />

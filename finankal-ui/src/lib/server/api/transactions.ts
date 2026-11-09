@@ -5,6 +5,8 @@ const API_URL = "http://localhost:8080";
  */
 export async function createTransaction(payload: {
     description: string;
+    /** yyyy-MM-dd; omitted = now */
+    date?: string;
     entries: {
         accountId: string;
         amount: number;
@@ -123,6 +125,32 @@ export async function getUserTransactions(
 
         throw new Error(
             `Failed to fetch transactions: ${response.status}: ${errorText}`
+        );
+    }
+
+    return response.json();
+}
+
+
+/**
+ * Delete all of a user's transactions. Accounts are kept.
+ *
+ * DELETE /api/users/{userId}/transactions
+ */
+export async function clearUserTransactions(
+    userId: string
+): Promise<{ deletedTransactions: number }> {
+
+    const response = await fetch(
+        `${API_URL}/api/users/${userId}/transactions`,
+        { method: "DELETE" }
+    );
+
+    if (!response.ok) {
+        const errorText = await response.text();
+
+        throw new Error(
+            `Failed to clear transactions: ${response.status}: ${errorText}`
         );
     }
 

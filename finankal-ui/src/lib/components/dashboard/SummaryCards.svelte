@@ -1,6 +1,7 @@
 <script lang="ts">
 
     import SummaryCard from "./SummaryCard.svelte";
+    import { Wallet, CreditCard, TrendingUp, TrendingDown } from "lucide-svelte";
 
 
     type Props = {
@@ -40,13 +41,13 @@
 
 
 <div
-        class="grid w-full grid-cols-3 gap-4"
+        class="grid w-full grid-cols-1 gap-4 md:grid-cols-3"
 >
     <SummaryCard
             title="Liquid Assets"
             value={currency(totalDebit)}
             description="Available cash across your accounts"
-            icon="💵"
+            icon={Wallet}
             variant="positive"
     />
 
@@ -54,7 +55,7 @@
             title="Total Liabilities"
             value={currency(totalCredit)}
             description="Outstanding loans and credit"
-            icon="💳"
+            icon={CreditCard}
             variant="negative"
     />
 
@@ -62,7 +63,7 @@
             title="Net Worth"
             value={currency(netWorth)}
             description="Assets minus liabilities"
-            icon={netWorth >= 0 ? "📈" : "📉"}
-            variant={netWorth >= 0 ? "positive" : "negative"}
+            icon={Number(netWorth) >= 0 ? TrendingUp : TrendingDown}
+            variant={Number(netWorth) >= 0 ? "positive" : "negative"}
     />
 </div>

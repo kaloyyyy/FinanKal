@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { formatDate as formatDay } from "$lib/utils/date";
     let { data } = $props();
 
     const currency = new Intl.NumberFormat("en-PH", {
@@ -9,13 +10,12 @@
     function formatDate(date: string | null | undefined) {
         if (!date) return "—";
 
-        return new Date(date).toLocaleString("en-PH", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
+        const time = new Date(date).toLocaleTimeString("en-PH", {
             hour: "numeric",
-            minute: "2-digit"
+            minute: "2-digit",
+            timeZone: "Asia/Manila"
         });
+        return `${formatDay(date)}, ${time}`;
     }
 
     function typeClass(type: string) {
