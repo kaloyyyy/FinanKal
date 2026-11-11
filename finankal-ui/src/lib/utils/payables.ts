@@ -23,6 +23,60 @@ export const applyPaikot = (payables: Payable[]): Payable[] =>
             : p
     );
 
+/** A card's spending limit now and as its dues get paid. Amounts are what's left to spend. */
+export interface CardLimit {
+    id: string;
+    name: string;
+    limit: number;
+    now: number;
+    afterThisMonth: number; // once this month's dues on the card are paid
+    afterNextMonth: number; // and next month's
+    afterPaikot: number; // and after the paikot charges put on it in that time
+    short: { amount: number; date: string } | null; // the first paikot charge that doesn't fit
+}
+
+/**
+ * What the card owes and its unpaid installments hold the limit. Each due paid frees its amount (on its
+ * due date, or when another card pays it), and a paikot charge on the card takes the amount plus the fee.
+ * shortcut: unpaid installments are held at their full amount, interest included; hold principal only once plans record it.
+ */
+export function cardLimits(
+    accounts: { id: string; name: string; type: string; balance: number; creditLimit?: number }[],
+    payables: Payable[],
+    thisMonth: string,
+    nextMonth: string
+): CardLimit[] {
+    const cents = (n: number) => Math.round(Number(n) * 100);
+    const total = (items: Payable[]) => items.reduce((c, p) => c + cents(p.amount), 0);
+    const until = (p: Payable, month: string) => p.dueDate.slice(0, 7) <= month;
+    return accounts
+        .filter((a) => a.type === "CREDIT_CARD" && a.creditLimit != null)
+        .map((card) => {
+            const own = payables.filter((p) => p.accountId === card.id);
+            const now = cents(card.creditLimit!) + cents(card.balance) - total(own.filter((p) => p.scheduleId));
+            const afterThisMonth = now + total(own.filter((p) => until(p, thisMonth)));
+            const afterNextMonth = now + total(own.filter((p) => until(p, nextMonth)));
+            // In date order, payments before charges on the same day: repay first, then borrow again.
+            const events = [
+                ...own.filter((p) => until(p, nextMonth)).map((p) => ({ date: p.paikot?.payBy ?? p.dueDate, cents: cents(p.amount) })),
+                ...payables
+                    .filter((p) => p.paikot?.cardId === card.id && until(p, nextMonth))
+                    .map((p) => ({ date: p.paikot!.payBy, cents: -cents(p.amount) - cents(p.paikot!.fee) }))
+            ].sort((a, b) => a.date.localeCompare(b.date) || b.cents - a.cents);
+            let left = now;
+            let short: CardLimit["short"] = null;
+            for (const e of events) {
+                left += e.cents;
+                if (e.cents < 0 && left < 0 && !short) short = { amount: -left / 100, date: e.date };
+            }
+            return {
+                id: card.id, name: card.name, limit: Number(card.creditLimit),
+                now: now / 100, afterThisMonth: afterThisMonth / 100, afterNextMonth: afterNextMonth / 100,
+                afterPaikot: left / 100, short
+            };
+        });
+}
+
 export interface PayableMonth {
     month: string; // yyyy-MM
     total: number;

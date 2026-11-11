@@ -2,7 +2,7 @@
     import { onMount } from "svelte";
     import { currency } from "$lib/utils/currency";
     import { formatDate, formatMonth } from "$lib/utils/date";
-    import { positionTiles, type NetPositions, type Payable, type PayableMonth } from "$lib/utils/payables";
+    import { positionTiles, type CardLimit, type NetPositions, type Payable, type PayableMonth } from "$lib/utils/payables";
     import type { UnionBankInstallmentPlan } from "$lib/utils/unionBankInstallments";
     import type { Account } from "$lib/server/api/accounts";
     import NetPositionTile from "./NetPositionTile.svelte";
@@ -15,9 +15,11 @@
         paikot,
         paikotMoves,
         paikotError = "",
+        cardLimits,
         accounts,
         userId
-    }: { thisMonth: PayableMonth; nextMonth: PayableMonth; positions: NetPositions; paikot: PayableMonth; paikotMoves: Payable[]; paikotError?: string; accounts: Account[]; userId: string } = $props();
+    }: { thisMonth: PayableMonth; nextMonth: PayableMonth; positions: NetPositions; paikot: PayableMonth; paikotMoves: Payable[]; paikotError?: string; cardLimits: CardLimit[]; accounts: Account[]; userId: string } = $props();
+    const left = (amount: number) => (amount < 0 ? "text-amber-300" : "text-slate-200");
 
     const month = (key: string) => formatMonth(`${key}-01`);
     const plansKey = `finankal-card-installments-v1-${userId}`;
@@ -123,4 +125,44 @@
         {/each}
         <PaikotCard {paikot} plain={nextMonth} moves={paikotMoves} {accounts} error={paikotError} />
     </div>
+
+    {#if cardLimits.length}
+        <div class="border-t border-slate-800 p-6">
+            <p class="text-sm font-medium text-slate-300">Card spending limits</p>
+            <p class="mt-1 text-xs text-slate-500">
+                What each card has left to spend as its dues get paid. Unpaid installments hold the limit until they're paid.
+            </p>
+            <div class="mt-3 overflow-x-auto">
+                <table class="w-full min-w-[36rem] text-sm tabular-nums">
+                    <thead>
+                        <tr class="text-xs text-slate-500">
+                            <th scope="col" class="pb-2 text-left font-normal">Card</th>
+                            <th scope="col" class="pb-2 text-right font-normal">Limit</th>
+                            <th scope="col" class="pb-2 text-right font-normal">Now</th>
+                            <th scope="col" class="pb-2 text-right font-normal">After {month(thisMonth.month)} dues</th>
+                            <th scope="col" class="pb-2 text-right font-normal">After {month(nextMonth.month)} dues</th>
+                            <th scope="col" class="pb-2 text-right font-normal">With paikot</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/70">
+                        {#each cardLimits as card (card.id)}
+                            <tr>
+                                <th scope="row" class="py-2 pr-3 text-left font-normal text-slate-200">{card.name}</th>
+                                <td class="py-2 text-right text-slate-400">{currency.format(card.limit)}</td>
+                                <td class={`py-2 text-right ${left(card.now)}`}>{currency.format(card.now)}</td>
+                                <td class={`py-2 text-right ${left(card.afterThisMonth)}`}>{currency.format(card.afterThisMonth)}</td>
+                                <td class={`py-2 text-right ${left(card.afterNextMonth)}`}>{currency.format(card.afterNextMonth)}</td>
+                                <td class={`py-2 text-right ${card.short ? "text-amber-300" : left(card.afterPaikot)}`}>
+                                    {currency.format(card.afterPaikot)}
+                                    {#if card.short}
+                                        <span class="block text-xs">{currency.format(card.short.amount)} short on {formatDate(card.short.date)}</span>
+                                    {/if}
+                                </td>
+                            </tr>
+                        {/each}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {/if}
 </section>

@@ -1,6 +1,6 @@
 import { getMoneyFlows } from "$lib/server/api/flows";
 import { getPayables } from "$lib/server/api/payables";
-import { applyPaikot, netPositions, summarizePayables } from "$lib/utils/payables";
+import { applyPaikot, cardLimits, netPositions, summarizePayables } from "$lib/utils/payables";
 
 // The income account statement imports file payroll under (BankStatementParser.category).
 const SALARY_ACCOUNT = "Salary Income";
@@ -12,7 +12,7 @@ const SALARY_MONTHS = 3;
  */
 export async function loadNetPositions(
     userId: string,
-    accounts: { id: string; name: string; type: string; balance: number }[]
+    accounts: { id: string; name: string; type: string; balance: number; creditLimit?: number }[]
 ) {
     // Philippine calendar, so a month starts at Manila midnight.
     const today = new Date(Date.now() + 8 * 60 * 60 * 1000);
@@ -58,6 +58,7 @@ export async function loadNetPositions(
         paikot: summarizePayables(applyPaikot(payables), today).nextMonth,
         // Every due a link moves, soonest charge first: what to pay with which card, and when.
         paikotMoves: payables.filter((p) => p.paikot).sort((a, b) => a.paikot!.payBy.localeCompare(b.paikot!.payBy)),
+        cardLimits: cardLimits(accounts, payables, due.thisMonth.month, due.nextMonth.month),
         positions: netPositions(accounts, monthlySalaries, due.thisMonth.total, due.nextMonth.total),
         salaryInto: salaryInto ? { id: salaryInto.id, name: salaryInto.name } : null
     };

@@ -29,16 +29,6 @@
     const links = $derived([...new Map(moves.map((m) => [m.accountId, m])).values()]);
     // The moves that change next month: dues from now to the end of it.
     const soon = $derived(moves.filter((m) => m.dueDate.slice(0, 7) <= paikot.month));
-    // What those moves charge each card, against the credit it has left today.
-    const charges = $derived(
-        cards
-            .map((card) => ({
-                card,
-                charged: soon.filter((m) => m.paikot!.cardId === card.id).reduce((c, m) => c + cents(m.amount) + cents(m.paikot!.fee), 0) / 100,
-                available: (cents(card.creditLimit ?? 0) + cents(card.balance)) / 100
-            }))
-            .filter((c) => c.charged > 0)
-    );
     const less = $derived((cents(plain.total) - cents(paikot.total)) / 100);
     const payWindow = (m: Payable) =>
         m.paikot!.payFrom === m.paikot!.payBy ? `on ${formatDate(m.paikot!.payBy)}` : `${formatDate(m.paikot!.payFrom)} – ${formatDate(m.paikot!.payBy)}`;
@@ -72,11 +62,6 @@
                 </li>
             {/each}
         </ul>
-        {#each charges as c}
-            <p class={`mt-2 text-xs tabular-nums ${c.charged > c.available ? "text-amber-300" : "text-slate-500"}`}>
-                {c.card.name}: {currency.format(c.charged)} to charge · {currency.format(c.available)} available now
-            </p>
-        {/each}
     {:else}
         <p class="mt-3 text-sm text-slate-500">Nothing to move. Link a loan or card to the card that can pay it.</p>
     {/if}
