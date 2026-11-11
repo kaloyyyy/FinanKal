@@ -1,9 +1,9 @@
 {
   "api-spring/pom.xml": {
-    "mtime": 1786020237.076,
-    "seen": 1794081770.0788536,
-    "ast_hash": "15547f5835a58b31d13e0f3d05c8ed92",
-    "semantic_hash": "15547f5835a58b31d13e0f3d05c8ed92"
+    "mtime": 1794182415.1258104,
+    "seen": 1794329075.0675983,
+    "ast_hash": "3be3c413a8634d963df1bb3416522b4c",
+    "semantic_hash": "3be3c413a8634d963df1bb3416522b4c"
   },
   "api-spring/src/main/java/com/finankal/MainApplication.java": {
     "mtime": 1774977604.5432622,
@@ -42,16 +42,16 @@
     "semantic_hash": "1af89812a64fccac97186cf6b33dacd7"
   },
   "api-spring/src/main/java/com/finankal/api/controller/TransactionController.java": {
-    "mtime": 1787171100.848,
-    "seen": 1794081770.0788813,
-    "ast_hash": "e695d36197a68a4a54c4d350a2941454",
-    "semantic_hash": "e695d36197a68a4a54c4d350a2941454"
+    "mtime": 1794244630.1158884,
+    "seen": 1794329075.0684633,
+    "ast_hash": "434f9c3f10c0bcacdf67a95a283ede9f",
+    "semantic_hash": "434f9c3f10c0bcacdf67a95a283ede9f"
   },
   "api-spring/src/main/java/com/finankal/api/controller/UserController.java": {
-    "mtime": 1787173752.403,
-    "seen": 1794081770.078884,
-    "ast_hash": "2923916389e1273bf84aea1db309654d",
-    "semantic_hash": "2923916389e1273bf84aea1db309654d"
+    "mtime": 1794238583.1621954,
+    "seen": 1794329075.0685067,
+    "ast_hash": "2f0eba020e186d2b15baa79b0f783a61",
+    "semantic_hash": "2f0eba020e186d2b15baa79b0f783a61"
   },
   "api-spring/src/main/java/com/finankal/api/dto/AccountDto.java": {
     "mtime": 1775204379.826738,
@@ -72,16 +72,16 @@
     "semantic_hash": "fccc0b50e2437aeb57b7f70e485f9125"
   },
   "api-spring/src/main/java/com/finankal/api/dto/CreateTransactionEntryDto.java": {
-    "mtime": 1787170730.751,
-    "seen": 1794081770.078892,
-    "ast_hash": "92aef90008bb8f111b5ac2e7dff879f3",
-    "semantic_hash": "92aef90008bb8f111b5ac2e7dff879f3"
+    "mtime": 1794244607.4561045,
+    "seen": 1794329075.0690525,
+    "ast_hash": "28e7790fb16d6f5674d68916333698ea",
+    "semantic_hash": "28e7790fb16d6f5674d68916333698ea"
   },
   "api-spring/src/main/java/com/finankal/api/dto/CreateTransactionRequestDto.java": {
-    "mtime": 1787171153.314,
-    "seen": 1794081770.078894,
-    "ast_hash": "55c126471123404e44fb1c4c3a8082dc",
-    "semantic_hash": "55c126471123404e44fb1c4c3a8082dc"
+    "mtime": 1794185896.347634,
+    "seen": 1794329075.0690987,
+    "ast_hash": "bd3d82f3b5929e73cf40ad92a4ecd05e",
+    "semantic_hash": "bd3d82f3b5929e73cf40ad92a4ecd05e"
   },
   "api-spring/src/main/java/com/finankal/api/dto/CreditCardStatementDto.java": {
     "mtime": 1785960299.7303448,
@@ -90,10 +90,10 @@
     "semantic_hash": "b22ab19dad3ef8a964097dccc591c3d1"
   },
   "api-spring/src/main/java/com/finankal/api/dto/LedgerEntryDto.java": {
-    "mtime": 1787170683.601,
-    "seen": 1794081770.0788977,
-    "ast_hash": "3e944111fab44868b1eacf52a089f4a6",
-    "semantic_hash": "3e944111fab44868b1eacf52a089f4a6"
+    "mtime": 1794187040.6917078,
+    "seen": 1794329075.0692682,
+    "ast_hash": "8294ad28d2b51b6bf8bb0d16b86732f9",
+    "semantic_hash": "8294ad28d2b51b6bf8bb0d16b86732f9"
   },
   "api-spring/src/main/java/com/finankal/api/dto/PayCreditCardStatementRequestDto.java": {
     "mtime": 1785960293.6565208,
@@ -132,8 +132,8 @@
     "semantic_hash": "997f1c089d90999a729c6b19fe0609f5"
   },
   "api-spring/src/main/java/com/finankal/api/dto/TransactionPageDto.java": {
-    "mtime": 1787172629.476,
-    "seen": 1794081770.07891,
+    "mtime": 1794175603.4893916,
+    "seen": 1794329075.0701914,
     "ast_hash": "562a0cd9c61cef0fe13be0de61c63649",
     "semantic_hash": "562a0cd9c61cef0fe13be0de61c63649"
   },
@@ -150,14 +150,14 @@
     "semantic_hash": "9cbf741d83f790338fbb709ca639d74a"
   },
   "api-spring/src/main/java/com/finankal/api/mapper/TransactionMapper.java": {
-    "mtime": 1787172731.26,
-    "seen": 1794081770.0789154,
-    "ast_hash": "3393b9eebd5f8846407fe010c1d978c9",
-    "semantic_hash": "3393b9eebd5f8846407fe010c1d978c9"
+    "mtime": 1794244628.2353203,
+    "seen": 1794329075.0704794,
+    "ast_hash": "9092ec090735ffe13cfeb4d61715d610",
+    "semantic_hash": "9092ec090735ffe13cfeb4d61715d610"
   },
   "api-spring/src/main/java/com/finankal/api/service/AccountService.java": {
-    "mtime": 1786108530.426,
-    "seen": 1794081770.0789168,
+    "mtime": 1794188501.634168,
+    "seen": 1794329075.0705216,
     "ast_hash": "a2933354152fb0a3b1cd47d69fa45bdb",
     "semantic_hash": "a2933354152fb0a3b1cd47d69fa45bdb"
   },
@@ -168,22 +168,22 @@
     "semantic_hash": "cd60eef415a612dff7e5462998ab5628"
   },
   "api-spring/src/main/java/com/finankal/api/service/LedgerEntryService.java": {
-    "mtime": 1787170528.215,
-    "seen": 1794081770.0789204,
-    "ast_hash": "19235e1a66b9cecf5abb24ad6ec67b6e",
-    "semantic_hash": "19235e1a66b9cecf5abb24ad6ec67b6e"
+    "mtime": 1794187041.424904,
+    "seen": 1794329075.0707521,
+    "ast_hash": "e8bca3531afe7a1d29a826d3ecfa69a4",
+    "semantic_hash": "e8bca3531afe7a1d29a826d3ecfa69a4"
   },
   "api-spring/src/main/java/com/finankal/api/service/TransactionService.java": {
-    "mtime": 1787170926.651,
-    "seen": 1794081770.078922,
-    "ast_hash": "1b21d4dc32e5f53d72ba35e8d7698c48",
-    "semantic_hash": "1b21d4dc32e5f53d72ba35e8d7698c48"
+    "mtime": 1794244629.4759455,
+    "seen": 1794329075.070968,
+    "ast_hash": "f20cd6fe406f0b8e2261a200519e93f5",
+    "semantic_hash": "f20cd6fe406f0b8e2261a200519e93f5"
   },
   "api-spring/src/main/java/com/finankal/api/service/UserService.java": {
-    "mtime": 1787172674.825,
-    "seen": 1794081770.0789247,
-    "ast_hash": "18abf60de797560450ef3dc1dcd57c7b",
-    "semantic_hash": "18abf60de797560450ef3dc1dcd57c7b"
+    "mtime": 1794238581.7897174,
+    "seen": 1794329075.071013,
+    "ast_hash": "5464591b76b74ed595f8ca7d53a8bf1d",
+    "semantic_hash": "5464591b76b74ed595f8ca7d53a8bf1d"
   },
   "api-spring/src/main/resources/application-docker.yml": {
     "mtime": 1786020589.723,
@@ -198,16 +198,17 @@
     "semantic_hash": "3f3ec66fb3f324d6037ba888597db4ce"
   },
   "api-spring/src/main/resources/application.yml": {
-    "mtime": 1786020563.109,
-    "seen": 1794081770.07893,
-    "ast_hash": "859ad84c2ff09dcd44552ebbeea4d07f",
-    "semantic_hash": "859ad84c2ff09dcd44552ebbeea4d07f"
+    "mtime": 1794218091.6826253,
+    "seen": 1794329075.0712638,
+    "ast_hash": "ec92340e71c90d148fab1afae93edbf0",
+    "semantic_hash": "ec92340e71c90d148fab1afae93edbf0"
   },
   "api-spring/src/main/resources/openapi.yaml": {
-    "mtime": 1786235526.679,
-    "seen": 1794081770.0789316,
-    "ast_hash": "f0364a8da16c879e4efc6896dd1f5a66",
-    "semantic_hash": "f0364a8da16c879e4efc6896dd1f5a66"
+    "mtime": 1794185924.7374828,
+    "seen": 1794329075.071316,
+    "ast_hash": "402da14d091d7387d84e4698b91ea8f4",
+    "semantic_hash": "402da14d091d7387d84e4698b91ea8f4",
+    "ast_empty": true
   },
   "docker-compose.yaml": {
     "mtime": 1786021073.448,
@@ -216,28 +217,28 @@
     "semantic_hash": "3136f31fd76f4596fb4524f68e72a4fd"
   },
   "engine-go/cmd/server/main.go": {
-    "mtime": 1787267190.846,
-    "seen": 1794081770.078941,
-    "ast_hash": "f08fcf2b408713fa2364c271b62d2db6",
-    "semantic_hash": "f08fcf2b408713fa2364c271b62d2db6"
+    "mtime": 1794239287.192828,
+    "seen": 1794329075.0717378,
+    "ast_hash": "8388d0bc471e1a373e0a0669d2629d64",
+    "semantic_hash": "8388d0bc471e1a373e0a0669d2629d64"
   },
   "engine-go/cmd/server/server.go": {
-    "mtime": 1787266932.862,
-    "seen": 1794081770.078943,
-    "ast_hash": "a3936fba88bb1adf322448579044e49a",
-    "semantic_hash": "a3936fba88bb1adf322448579044e49a"
+    "mtime": 1794244574.6280782,
+    "seen": 1794329075.0717685,
+    "ast_hash": "78a282cfd9a2686f07484dce9b645c32",
+    "semantic_hash": "78a282cfd9a2686f07484dce9b645c32"
   },
   "engine-go/finance/finance.pb.go": {
-    "mtime": 1787169221.099027,
-    "seen": 1794081770.0789444,
-    "ast_hash": "43205ef4076098b3c4a92561aa6cb079",
-    "semantic_hash": "43205ef4076098b3c4a92561aa6cb079"
+    "mtime": 1794250855.6321979,
+    "seen": 1794329075.071824,
+    "ast_hash": "d172ed5820a901bb272fc6bf68b36787",
+    "semantic_hash": "d172ed5820a901bb272fc6bf68b36787"
   },
   "engine-go/finance/finance_grpc.pb.go": {
-    "mtime": 1787169221.099027,
-    "seen": 1794081770.078946,
-    "ast_hash": "a5f09b5f8377e03960f4f9565fdf8b65",
-    "semantic_hash": "a5f09b5f8377e03960f4f9565fdf8b65"
+    "mtime": 1794250855.6321979,
+    "seen": 1794329075.0718503,
+    "ast_hash": "ec6dd8ff36d5627df83a56194c315e9d",
+    "semantic_hash": "ec6dd8ff36d5627df83a56194c315e9d"
   },
   "engine-go/go.mod": {
     "mtime": 1775428448.681064,
@@ -246,148 +247,150 @@
     "semantic_hash": "2369b7fec602a37b2132c859660d3b5c"
   },
   "engine-go/internal/cache/cache.go": {
-    "mtime": 1785970412.515022,
-    "seen": 1794081770.0789492,
-    "ast_hash": "6715093bc277923801de0c1172e85d52",
-    "semantic_hash": "6715093bc277923801de0c1172e85d52"
+    "mtime": 1794175603.6093917,
+    "seen": 1794329075.071938,
+    "ast_hash": "e25e52ca31ebbe2b707f1ec2ac66e6f6",
+    "semantic_hash": "e25e52ca31ebbe2b707f1ec2ac66e6f6"
   },
   "engine-go/internal/cache/invalidate.go": {
-    "mtime": 1786398051.867,
-    "seen": 1794081770.078951,
-    "ast_hash": "6094079e547ebd05e9858f5fdf4e298c",
-    "semantic_hash": "6094079e547ebd05e9858f5fdf4e298c"
+    "mtime": 1794175603.6293917,
+    "seen": 1794329075.071968,
+    "ast_hash": "089e72d704c05c2e2df01258dbffedd7",
+    "semantic_hash": "089e72d704c05c2e2df01258dbffedd7"
   },
   "engine-go/internal/cache/keys.go": {
-    "mtime": 1786398083.284,
-    "seen": 1794081770.0789518,
-    "ast_hash": "c82a982b6edcd2df38c18efab74da1d6",
-    "semantic_hash": "c82a982b6edcd2df38c18efab74da1d6"
+    "mtime": 1794175603.6453917,
+    "seen": 1794329075.0719957,
+    "ast_hash": "1d48cef7ffec192a80c9ff0caf20d565",
+    "semantic_hash": "1d48cef7ffec192a80c9ff0caf20d565"
   },
   "engine-go/internal/cache/redis.go": {
-    "mtime": 1786017057.901,
-    "seen": 1794081770.0789533,
-    "ast_hash": "40c7b567aabdd9e563f97637887458b5",
-    "semantic_hash": "40c7b567aabdd9e563f97637887458b5"
+    "mtime": 1794175603.6613917,
+    "seen": 1794329075.0720236,
+    "ast_hash": "c5b8b0f34ec3e36459874786e5fc39fe",
+    "semantic_hash": "c5b8b0f34ec3e36459874786e5fc39fe"
   },
   "engine-go/internal/credit/billing.go": {
-    "mtime": 1785867630.6492488,
-    "seen": 1794081770.0789547,
-    "ast_hash": "61617b96e89bed85f9a8a988cbcdc4f6",
-    "semantic_hash": "61617b96e89bed85f9a8a988cbcdc4f6"
+    "mtime": 1794232613.0593195,
+    "seen": 1794329075.0720503,
+    "ast_hash": "52b08eb01dd5d550599c21dae985fb55",
+    "semantic_hash": "52b08eb01dd5d550599c21dae985fb55"
   },
   "engine-go/internal/credit/card_repository.go": {
-    "mtime": 1786065550.869,
-    "seen": 1794081770.0789564,
-    "ast_hash": "40ea285920622250c84c85df3257681d",
-    "semantic_hash": "40ea285920622250c84c85df3257681d"
+    "mtime": 1794232614.893572,
+    "seen": 1794329075.0721345,
+    "ast_hash": "2e2218cb4eb8df4f7053784121a122db",
+    "semantic_hash": "2e2218cb4eb8df4f7053784121a122db"
   },
   "engine-go/internal/credit/entry_repository.go": {
-    "mtime": 1786069174.772,
-    "seen": 1794081770.0789576,
-    "ast_hash": "1babf28ea68b75c6cde58c31ac54cfa9",
-    "semantic_hash": "1babf28ea68b75c6cde58c31ac54cfa9"
+    "mtime": 1794175603.7213917,
+    "seen": 1794329075.0721624,
+    "ast_hash": "0e0b2fcde6d4207ee090259d945cfeaf",
+    "semantic_hash": "0e0b2fcde6d4207ee090259d945cfeaf"
   },
   "engine-go/internal/credit/models.go": {
-    "mtime": 1786066997.922,
-    "seen": 1794081770.0789587,
-    "ast_hash": "8801f38582459e3d54ea98be6be98a0d",
-    "semantic_hash": "8801f38582459e3d54ea98be6be98a0d"
+    "mtime": 1794232613.844883,
+    "seen": 1794329075.07219,
+    "ast_hash": "76039f43383cadf3f08751aa35820b69",
+    "semantic_hash": "76039f43383cadf3f08751aa35820b69"
   },
   "engine-go/internal/credit/payment.go": {
-    "mtime": 1786065410.736,
-    "seen": 1794081770.0789604,
-    "ast_hash": "cc188e10579943a1b6b16e202cdb46a2",
-    "semantic_hash": "cc188e10579943a1b6b16e202cdb46a2"
+    "mtime": 1794185848.8136783,
+    "seen": 1794329075.072218,
+    "ast_hash": "9e504377f3ba2dcd10cf9f94327c4277",
+    "semantic_hash": "9e504377f3ba2dcd10cf9f94327c4277"
   },
   "engine-go/internal/credit/service.go": {
-    "mtime": 1786065403.058,
-    "seen": 1794081770.0789618,
-    "ast_hash": "9d8c29292f6a022842fe8fc23775e805",
-    "semantic_hash": "9d8c29292f6a022842fe8fc23775e805"
+    "mtime": 1794175603.7733917,
+    "seen": 1794329075.072246,
+    "ast_hash": "daac158b8c4d1fc287478a5b525f9706",
+    "semantic_hash": "daac158b8c4d1fc287478a5b525f9706"
   },
   "engine-go/internal/credit/statement.go": {
-    "mtime": 1786065435.172,
-    "seen": 1794081770.0789633,
-    "ast_hash": "9f47ddea9605847960e90d6f35090801",
-    "semantic_hash": "9f47ddea9605847960e90d6f35090801"
+    "mtime": 1794175603.7893918,
+    "seen": 1794329075.0723011,
+    "ast_hash": "ec4790d5275da246e7203697406df7bb",
+    "semantic_hash": "ec4790d5275da246e7203697406df7bb"
   },
   "engine-go/internal/credit/statement_repository.go": {
-    "mtime": 1786068971.31,
-    "seen": 1794081770.0789652,
-    "ast_hash": "7db9d1073f218b01f793d0acb922e729",
-    "semantic_hash": "7db9d1073f218b01f793d0acb922e729"
+    "mtime": 1794175603.8093917,
+    "seen": 1794329075.072328,
+    "ast_hash": "736ea9e60244ddf80b6e6e92817f4dfa",
+    "semantic_hash": "736ea9e60244ddf80b6e6e92817f4dfa"
   },
   "engine-go/internal/credit/transaction.go": {
-    "mtime": 1786069199.136,
-    "seen": 1794081770.078967,
-    "ast_hash": "838aa15be07e1b61cf51bae11e11f795",
-    "semantic_hash": "838aa15be07e1b61cf51bae11e11f795"
+    "mtime": 1794185848.2170317,
+    "seen": 1794329075.0723567,
+    "ast_hash": "c153cb29f7bdba9d42a319ee864bc80d",
+    "semantic_hash": "c153cb29f7bdba9d42a319ee864bc80d"
   },
   "engine-go/internal/credit/validation.go": {
-    "mtime": 1786065443.94,
-    "seen": 1794081770.0789685,
-    "ast_hash": "89073f6c2fef79f27c10be9b3ed19a1e",
-    "semantic_hash": "89073f6c2fef79f27c10be9b3ed19a1e"
+    "mtime": 1794175603.845392,
+    "seen": 1794329075.0723844,
+    "ast_hash": "bfd7ea49f5624efcbea57ab824d692b2",
+    "semantic_hash": "bfd7ea49f5624efcbea57ab824d692b2"
   },
   "engine-go/internal/db/db.go": {
-    "mtime": 1786067631.124,
-    "seen": 1794081770.0789704,
-    "ast_hash": "547b4afd9035cf42bd690951fb44d205",
-    "semantic_hash": "547b4afd9035cf42bd690951fb44d205"
+    "mtime": 1794175603.865392,
+    "seen": 1794329075.0724123,
+    "ast_hash": "ce22ca19077d8fe4fc7ecbfdd54d2906",
+    "semantic_hash": "ce22ca19077d8fe4fc7ecbfdd54d2906"
   },
   "engine-go/internal/ledger/models.go": {
-    "mtime": 1787170432.033,
-    "seen": 1794081770.078972,
-    "ast_hash": "03126b724e1bde5f48e057ceae076d1e",
-    "semantic_hash": "03126b724e1bde5f48e057ceae076d1e"
+    "mtime": 1794175603.885392,
+    "seen": 1794329075.072441,
+    "ast_hash": "8a9910272f089cebd85a6c9e6ff3aa09",
+    "semantic_hash": "8a9910272f089cebd85a6c9e6ff3aa09"
   },
   "engine-go/internal/ledger/repository.go": {
-    "mtime": 1787174074.813,
-    "seen": 1794081770.0789738,
-    "ast_hash": "9430abcdb52d2588db15db05dfb3bd15",
-    "semantic_hash": "9430abcdb52d2588db15db05dfb3bd15"
+    "mtime": 1794244562.9615383,
+    "seen": 1794329075.07247,
+    "ast_hash": "5c45e08609f8adae1221c6b0902e37fc",
+    "semantic_hash": "5c45e08609f8adae1221c6b0902e37fc"
   },
   "engine-go/internal/ledger/service.go": {
-    "mtime": 1787173014.304,
-    "seen": 1794081770.0789752,
-    "ast_hash": "5da817cd50e7a81b877b098bedfaedd4",
-    "semantic_hash": "5da817cd50e7a81b877b098bedfaedd4"
+    "mtime": 1794244563.9425743,
+    "seen": 1794329075.0724993,
+    "ast_hash": "a6f7ace11af4c69c6686d3e86198da02",
+    "semantic_hash": "a6f7ace11af4c69c6686d3e86198da02"
   },
   "engine-go/internal/ledger/validation.go": {
-    "mtime": 1785958332.5773263,
-    "seen": 1794081770.0789769,
-    "ast_hash": "295288c57ad8709d03d99974bf0c0943",
-    "semantic_hash": "295288c57ad8709d03d99974bf0c0943"
+    "mtime": 1794175603.937392,
+    "seen": 1794329075.072527,
+    "ast_hash": "ed62e0ba049e86c60f241535fc8e76da",
+    "semantic_hash": "ed62e0ba049e86c60f241535fc8e76da"
   },
   "engine-go/internal/schedule/models.go": {
-    "mtime": 1787267515.509,
-    "seen": 1794081770.078978,
-    "ast_hash": "203aac0123fbf4d1124b3c78b443c8ec",
-    "semantic_hash": "203aac0123fbf4d1124b3c78b443c8ec"
+    "mtime": 1794175603.953392,
+    "seen": 1794329075.072666,
+    "ast_hash": "b2b280a170feda01d0460e54537e16dc",
+    "semantic_hash": "b2b280a170feda01d0460e54537e16dc"
   },
   "engine-go/internal/schedule/repository.go": {
-    "mtime": 1787267407.221,
-    "seen": 1794081770.0789795,
-    "ast_hash": "d9c09a57055078f22f1a15d338402cd4",
-    "semantic_hash": "d9c09a57055078f22f1a15d338402cd4"
+    "mtime": 1794238531.3946128,
+    "seen": 1794329075.0726972,
+    "ast_hash": "ec08c7bd4408b16f5cbe5745664808da",
+    "semantic_hash": "ec08c7bd4408b16f5cbe5745664808da"
   },
   "engine-go/internal/schedule/service.go": {
-    "mtime": 1787267657.497,
-    "seen": 1794081770.078981,
-    "ast_hash": "269e93234fba0430ae475038f9836cd1",
-    "semantic_hash": "269e93234fba0430ae475038f9836cd1"
+    "mtime": 1794238530.9132516,
+    "seen": 1794329075.0727246,
+    "ast_hash": "39e045434fe1bed749c48b9983f9ae1a",
+    "semantic_hash": "39e045434fe1bed749c48b9983f9ae1a"
   },
   "finankal-ui/.vscode/extensions.json": {
     "mtime": 1786102335.521774,
     "seen": 1794081770.0789828,
     "ast_hash": "22b348ce0f177475d226b969e3d44060",
-    "semantic_hash": "22b348ce0f177475d226b969e3d44060"
+    "semantic_hash": "22b348ce0f177475d226b969e3d44060",
+    "ast_empty": true
   },
   "finankal-ui/.vscode/settings.json": {
     "mtime": 1786102335.5142233,
     "seen": 1794081770.0789843,
     "ast_hash": "bb97b5c48786209df82e0bfb86a4505a",
-    "semantic_hash": "bb97b5c48786209df82e0bfb86a4505a"
+    "semantic_hash": "bb97b5c48786209df82e0bfb86a4505a",
+    "ast_empty": true
   },
   "finankal-ui/eslint.config.js": {
     "mtime": 1786102380.2656062,
@@ -413,29 +416,17 @@
     "ast_hash": "78b56494b3f78d7f9bacda13678f159e",
     "semantic_hash": "78b56494b3f78d7f9bacda13678f159e"
   },
-  "finankal-ui/src/lib/components/accounts/AccountBalance.svelte": {
-    "mtime": 1786233856.571,
-    "seen": 1794081770.0790038,
-    "ast_hash": "dddad44f25f41dd872175ed134d8df93",
-    "semantic_hash": "dddad44f25f41dd872175ed134d8df93"
-  },
-  "finankal-ui/src/lib/components/accounts/AccountCard.svelte": {
-    "mtime": 1786233815.793,
-    "seen": 1794081770.0790055,
-    "ast_hash": "de2ee8810f46b62c3ee0346276e00ce5",
-    "semantic_hash": "de2ee8810f46b62c3ee0346276e00ce5"
-  },
   "finankal-ui/src/lib/components/accounts/AccountTypeBadge.svelte": {
-    "mtime": 1786233621.956,
-    "seen": 1794081770.0790067,
-    "ast_hash": "37d082809237b94fd5a25b666a98370d",
-    "semantic_hash": "37d082809237b94fd5a25b666a98370d"
+    "mtime": 1794182438.0045338,
+    "seen": 1794329075.0733392,
+    "ast_hash": "a3ea7d1b4590b2aa1971a1e930ed826e",
+    "semantic_hash": "a3ea7d1b4590b2aa1971a1e930ed826e"
   },
   "finankal-ui/src/lib/components/accounts/LedgerTable.svelte": {
-    "mtime": 1786233897.705,
-    "seen": 1794081770.079008,
-    "ast_hash": "9cece80a6ec64dff379369028304a269",
-    "semantic_hash": "9cece80a6ec64dff379369028304a269"
+    "mtime": 1794244718.3202915,
+    "seen": 1794329075.0734053,
+    "ast_hash": "c383cb978936fded255249e593d1a6ea",
+    "semantic_hash": "c383cb978936fded255249e593d1a6ea"
   },
   "finankal-ui/src/lib/components/dashboard/FinancialOverview.svelte": {
     "mtime": 1786113696.786,
@@ -450,28 +441,28 @@
     "semantic_hash": "47067f4ac1fcfb62823abd05d814c366"
   },
   "finankal-ui/src/lib/components/dashboard/RecentTransactions.svelte": {
-    "mtime": 1786235354.166,
-    "seen": 1794081770.0790122,
-    "ast_hash": "92b0e5e5186b2ba956bdb42aaaf04503",
-    "semantic_hash": "92b0e5e5186b2ba956bdb42aaaf04503"
+    "mtime": 1794221291.1299052,
+    "seen": 1794329075.073828,
+    "ast_hash": "a54ae5315c5fc378bcc430b65b69d24f",
+    "semantic_hash": "a54ae5315c5fc378bcc430b65b69d24f"
   },
   "finankal-ui/src/lib/components/dashboard/SummaryCard.svelte": {
-    "mtime": 1786119249.578,
-    "seen": 1794081770.0790133,
-    "ast_hash": "01740419cefa33e93c5402c02f08cafd",
-    "semantic_hash": "01740419cefa33e93c5402c02f08cafd"
+    "mtime": 1794182329.3854575,
+    "seen": 1794329075.0738614,
+    "ast_hash": "a55c2fba7d86cd57348b3d9915a850ce",
+    "semantic_hash": "a55c2fba7d86cd57348b3d9915a850ce"
   },
   "finankal-ui/src/lib/components/dashboard/SummaryCards.svelte": {
-    "mtime": 1786234047.191,
-    "seen": 1794081770.079015,
-    "ast_hash": "bfdeca563c278139e4a536f7ca41fe06",
-    "semantic_hash": "bfdeca563c278139e4a536f7ca41fe06"
+    "mtime": 1794182329.6054573,
+    "seen": 1794329075.073895,
+    "ast_hash": "9b05df14b5111ecb64edeae43549c016",
+    "semantic_hash": "9b05df14b5111ecb64edeae43549c016"
   },
   "finankal-ui/src/lib/components/layout/Navbar.svelte": {
-    "mtime": 1786685945.306,
-    "seen": 1794081770.079016,
-    "ast_hash": "5214c7dc25f9689a56022fecb34f7f6f",
-    "semantic_hash": "5214c7dc25f9689a56022fecb34f7f6f"
+    "mtime": 1794223853.412477,
+    "seen": 1794329075.0739279,
+    "ast_hash": "c34b888570157685e35bb6a852cdf4df",
+    "semantic_hash": "c34b888570157685e35bb6a852cdf4df"
   },
   "finankal-ui/src/lib/components/transactions/TransactionActions.svelte": {
     "mtime": 1786135913.214,
@@ -534,10 +525,10 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "finankal-ui/src/lib/server/api/transactions.ts": {
-    "mtime": 1787173650.579,
-    "seen": 1794081770.079031,
-    "ast_hash": "fdc20a3b55f90dcc472d0f8644c55c2e",
-    "semantic_hash": "fdc20a3b55f90dcc472d0f8644c55c2e"
+    "mtime": 1794244718.7787225,
+    "seen": 1794329075.075046,
+    "ast_hash": "a0520a5fabcddfab595bfd3071e1c5ed",
+    "semantic_hash": "a0520a5fabcddfab595bfd3071e1c5ed"
   },
   "finankal-ui/src/lib/server/api/users.ts": {
     "mtime": 1786118060.281,
@@ -564,10 +555,10 @@
     "semantic_hash": "eeea4b632de806329394e5f0163e5ff7"
   },
   "finankal-ui/src/lib/types/transaction.ts": {
-    "mtime": 1786104141.841,
-    "seen": 1794081770.0790386,
-    "ast_hash": "a12809ba1145fa20c96ea564cb68ef75",
-    "semantic_hash": "a12809ba1145fa20c96ea564cb68ef75"
+    "mtime": 1794185914.0675879,
+    "seen": 1794329075.0756192,
+    "ast_hash": "e5829fb372e495d6529c81e90a3867d8",
+    "semantic_hash": "e5829fb372e495d6529c81e90a3867d8"
   },
   "finankal-ui/src/lib/utils/currency.ts": {
     "mtime": 1786233815.821,
@@ -576,70 +567,70 @@
     "semantic_hash": "a1fd65df5819cc7816aad42c14198169"
   },
   "finankal-ui/src/routes/+layout.svelte": {
-    "mtime": 1787171556.882,
-    "seen": 1794081770.0790417,
-    "ast_hash": "d7dbdc5684827e983445619c8f1ade5d",
-    "semantic_hash": "d7dbdc5684827e983445619c8f1ade5d"
+    "mtime": 1794182455.283247,
+    "seen": 1794329075.0759218,
+    "ast_hash": "b10606e132bcf53fcd1f362b57d2994a",
+    "semantic_hash": "b10606e132bcf53fcd1f362b57d2994a"
   },
   "finankal-ui/src/routes/+page.server.ts": {
-    "mtime": 1786235402.832,
-    "seen": 1794081770.0790431,
-    "ast_hash": "cc80368547b102014ae94fef6fcc9d7c",
-    "semantic_hash": "cc80368547b102014ae94fef6fcc9d7c"
+    "mtime": 1794226621.9173312,
+    "seen": 1794329075.0759542,
+    "ast_hash": "6bb7304733984250cd3d5aa899ed303e",
+    "semantic_hash": "6bb7304733984250cd3d5aa899ed303e"
   },
   "finankal-ui/src/routes/+page.svelte": {
-    "mtime": 1787171563.72,
-    "seen": 1794081770.0790446,
-    "ast_hash": "5d7a1aa0726d5445c8c16e707d19d745",
-    "semantic_hash": "5d7a1aa0726d5445c8c16e707d19d745"
+    "mtime": 1794226606.7220423,
+    "seen": 1794329075.0759823,
+    "ast_hash": "a5683ac92afb53afaf1cad029c11a170",
+    "semantic_hash": "a5683ac92afb53afaf1cad029c11a170"
   },
   "finankal-ui/src/routes/accounts/+page.server.ts": {
-    "mtime": 1786116451.222,
-    "seen": 1794081770.0790513,
-    "ast_hash": "a7dace581999d14dfafe9a148d39533d",
-    "semantic_hash": "a7dace581999d14dfafe9a148d39533d"
+    "mtime": 1794226607.1918366,
+    "seen": 1794329075.0760098,
+    "ast_hash": "8d64946231eb0144add74cff8a906060",
+    "semantic_hash": "8d64946231eb0144add74cff8a906060"
   },
   "finankal-ui/src/routes/accounts/+page.svelte": {
-    "mtime": 1787171277.055,
-    "seen": 1794081770.0790532,
-    "ast_hash": "5b5e4e3ad940e32b05b729079653e65f",
-    "semantic_hash": "5b5e4e3ad940e32b05b729079653e65f"
+    "mtime": 1794228451.267691,
+    "seen": 1794329075.07604,
+    "ast_hash": "632ad186f8aff541910f6fda57517c5a",
+    "semantic_hash": "632ad186f8aff541910f6fda57517c5a"
   },
   "finankal-ui/src/routes/accounts/[id]/+page.server.ts": {
-    "mtime": 1786105003.427,
-    "seen": 1794081770.0790544,
-    "ast_hash": "0142256a5c9e46ff54b367741858ac06",
-    "semantic_hash": "0142256a5c9e46ff54b367741858ac06"
+    "mtime": 1794238658.7311082,
+    "seen": 1794329075.0760696,
+    "ast_hash": "de74922580ad8371722f283cd68f1af3",
+    "semantic_hash": "de74922580ad8371722f283cd68f1af3"
   },
   "finankal-ui/src/routes/accounts/[id]/+page.svelte": {
-    "mtime": 1786105009.283,
-    "seen": 1794081770.0790555,
-    "ast_hash": "1c04bfab4a4ddd4f10d81e14f29009bc",
-    "semantic_hash": "1c04bfab4a4ddd4f10d81e14f29009bc"
+    "mtime": 1794238915.8658798,
+    "seen": 1794329075.0761042,
+    "ast_hash": "c7ad77a1d7ba8c681eef2837d22a3293",
+    "semantic_hash": "c7ad77a1d7ba8c681eef2837d22a3293"
   },
   "finankal-ui/src/routes/transactions/+page.server.ts": {
-    "mtime": 1787173660.753,
-    "seen": 1794081770.079057,
-    "ast_hash": "2dd3770c5a7cbb8724318bf7061e28f4",
-    "semantic_hash": "2dd3770c5a7cbb8724318bf7061e28f4"
+    "mtime": 1794186552.7156043,
+    "seen": 1794329075.0761983,
+    "ast_hash": "2c15b7d5a9f785050ed797b7581743f6",
+    "semantic_hash": "2c15b7d5a9f785050ed797b7581743f6"
   },
   "finankal-ui/src/routes/transactions/+page.svelte": {
-    "mtime": 1787173191.02,
-    "seen": 1794081770.0790584,
-    "ast_hash": "e792e2c96b1ecb868d43a58269d9fb47",
-    "semantic_hash": "e792e2c96b1ecb868d43a58269d9fb47"
+    "mtime": 1794221291.37547,
+    "seen": 1794329075.0762289,
+    "ast_hash": "2e1a49bccdce90e794f035239e2b78ef",
+    "semantic_hash": "2e1a49bccdce90e794f035239e2b78ef"
   },
   "finankal-ui/src/routes/transactions/[id]/+page.server.ts": {
-    "mtime": 1787167738.029,
-    "seen": 1794081770.0790603,
-    "ast_hash": "2040c5648af58a64473297e048ee9a88",
-    "semantic_hash": "2040c5648af58a64473297e048ee9a88"
+    "mtime": 1794244662.647385,
+    "seen": 1794329075.0762591,
+    "ast_hash": "9d2de7c62b2a719c3611dd380dd9cc49",
+    "semantic_hash": "9d2de7c62b2a719c3611dd380dd9cc49"
   },
   "finankal-ui/src/routes/transactions/[id]/+page.svelte": {
-    "mtime": 1787167807.843,
-    "seen": 1794081770.0790615,
-    "ast_hash": "977aca7d45a72394f4cfc42ee646c2e7",
-    "semantic_hash": "977aca7d45a72394f4cfc42ee646c2e7"
+    "mtime": 1794244707.2188225,
+    "seen": 1794329075.076292,
+    "ast_hash": "a4a9276d6fe941d904e48011be56f3e6",
+    "semantic_hash": "a4a9276d6fe941d904e48011be56f3e6"
   },
   "finankal-ui/src/routes/transactions/new/+page.server.ts": {
     "mtime": 1786136528.266,
@@ -648,10 +639,10 @@
     "semantic_hash": "946e2059cbd5724187c051fc25a253e5"
   },
   "finankal-ui/src/routes/transactions/new/+page.svelte": {
-    "mtime": 1786136858.368,
-    "seen": 1794081770.0790641,
-    "ast_hash": "5561e013886c8eec352c4310c78c108d",
-    "semantic_hash": "5561e013886c8eec352c4310c78c108d"
+    "mtime": 1794185912.9279714,
+    "seen": 1794329075.076486,
+    "ast_hash": "9cf457bdfd191a2cb862cd28f7187ea4",
+    "semantic_hash": "9cf457bdfd191a2cb862cd28f7187ea4"
   },
   "finankal-ui/tsconfig.json": {
     "mtime": 1786102330.57046,
@@ -716,13 +707,308 @@
   "db/schema.sql": {
     "mtime": 1786121332.794,
     "seen": 1794081770.0789359,
-    "ast_hash": "eb5a6d2f84784628f8dcf924fd3261b9",
-    "semantic_hash": "eb5a6d2f84784628f8dcf924fd3261b9"
+    "ast_hash": "",
+    "semantic_hash": ""
   },
   "db/test_data.sql": {
     "mtime": 1786115363.646,
     "seen": 1794081770.0789375,
     "ast_hash": "a11b317d4207ef1fab7332662f82ea40",
     "semantic_hash": "a11b317d4207ef1fab7332662f82ea40"
+  },
+  "api-spring/src/main/java/com/finankal/api/controller/StatementImportController.java": {
+    "mtime": 1794220848.9806035,
+    "seen": 1794329075.06842,
+    "ast_hash": "527b8627f98c1da97152cc27626f49af",
+    "semantic_hash": "527b8627f98c1da97152cc27626f49af"
+  },
+  "api-spring/src/main/java/com/finankal/api/dto/BankStatementDto.java": {
+    "mtime": 1794220846.1876447,
+    "seen": 1794329075.0686748,
+    "ast_hash": "90f4530db44deb38131efa52d5a79aa8",
+    "semantic_hash": "90f4530db44deb38131efa52d5a79aa8"
+  },
+  "api-spring/src/main/java/com/finankal/api/dto/CreateInstallmentsRequestDto.java": {
+    "mtime": 1794238556.8477893,
+    "seen": 1794329075.069004,
+    "ast_hash": "b027bf905d9163af29cf14db52ec629e",
+    "semantic_hash": "b027bf905d9163af29cf14db52ec629e"
+  },
+  "api-spring/src/main/java/com/finankal/api/dto/MoneyFlowDto.java": {
+    "mtime": 1794223734.8916063,
+    "seen": 1794329075.0693126,
+    "ast_hash": "8e8e22836a4a81ad675c535e3f83c2be",
+    "semantic_hash": "8e8e22836a4a81ad675c535e3f83c2be"
+  },
+  "api-spring/src/main/java/com/finankal/api/dto/PayableDto.java": {
+    "mtime": 1794225691.8384986,
+    "seen": 1794329075.069609,
+    "ast_hash": "eea53f53c5333db9b5234c53cc2bb82c",
+    "semantic_hash": "eea53f53c5333db9b5234c53cc2bb82c"
+  },
+  "api-spring/src/main/java/com/finankal/api/dto/StatementImportResultDto.java": {
+    "mtime": 1794220164.1175156,
+    "seen": 1794329075.0700235,
+    "ast_hash": "75e1e6e6d99916a5db1ce1937dc13453",
+    "semantic_hash": "75e1e6e6d99916a5db1ce1937dc13453"
+  },
+  "api-spring/src/main/java/com/finankal/api/service/BankStatementParser.java": {
+    "mtime": 1794249142.0008495,
+    "seen": 1794329075.0705645,
+    "ast_hash": "59dfe8b92b072f775f1d1ecdbffbdb69",
+    "semantic_hash": "59dfe8b92b072f775f1d1ecdbffbdb69"
+  },
+  "api-spring/src/main/java/com/finankal/api/service/LoanDisclosureParser.java": {
+    "mtime": 1794240505.4208922,
+    "seen": 1794329075.0708034,
+    "ast_hash": "6cfe28d4a1d82c4c55d5933bc0799f0e",
+    "semantic_hash": "6cfe28d4a1d82c4c55d5933bc0799f0e"
+  },
+  "api-spring/src/main/java/com/finankal/api/service/StatementImportService.java": {
+    "mtime": 1794243556.9925218,
+    "seen": 1794329075.0708702,
+    "ast_hash": "5317b848e9cfd2404a1521dc45220e96",
+    "semantic_hash": "5317b848e9cfd2404a1521dc45220e96"
+  },
+  "api-spring/src/main/java/com/finankal/api/service/StatementPdfText.java": {
+    "mtime": 1794185183.0929399,
+    "seen": 1794329075.07092,
+    "ast_hash": "36e5e4dae58fccddb649f1f97a590ab6",
+    "semantic_hash": "36e5e4dae58fccddb649f1f97a590ab6"
+  },
+  "api-spring/src/test/java/com/finankal/api/service/BankStatementParserTest.java": {
+    "mtime": 1794249142.0008495,
+    "seen": 1794329075.071318,
+    "ast_hash": "b8504c1768b9bc4dc2f76c1fe000e17f",
+    "semantic_hash": "b8504c1768b9bc4dc2f76c1fe000e17f"
+  },
+  "api-spring/src/test/java/com/finankal/api/service/LoanDisclosureParserTest.java": {
+    "mtime": 1794240506.0151584,
+    "seen": 1794329075.0713701,
+    "ast_hash": "1b93dfc650227dff0418ee5a214f8a27",
+    "semantic_hash": "1b93dfc650227dff0418ee5a214f8a27"
+  },
+  "api-spring/src/test/java/com/finankal/api/service/StatementPdfTextTest.java": {
+    "mtime": 1794185239.2001183,
+    "seen": 1794329075.0714724,
+    "ast_hash": "6f1114094df71505154bbc463711ff38",
+    "semantic_hash": "6f1114094df71505154bbc463711ff38"
+  },
+  "dev.sh": {
+    "mtime": 1794219137.3235948,
+    "seen": 1794329075.0716596,
+    "ast_hash": "4db89efa95a4bfd5443ea8dc7682c50b",
+    "semantic_hash": "4db89efa95a4bfd5443ea8dc7682c50b"
+  },
+  "engine-go/cmd/server/server_test.go": {
+    "mtime": 1794084346.5038064,
+    "seen": 1794329075.0717962,
+    "ast_hash": "2866518184108f06891b7efa7e09b3dd",
+    "semantic_hash": "2866518184108f06891b7efa7e09b3dd"
+  },
+  "engine-go/internal/credit/billing_test.go": {
+    "mtime": 1794232750.4526603,
+    "seen": 1794329075.0720797,
+    "ast_hash": "9394b10bad38a39b69fccf250a1e2848",
+    "semantic_hash": "9394b10bad38a39b69fccf250a1e2848"
+  },
+  "engine-go/internal/credit/bills.go": {
+    "mtime": 1794232716.3433502,
+    "seen": 1794329075.072107,
+    "ast_hash": "8f8f75716e28db18e952916c6a63962f",
+    "semantic_hash": "8f8f75716e28db18e952916c6a63962f"
+  },
+  "engine-go/internal/credit/service_integration_test.go": {
+    "mtime": 1794186489.733967,
+    "seen": 1794329075.0722733,
+    "ast_hash": "ccac4bce143818024ee4c848eaf7a793",
+    "semantic_hash": "ccac4bce143818024ee4c848eaf7a793"
+  },
+  "engine-go/internal/ledger/validation_test.go": {
+    "mtime": 1794084346.3598063,
+    "seen": 1794329075.072555,
+    "ast_hash": "03fe013a21c188a6a53fd6b829ef45f5",
+    "semantic_hash": "03fe013a21c188a6a53fd6b829ef45f5"
+  },
+  "engine-go/internal/loan/interest.go": {
+    "mtime": 1794240948.8090725,
+    "seen": 1794329075.0725827,
+    "ast_hash": "6324607ea350e66a8809e8079cc0bc5b",
+    "semantic_hash": "6324607ea350e66a8809e8079cc0bc5b"
+  },
+  "engine-go/internal/loan/interest_test.go": {
+    "mtime": 1794240949.2477937,
+    "seen": 1794329075.0726113,
+    "ast_hash": "d8a803633471085d64d4e020f4754c88",
+    "semantic_hash": "d8a803633471085d64d4e020f4754c88"
+  },
+  "engine-go/internal/loan/service.go": {
+    "mtime": 1794240307.4510376,
+    "seen": 1794329075.0726385,
+    "ast_hash": "4a63bc827d0777056bc1bd1b2f52fc75",
+    "semantic_hash": "4a63bc827d0777056bc1bd1b2f52fc75"
+  },
+  "engine-go/internal/schedule/service_test.go": {
+    "mtime": 1794238549.9541144,
+    "seen": 1794329075.0727754,
+    "ast_hash": "9ca7dbce5d3930e1c34c264c7566782a",
+    "semantic_hash": "9ca7dbce5d3930e1c34c264c7566782a"
+  },
+  "engine-go/internal/statement/repository.go": {
+    "mtime": 1794250781.4746265,
+    "seen": 1794329075.0728111,
+    "ast_hash": "175d5099671de9a5beced4091b9406bd",
+    "semantic_hash": "175d5099671de9a5beced4091b9406bd"
+  },
+  "engine-go/internal/statement/service.go": {
+    "mtime": 1794250806.211347,
+    "seen": 1794329075.072842,
+    "ast_hash": "8688aee78fdf0e59b960b3a289221a1f",
+    "semantic_hash": "8688aee78fdf0e59b960b3a289221a1f"
+  },
+  "engine-go/internal/statement/service_integration_test.go": {
+    "mtime": 1794250794.2930477,
+    "seen": 1794329075.0728712,
+    "ast_hash": "31020b23ef87fa136dbdf0d675bf4d00",
+    "semantic_hash": "31020b23ef87fa136dbdf0d675bf4d00"
+  },
+  "finankal-ui/.superdesign/resume.json": {
+    "mtime": 1794182120.0013945,
+    "seen": 1794329075.0729005,
+    "ast_hash": "598fdec59a45e5b898d789b105d6e661",
+    "semantic_hash": "598fdec59a45e5b898d789b105d6e661",
+    "ast_empty": true
+  },
+  "finankal-ui/src/lib/components/accounts/AccountBadge.svelte": {
+    "mtime": 1794233177.1158512,
+    "seen": 1794329075.0732703,
+    "ast_hash": "b0963f88ac37cea0c85536ce891432b6",
+    "semantic_hash": "b0963f88ac37cea0c85536ce891432b6"
+  },
+  "finankal-ui/src/lib/components/accounts/AccountDeadlines.svelte": {
+    "mtime": 1794238863.9423926,
+    "seen": 1794329075.0733056,
+    "ast_hash": "459dd20ef8144435dec65febb73cc981",
+    "semantic_hash": "459dd20ef8144435dec65febb73cc981"
+  },
+  "finankal-ui/src/lib/components/accounts/InstallmentDialog.svelte": {
+    "mtime": 1794238842.6744986,
+    "seen": 1794329075.0733721,
+    "ast_hash": "8d2f5f05f5c5984ab66a4f1d2a203e80",
+    "semantic_hash": "8d2f5f05f5c5984ab66a4f1d2a203e80"
+  },
+  "finankal-ui/src/lib/components/accounts/NetPositionCarousel.svelte": {
+    "mtime": 1794228272.0090444,
+    "seen": 1794329075.0734377,
+    "ast_hash": "694d9157bc01d850e703de69487d2eda",
+    "semantic_hash": "694d9157bc01d850e703de69487d2eda"
+  },
+  "finankal-ui/src/lib/components/accounts/PositionCard.svelte": {
+    "mtime": 1794228256.3721766,
+    "seen": 1794329075.0734704,
+    "ast_hash": "abec942a67b083a4ca0be60de46f1c63",
+    "semantic_hash": "abec942a67b083a4ca0be60de46f1c63"
+  },
+  "finankal-ui/src/lib/components/dashboard/AccountsPanel.svelte": {
+    "mtime": 1794238905.972445,
+    "seen": 1794329075.0735037,
+    "ast_hash": "79b088f9c08bda26f83b09176812dc7d",
+    "semantic_hash": "79b088f9c08bda26f83b09176812dc7d"
+  },
+  "finankal-ui/src/lib/components/dashboard/NetPositionTile.svelte": {
+    "mtime": 1794226637.5736268,
+    "seen": 1794329075.0737295,
+    "ast_hash": "79d8d0fba845dd8a29e6b0d242382172",
+    "semantic_hash": "79d8d0fba845dd8a29e6b0d242382172"
+  },
+  "finankal-ui/src/lib/components/dashboard/NetWorthChart.svelte": {
+    "mtime": 1794182438.176534,
+    "seen": 1794329075.073762,
+    "ast_hash": "91317429e73d8fed32aac03a9e7c3059",
+    "semantic_hash": "91317429e73d8fed32aac03a9e7c3059"
+  },
+  "finankal-ui/src/lib/components/dashboard/PayablesCard.svelte": {
+    "mtime": 1794226966.895,
+    "seen": 1794329075.0737948,
+    "ast_hash": "52c48b5fa657bc704f2603e78349917b",
+    "semantic_hash": "52c48b5fa657bc704f2603e78349917b"
+  },
+  "finankal-ui/src/lib/server/api/bankStatements.ts": {
+    "mtime": 1794228970.5291233,
+    "seen": 1794329075.074619,
+    "ast_hash": "cdaceaad8b131830565ada93e52f2c57",
+    "semantic_hash": "cdaceaad8b131830565ada93e52f2c57"
+  },
+  "finankal-ui/src/lib/server/api/flows.ts": {
+    "mtime": 1794223824.8765566,
+    "seen": 1794329075.074881,
+    "ast_hash": "d74db451cd27294ae227f6f9f88bebbd",
+    "semantic_hash": "d74db451cd27294ae227f6f9f88bebbd"
+  },
+  "finankal-ui/src/lib/server/api/payables.ts": {
+    "mtime": 1794238648.1030552,
+    "seen": 1794329075.0749156,
+    "ast_hash": "8a8b5ab32ec02c2925bfbbd5dfb370e6",
+    "semantic_hash": "8a8b5ab32ec02c2925bfbbd5dfb370e6"
+  },
+  "finankal-ui/src/lib/server/netPosition.ts": {
+    "mtime": 1794227266.4704545,
+    "seen": 1794329075.0751762,
+    "ast_hash": "f34c8fa326957255f7565d0af4f039f7",
+    "semantic_hash": "f34c8fa326957255f7565d0af4f039f7"
+  },
+  "finankal-ui/src/lib/utils/bankColors.ts": {
+    "mtime": 1794242507.177908,
+    "seen": 1794329075.0756521,
+    "ast_hash": "90121e372d08dd7938c7a630b168c170",
+    "semantic_hash": "90121e372d08dd7938c7a630b168c170"
+  },
+  "finankal-ui/src/lib/utils/date.ts": {
+    "mtime": 1794221461.3185604,
+    "seen": 1794329075.0757852,
+    "ast_hash": "525e5050918fe662b3c9dc0e7edcbbdb",
+    "semantic_hash": "525e5050918fe662b3c9dc0e7edcbbdb"
+  },
+  "finankal-ui/src/lib/utils/moneyFlowGraph.ts": {
+    "mtime": 1794223803.0255356,
+    "seen": 1794329075.0758202,
+    "ast_hash": "07ecd2877f8767bd8fab6f9088c1d9ed",
+    "semantic_hash": "07ecd2877f8767bd8fab6f9088c1d9ed"
+  },
+  "finankal-ui/src/lib/utils/payables.ts": {
+    "mtime": 1794228255.9302368,
+    "seen": 1794329075.0758562,
+    "ast_hash": "0ca839a669727a5d926ed54d78c42d00",
+    "semantic_hash": "0ca839a669727a5d926ed54d78c42d00"
+  },
+  "finankal-ui/src/lib/utils/statementChecklist.ts": {
+    "mtime": 1794231014.3823998,
+    "seen": 1794329075.0758877,
+    "ast_hash": "e83874d7a8903a938032bd1029658e2d",
+    "semantic_hash": "e83874d7a8903a938032bd1029658e2d"
+  },
+  "finankal-ui/src/routes/flows/+page.server.ts": {
+    "mtime": 1794223825.2482593,
+    "seen": 1794329075.0761375,
+    "ast_hash": "c6263128cd1adfcac70d2884a0e276ac",
+    "semantic_hash": "c6263128cd1adfcac70d2884a0e276ac"
+  },
+  "finankal-ui/src/routes/flows/+page.svelte": {
+    "mtime": 1794237851.2944694,
+    "seen": 1794329075.0761678,
+    "ast_hash": "609a9b13cabdaf8b860c0e812239aa4d",
+    "semantic_hash": "609a9b13cabdaf8b860c0e812239aa4d"
+  },
+  "finankal-ui/src/routes/transactions/import/+page.server.ts": {
+    "mtime": 1794230637.2221777,
+    "seen": 1794329075.0763247,
+    "ast_hash": "5e45e076fb335a58bb9c6ee9db21b015",
+    "semantic_hash": "5e45e076fb335a58bb9c6ee9db21b015"
+  },
+  "finankal-ui/src/routes/transactions/import/+page.svelte": {
+    "mtime": 1794239457.2025404,
+    "seen": 1794329075.0763574,
+    "ast_hash": "8af715fc29ea7bb5dd15f39f25f06dc4",
+    "semantic_hash": "8af715fc29ea7bb5dd15f39f25f06dc4"
   }
 }

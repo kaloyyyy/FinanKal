@@ -1,1 +1,0 @@
-{"nodes": [{"id": "pkg_com_finankal_finankal", "label": "com.finankal:finankal", "file_type": "code", "type": "package", "ecosystem": "maven", "source_file": "pom.xml", "source_location": "L1", "version": "0.0.1-SNAPSHOT"}], "edges": []}
