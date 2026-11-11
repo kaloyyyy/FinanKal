@@ -33,7 +33,7 @@ export const actions: Actions = {
             return fail(400, { error: "Choose a bank from the list, or let FinanKal detect it." });
         }
         if (!files.length) {
-            return fail(400, { error: "Add the statement PDFs you downloaded from your bank." });
+            return fail(400, { error: "Add the statement files you downloaded from your bank." });
         }
 
         try {

@@ -30,8 +30,9 @@
     const imported = $derived(form?.results?.filter((r) => r.status === "IMPORTED") ?? []);
     const totalRecorded = $derived(imported.reduce((sum, r) => sum + r.imported, 0));
 
+    // PDFs, or the .xlsx transaction history UnionBank exports.
     function isPdf(f: File) {
-        return f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf");
+        return f.type === "application/pdf" || /\.(pdf|xlsx)$/i.test(f.name);
     }
 
     /** Adds files to the list (same name and size = same file) and mirrors the list into the real input. */
@@ -40,7 +41,7 @@
         const chosen = Array.from(list);
         const notPdf = chosen.filter((f) => !isPdf(f));
         fileError = notPdf.length
-            ? `${notPdf.map((f) => f.name).join(", ")} ${notPdf.length === 1 ? "isn't a PDF" : "aren't PDFs"}. Download statements as PDFs from your bank's app or website.`
+            ? `${notPdf.map((f) => f.name).join(", ")} ${notPdf.length === 1 ? "isn't a PDF or .xlsx file" : "aren't PDF or .xlsx files"}. Download statements as PDFs (or UnionBank's .xlsx) from your bank's app or website.`
             : "";
         const fresh = chosen.filter((f) => isPdf(f) && !files.some((g) => g.name === f.name && g.size === f.size));
         files = [...files, ...fresh];
@@ -261,7 +262,7 @@
                         name="files"
                         type="file"
                         multiple
-                        accept="application/pdf,.pdf"
+                        accept="application/pdf,.pdf,.xlsx"
                         class="peer sr-only"
                         aria-labelledby="file-heading"
                         aria-describedby={fileError ? "file-error" : undefined}
@@ -288,7 +289,7 @@
                     <p class="mt-4 text-sm font-semibold text-white">
                         {files.length ? "Add more statements" : "Drop your statements here"}, or <span class="text-blue-400">browse files</span>
                     </p>
-                    <p class="mt-1 text-xs text-slate-500">PDFs up to 10 MB each, any months, any banks</p>
+                    <p class="mt-1 text-xs text-slate-500">PDFs (or UnionBank .xlsx) up to 10 MB each, any months, any banks</p>
                 </label>
 
                 {#if files.length}
@@ -321,7 +322,7 @@
 
                 <div class="mt-5">
                     <label for="password" class="mb-2 block text-sm font-medium text-slate-300">
-                        PDF password <span class="font-normal text-slate-500">(if they ask for one)</span>
+                        File password <span class="font-normal text-slate-500">(if they ask for one)</span>
                     </label>
                     <input
                             id="password"
@@ -332,7 +333,7 @@
                             class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500 sm:max-w-xs"
                     />
                     <p id="password-hint" class="mt-2 text-xs text-slate-500">
-                        Some banks, like GCash and BDO, lock their statement PDFs. It's tried on every file and only used to open them.
+                        Some banks, like GCash and BDO, lock their statement files. It's tried on every file and only used to open them.
                     </p>
                 </div>
             </div>

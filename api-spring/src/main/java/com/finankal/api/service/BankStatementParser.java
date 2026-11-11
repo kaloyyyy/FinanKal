@@ -35,7 +35,8 @@ public final class BankStatementParser {
         BPI("BPI", "bank of the philippine islands|\\bbpi\\b"),
         // UnionBank's transaction history shows its name only in the logo image, so its table header
         // (printed above the rows, where a "BPI" transfer could otherwise come first) identifies it.
-        UNIONBANK("UnionBank", "unionbank|union bank of the philippines|check no\\. ref\\. no\\."),
+        // Its .xlsx export spells the same header "CHECK NO REFERENCE NO".
+        UNIONBANK("UnionBank", "unionbank|union bank of the philippines|check no\\. ref\\. no\\.|check no reference no"),
         // UnionBank credit card statement of account: its first line, and the card's product name.
         // Card statement of account (first line, product name) or card transaction history (its table header).
         UNIONBANK_CARD("UnionBank Credit Card",
@@ -142,8 +143,12 @@ public final class BankStatementParser {
     private static final Pattern CARD_INTEREST = Pattern.compile("(?i)\\binterest\\b|finance charge");
     private static final Pattern CARD_FEE = Pattern.compile("(?i)\\b(processing|annual|membership|late(?: payment)?|service|cash advance|overlimit)\\s+fee\\b");
 
-    /** UnionBank payroll credit: an S-reference and the employee's name as "Surname, Given names". */
-    private static final Pattern UNIONBANK_PAYROLL = Pattern.compile("^S\\d+ [A-Za-z][A-Za-z .'-]*, [A-Za-z][A-Za-z .'-]*$");
+    /**
+     * UnionBank payroll credit: an S-reference and the employee's name as "Surname, Given names" (PDF),
+     * or the batch name, "AUSTRIAPAYROLLJAN312026" (.xlsx).
+     */
+    private static final Pattern UNIONBANK_PAYROLL = Pattern.compile(
+            "^S\\d+ (?:[A-Za-z][A-Za-z .'-]*, [A-Za-z][A-Za-z .'-]*|\\S*PAYROLL\\S*)$");
 
     /**
      * The income / expense account a row belongs to, or "" for Incoming / Outgoing Transfers.

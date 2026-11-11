@@ -28,7 +28,7 @@ import java.util.Locale;
 import java.util.UUID;
 
 /**
- * Parses PDF statements and hands each to the engine, which imports it in one transaction
+ * Parses PDF (or .xlsx) statements and hands each to the engine, which imports it in one transaction
  * (see docs/adr/0001-bank-statement-import.md). The bank and account are detected from the
  * statement unless the caller chooses them.
  */
@@ -75,7 +75,8 @@ public class StatementImportService {
                 if (upload.pdf().length == 0) {
                     throw new IllegalArgumentException("The file is empty.");
                 }
-                String text = StatementPdfText.extract(upload.pdf(), password);
+                boolean xlsx = upload.fileName() != null && upload.fileName().toLowerCase(Locale.ROOT).endsWith(".xlsx");
+                String text = xlsx ? StatementXlsxText.extract(upload.pdf(), password) : StatementPdfText.extract(upload.pdf(), password);
                 if (LoanDisclosureParser.isDisclosure(text)) {
                     // Loans first, so statements in the same upload can pay into them.
                     results.add(sendLoan(upload, LoanDisclosureParser.parse(text), userId));
@@ -165,7 +166,7 @@ public class StatementImportService {
         LocalDate end = parsed.periodEnd() != null ? parsed.periodEnd()
                 : parsed.lines().stream().map(Line::date).max(LocalDate::compareTo).orElse(null);
         if (start == null || end == null) {
-            throw new IllegalArgumentException("No transactions or statement period were found in this PDF. Check that it's a "
+            throw new IllegalArgumentException("No transactions or statement period were found in this file. Check that it's a "
                     + bank.label + " statement.");
         }
         BankStatementParser.CardSummary bill = bank.card ? BankStatementParser.cardSummary(text) : null;
