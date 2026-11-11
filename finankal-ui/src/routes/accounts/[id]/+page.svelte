@@ -25,6 +25,13 @@
     const owed = $derived(data.account.type === "LIABILITY" || data.account.type === "CREDIT_CARD");
     // The engine's balance is debits − credits, so money owed shows as a negative balance.
     const balance = $derived(Number(data.account.balance));
+    // A card's headline is its next bill (with the installments billed on it) and when that's due, not the ledger balance.
+    const nextBill = $derived.by(() => {
+        const first = data.account.type === "CREDIT_CARD" ? data.deadlines[0] : undefined;
+        if (!first) return null;
+        const cents = data.deadlines.filter((d) => d.dueDate === first.dueDate).reduce((c, d) => c + Math.round(Number(d.amount) * 100), 0);
+        return { amount: cents / 100, dueDate: first.dueDate };
+    });
 </script>
 
 <svelte:head>
@@ -58,10 +65,10 @@
         </div>
 
         <div class="border-l-2 border-blue-500 pl-5">
-            <p class="text-sm text-slate-400">{owed && balance <= 0 ? "You owe" : "Balance"}</p>
+            <p class="text-sm text-slate-400">{nextBill ? `You owe by ${formatDate(nextBill.dueDate)}` : owed && balance <= 0 ? "You owe" : "Balance"}</p>
             <p class={`text-4xl font-bold tracking-tight tabular-nums sm:text-5xl ${
                 owed ? "text-white" : balance < 0 ? "text-red-400" : "text-white"}`}>
-                {currency.format(owed && balance <= 0 ? -balance : balance)}
+                {currency.format(nextBill ? nextBill.amount : owed && balance <= 0 ? -balance : balance)}
             </p>
         </div>
     </header>
