@@ -11,6 +11,8 @@ export interface Payable {
     sourceAccountId?: string | null;
     scheduleId?: string | null;
     occurrenceId?: string | null;
+    /** How much of the amount holds a card's limit until paid (installment principal); unset = all of it. */
+    principal?: number | null;
     /** Paikot: set when a card is linked to pay this account's dues. Charge it from payFrom to payBy and the due moves to dueDate. */
     paikot?: { cardId: string; cardName: string; payFrom: string; payBy: string; dueDate: string; fee: number } | null;
 }
@@ -36,9 +38,9 @@ export interface CardLimit {
 }
 
 /**
- * What the card owes and its unpaid installments hold the limit. Each due paid frees its amount (on its
- * due date, or when another card pays it), and a paikot charge on the card takes the amount plus the fee.
- * shortcut: unpaid installments are held at their full amount, interest included; hold principal only once plans record it.
+ * What the card owes and its unpaid installments hold the limit: their principal when the plan has a monthly
+ * rate, like the bank counts it, else the whole installment. Each due paid frees what it held (on its due
+ * date, or when another card pays it), and a paikot charge on the card takes the amount plus the fee.
  */
 export function cardLimits(
     accounts: { id: string; name: string; type: string; balance: number; creditLimit?: number }[],
@@ -47,7 +49,8 @@ export function cardLimits(
     nextMonth: string
 ): CardLimit[] {
     const cents = (n: number) => Math.round(Number(n) * 100);
-    const total = (items: Payable[]) => items.reduce((c, p) => c + cents(p.amount), 0);
+    const held = (p: Payable) => cents(p.principal ?? p.amount);
+    const total = (items: Payable[]) => items.reduce((c, p) => c + held(p), 0);
     const until = (p: Payable, month: string) => p.dueDate.slice(0, 7) <= month;
     return accounts
         .filter((a) => a.type === "CREDIT_CARD" && a.creditLimit != null)
@@ -59,7 +62,7 @@ export function cardLimits(
             const afterNextMonth = now + total(own.filter((p) => until(p, nextMonth)));
             // In date order, payments before charges on the same day: repay first, then borrow again.
             const events = [
-                ...own.filter((p) => until(p, nextMonth)).map((p) => ({ date: p.paikot?.payBy ?? p.dueDate, cents: cents(p.amount) })),
+                ...own.filter((p) => until(p, nextMonth)).map((p) => ({ date: p.paikot?.payBy ?? p.dueDate, cents: held(p) })),
                 ...payables
                     .filter((p) => p.paikot?.cardId === card.id && until(p, nextMonth))
                     .map((p) => ({ date: p.paikot!.payBy, cents: -cents(p.amount) - cents(p.paikot!.fee) }))

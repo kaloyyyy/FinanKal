@@ -1515,6 +1515,7 @@ type Payable struct {
 	PaikotPayBy    string `protobuf:"bytes,15,opt,name=paikot_pay_by,json=paikotPayBy,proto3" json:"paikot_pay_by,omitempty"`       // ... to this one, and it's billed on the card's next statement,
 	PaikotDueDate  string `protobuf:"bytes,16,opt,name=paikot_due_date,json=paikotDueDate,proto3" json:"paikot_due_date,omitempty"` // due on this day
 	PaikotFee      string `protobuf:"bytes,17,opt,name=paikot_fee,json=paikotFee,proto3" json:"paikot_fee,omitempty"`
+	Principal      string `protobuf:"bytes,18,opt,name=principal,proto3" json:"principal,omitempty"` // how much of the amount holds a card's limit until paid; empty = all of it
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -1664,6 +1665,13 @@ func (x *Payable) GetPaikotDueDate() string {
 func (x *Payable) GetPaikotFee() string {
 	if x != nil {
 		return x.PaikotFee
+	}
+	return ""
+}
+
+func (x *Payable) GetPrincipal() string {
+	if x != nil {
+		return x.Principal
 	}
 	return ""
 }
@@ -4368,7 +4376,7 @@ const file_finance_proto_rawDesc = "" +
 	"\x15GetMoneyFlowsResponse\x12(\n" +
 	"\x05flows\x18\x01 \x03(\v2\x12.finance.MoneyFlowR\x05flows\"-\n" +
 	"\x12GetPayablesRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"\xe1\x04\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"\xff\x04\n" +
 	"\aPayable\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
 	"\n" +
@@ -4390,7 +4398,8 @@ const file_finance_proto_rawDesc = "" +
 	"\rpaikot_pay_by\x18\x0f \x01(\tR\vpaikotPayBy\x12&\n" +
 	"\x0fpaikot_due_date\x18\x10 \x01(\tR\rpaikotDueDate\x12\x1d\n" +
 	"\n" +
-	"paikot_fee\x18\x11 \x01(\tR\tpaikotFee\"\x88\x01\n" +
+	"paikot_fee\x18\x11 \x01(\tR\tpaikotFee\x12\x1c\n" +
+	"\tprincipal\x18\x12 \x01(\tR\tprincipal\"\x88\x01\n" +
 	"\x14SetPaikotLinkRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1d\n" +
 	"\n" +

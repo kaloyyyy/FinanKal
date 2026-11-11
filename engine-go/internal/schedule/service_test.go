@@ -16,6 +16,24 @@ func day(year int, month time.Month, d int) time.Time {
 	return time.Date(year, month, d, 0, 0, 0, 0, time.UTC)
 }
 
+func TestPrincipal(t *testing.T) {
+	d := decimal.RequireFromString
+	tests := []struct {
+		rate string
+		k    int
+		want string
+	}{
+		{"0.10", 1, "100"},
+		{"0.10", 2, "90.91"},
+		{"0", 3, "110"}, // no rate recorded: the whole installment
+	}
+	for _, test := range tests {
+		if got := Principal(d("110"), d(test.rate), test.k); !got.Equal(d(test.want)) {
+			t.Errorf("rate %s, installment %d: got %s, want %s", test.rate, test.k, got, test.want)
+		}
+	}
+}
+
 func TestGenerateDates(t *testing.T) {
 	endDate := day(2026, 1, 15)
 	dayOfMonth := func(d int) *int { return &d }

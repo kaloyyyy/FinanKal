@@ -418,15 +418,25 @@ func (s *Server) GetPayables(ctx context.Context, req *finance.GetPayablesReques
 		}
 	}
 	withInstallments := map[uuid.UUID]bool{}
+	billInterest := map[uuid.UUID]decimal.Decimal{} // interest in the installments on each card's current bill
+	unbilled := map[uuid.UUID]int{}                 // installments still to be billed, counted per plan
 
 	resp := &finance.GetPayablesResponse{}
 	for _, p := range payables {
+		// A plan with a monthly rate holds the card's limit by its principal only, so each installment
+		// carries how much of it is principal.
+		principal := p.Amount
+		if b := current[p.AccountID]; p.MonthlyRate.IsPositive() && (b == nil || !p.DueDate.Before(b.StartDate)) {
+			unbilled[p.ScheduleID]++
+			principal = schedule.Principal(p.Amount, p.MonthlyRate, unbilled[p.ScheduleID])
+		}
 		// A card installment is billed on the statement its date falls in: one in the current cycle is part
 		// of that bill, an earlier one is already on a statement.
 		// shortcut: from a statement date until that statement is imported, its installments show in neither; fold by imported statements if the gap matters.
 		if b := current[p.AccountID]; b != nil && !p.DueDate.After(b.StatementDate) {
 			if !p.DueDate.Before(b.StartDate) {
 				b.Owed = b.Owed.Add(p.Amount)
+				billInterest[p.AccountID] = billInterest[p.AccountID].Add(p.Amount.Sub(principal))
 				withInstallments[p.AccountID] = true
 			}
 			continue
@@ -451,6 +461,9 @@ func (s *Server) GetPayables(ctx context.Context, req *finance.GetPayablesReques
 			Installments:      deref(p.Installments),
 			ScheduledDate:     p.DueDate.Format(statementDateFormat),
 		}
+		if !principal.Equal(p.Amount) {
+			payable.Principal = principal.String()
+		}
 		if p.SourceAccountID != nil {
 			payable.SourceAccountId = p.SourceAccountID.String()
 		}
@@ -472,6 +485,9 @@ func (s *Server) GetPayables(ctx context.Context, req *finance.GetPayablesReques
 			AccountName: b.CardName,
 			DueDate:     b.DueDate.Format(statementDateFormat),
 			Amount:      b.Owed.String(),
+		}
+		if interest := billInterest[b.CardID]; b.SoFar && interest.IsPositive() {
+			payable.Principal = b.Owed.Sub(interest).String()
 		}
 		roll(payable, b.CardID, b.DueDate, b.Owed)
 		resp.Payables = append(resp.Payables, payable)

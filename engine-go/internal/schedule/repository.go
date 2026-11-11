@@ -403,6 +403,13 @@ type Payable struct {
 	Amount            decimal.Decimal
 	InstallmentNumber *int
 	Installments      *int // the last installment number recorded, i.e. the loan's term
+	MonthlyRate       decimal.Decimal
+}
+
+// Principal is the part of an installment that is principal when it's the k-th one still to be billed
+// (1 = next) on a plan charging rate a month: its present value. The rest of it is interest.
+func Principal(amount, rate decimal.Decimal, k int) decimal.Decimal {
+	return amount.Div(decimal.NewFromInt(1).Add(rate).Pow(decimal.NewFromInt(int64(k)))).Round(2)
 }
 
 // GetPayables returns the user's unpaid installments, soonest first: pending occurrences of active
@@ -410,7 +417,7 @@ type Payable struct {
 func (r *ScheduleRepository) GetPayables(ctx context.Context, userID uuid.UUID) ([]Payable, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT s.name, s.id, o.id, a.id, a.name, a.type, s.source_account_id, o.scheduled_date, COALESCE(o.amount, s.amount), o.installment_number,
-		       MAX(o.installment_number) OVER (PARTITION BY s.id)
+		       MAX(o.installment_number) OVER (PARTITION BY s.id), s.monthly_rate
 		FROM scheduled_transaction_occurrences o
 		JOIN scheduled_transactions s ON s.id = o.scheduled_transaction_id
 		JOIN accounts a ON a.id = s.destination_account_id
@@ -425,7 +432,7 @@ func (r *ScheduleRepository) GetPayables(ctx context.Context, userID uuid.UUID) 
 	}
 	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (Payable, error) {
 		var p Payable
-		err := row.Scan(&p.Name, &p.ScheduleID, &p.OccurrenceID, &p.AccountID, &p.AccountName, &p.AccountType, &p.SourceAccountID, &p.DueDate, &p.Amount, &p.InstallmentNumber, &p.Installments)
+		err := row.Scan(&p.Name, &p.ScheduleID, &p.OccurrenceID, &p.AccountID, &p.AccountName, &p.AccountType, &p.SourceAccountID, &p.DueDate, &p.Amount, &p.InstallmentNumber, &p.Installments, &p.MonthlyRate)
 		return p, err
 	})
 }

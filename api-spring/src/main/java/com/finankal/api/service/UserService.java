@@ -69,7 +69,8 @@ public class UserService {
                         p.getScheduleId().isBlank() ? null : p.getScheduleId(),
                         p.getOccurrenceId().isBlank() ? null : p.getOccurrenceId(),
                         p.getPaikotCardId().isBlank() ? null : new PayableDto.Paikot(p.getPaikotCardId(), p.getPaikotCardName(),
-                                p.getPaikotPayFrom(), p.getPaikotPayBy(), p.getPaikotDueDate(), new BigDecimal(p.getPaikotFee()))))
+                                p.getPaikotPayFrom(), p.getPaikotPayBy(), p.getPaikotDueDate(), new BigDecimal(p.getPaikotFee())),
+                        p.getPrincipal().isBlank() ? null : new BigDecimal(p.getPrincipal())))
                 .toList();
     }
 

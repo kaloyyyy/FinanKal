@@ -279,6 +279,7 @@ message Payable {
   string paikot_pay_by = 15;   // ... to this one, and it's billed on the card's next statement,
   string paikot_due_date = 16; // due on this day
   string paikot_fee = 17;
+  string principal = 18; // how much of the amount holds a card's limit until paid; empty = all of it
 }
 
 message SetPaikotLinkRequest {
