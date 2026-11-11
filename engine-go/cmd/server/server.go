@@ -546,18 +546,25 @@ func (s *Server) UpdateInstallments(ctx context.Context, req *finance.UpdateInst
 	if err := s.loanService.Accrue(ctx, userID, today); err != nil {
 		return nil, toStatus(err)
 	}
-	payables, err := s.scheduleService.GetPayables(ctx, userID)
+	stored, err := s.scheduleService.GetPayables(ctx, userID)
 	if err != nil {
 		return nil, toStatus(err)
 	}
-	payables, err = s.loanService.Settle(ctx, userID, payables)
+	payables, err := s.loanService.Settle(ctx, userID, stored)
 	if err != nil {
 		return nil, toStatus(err)
 	}
 	firstPending := 0
+	// A partly paid first installment is shown at what's left of it; left and full are those two amounts.
+	var left, full decimal.Decimal
 	for _, p := range payables {
 		if p.ScheduleID == scheduleID && p.InstallmentNumber != nil {
 			firstPending = *p.InstallmentNumber
+			for _, st := range stored {
+				if st.OccurrenceID == p.OccurrenceID {
+					left, full = p.Amount, st.Amount
+				}
+			}
 			break
 		}
 	}
@@ -579,6 +586,13 @@ func (s *Server) UpdateInstallments(ctx context.Context, req *finance.UpdateInst
 			return nil, e
 		}
 		items = append(items, schedule.Installment{DueDate: due, Amount: amount})
+	}
+	// Payments are taken off the stored amount on every read, so saving what's left would count them twice.
+	if len(items) > 0 && !left.Equal(full) {
+		if !items[0].Amount.Equal(left) {
+			return nil, status.Error(codes.FailedPrecondition, "the first installment is partly paid; leave its amount as shown")
+		}
+		items[0].Amount = full
 	}
 	if err := s.scheduleService.UpdateInstallments(ctx, userID, scheduleID, sourceID, req.GetName(), firstNumber, items); err != nil {
 		return nil, toStatus(err)
