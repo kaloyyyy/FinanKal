@@ -3,10 +3,6 @@
     import type {LedgerEntryDto} from "$lib/types/ledger";
     import {currency} from "$lib/utils/currency.ts";
 
-    const roundMoney = (amount: number) => Math.round(amount * 100) / 100;
-    const oldestFirst = (a: LedgerEntryDto, b: LedgerEntryDto) =>
-        Date.parse(a.createdAt ?? "") - Date.parse(b.createdAt ?? "") || (a.transactionId ?? "").localeCompare(b.transactionId ?? "");
-    const newestFirst = (a: LedgerEntryDto, b: LedgerEntryDto) => oldestFirst(b, a);
 
     interface Props {
         entries: LedgerEntryDto[];
@@ -62,102 +58,33 @@
         return close.toISOString().slice(0, 10);
     }
 
-    function statementGroup(entry: LedgerEntryDto): string {
-        const nextClose = statementDateFor(entry.createdAt);
-        // Card repayments are DEBIT entries: debits increase the card's signed balance toward zero.
-        if (entry.type !== "DEBIT" || entry.description === "Opening balance" || !nextClose) return nextClose;
-        const parts = manilaDateParts(new Date(entry.createdAt ?? ""));
-        const entryDate = `${parts.year}-${parts.month}-${parts.day}`;
-        const year = Number(parts.year), month = Number(parts.month) - 1;
-        const thisClose = statementClose(year, month);
-        if (entryDate >= thisClose) return thisClose;
-        return statementClose(year, month - 1);
-    }
-
-    // Card payments settle closed statements oldest-first; any excess rolls forward to the next statement.
+    // Entries grouped newest first, with the balance before and after each group: by statement cycle for
+    // a card, like the bank lists them (a payment sits in the cycle it was made in), else by month.
+    // The engine's balance is debits − credits for every account type, so it's the same here.
     const months = $derived.by(() => {
-        const chronologicalEntries = [...entries].sort(oldestFirst);
-        type Group = Month & { openingBalance: number; payments: LedgerEntryDto[] };
-        const grouped = new Map<string, Group>();
-        const groupFor = (key: string): Group => {
-            let group = grouped.get(key);
-            if (!group) {
-                group = { key, label: byStatement ? `Statement ending ${formatDate(key)}` : formatMonth(`${key}-01`), start: 0, end: 0, spent: 0, paid: 0, entries: [], openingBalance: 0, payments: [] };
-                grouped.set(key, group);
-            }
-            return group;
-        };
-        for (const entry of chronologicalEntries) {
-            const key = byStatement
-                ? entry.type === "DEBIT" && entry.description !== "Opening balance"
-                    ? statementGroup(entry)
-                    : statementDateFor(entry.createdAt)
-                : calendarMonthKey(entry.createdAt);
-            const group = groupFor(key);
-            const amount = Number(entry.amount);
-            if (byStatement && entry.type === "DEBIT" && entry.description !== "Opening balance") {
-                group.payments.push(entry);
-            } else {
-                if (!byStatement) group.end += (entry.type === "DEBIT" ? 1 : -1) * amount;
-                if (entry.description === "Opening balance") group.openingBalance += (entry.type === "DEBIT" ? 1 : -1) * amount;
-                else if (byStatement && entry.type === "CREDIT") group.spent = roundMoney(group.spent + amount);
-                group.entries.push(entry);
-            }
-        }
-
-        const result = [...grouped.values()].sort((a, b) => a.key.localeCompare(b.key));
-        if (!byStatement) {
-            let monthBalance = 0;
-            for (const group of result) {
-                const change = group.end;
-                group.start = monthBalance + group.openingBalance;
-                monthBalance += change;
-                group.end = monthBalance;
-                group.entries.sort(newestFirst);
-            }
-            return result.reverse();
-        }
+        const oldestFirst = [...entries].sort(
+            (a, b) => Date.parse(a.createdAt ?? "") - Date.parse(b.createdAt ?? "") || (a.transactionId ?? "").localeCompare(b.transactionId ?? "")
+        );
+        const result: Month[] = [];
         let balance = 0;
-        let carriedPayments: { entry: LedgerEntryDto; amount: number }[] = [];
-        for (const group of result) {
-            group.start = balance + group.openingBalance;
-            const dueBeforePayments = group.start - group.spent;
-            const paymentQueue = [
-                ...carriedPayments,
-                ...group.payments.sort(oldestFirst).map((entry) => ({ entry, amount: Number(entry.amount) }))
-            ];
-            carriedPayments = [];
-            let remainingDue = Math.max(0, -dueBeforePayments);
-            for (const payment of paymentQueue) {
-                const applied = roundMoney(Math.min(payment.amount, remainingDue));
-                if (applied > 0) {
-                    const description = payment.amount < Number(payment.entry.amount) ? `${payment.entry.description ?? "Payment"} · statement allocation` : payment.entry.description;
-                    group.entries.push({ ...payment.entry, amount: applied, description });
-                    group.paid = roundMoney(group.paid + applied);
-                    remainingDue = roundMoney(remainingDue - applied);
-                }
-                if (payment.amount > applied) carriedPayments.push({ entry: payment.entry, amount: roundMoney(payment.amount - applied) });
+        for (const entry of oldestFirst) {
+            const key = byStatement ? statementDateFor(entry.createdAt) : calendarMonthKey(entry.createdAt);
+            let month = result.at(-1);
+            if (month?.key !== key) {
+                const label = byStatement ? `Statement ending ${formatDate(key)}` : formatMonth(`${key}-01`);
+                month = { key, label, start: balance, end: balance, spent: 0, paid: 0, entries: [] };
+                result.push(month);
             }
-            group.end = dueBeforePayments + group.paid;
-            balance = group.end;
-            group.entries.sort(newestFirst);
-        }
-
-        if (byStatement && carriedPayments.length && result.length) {
-            const last = result[result.length - 1];
-            const nextDate = new Date(`${last.key}T00:00:00Z`);
-            nextDate.setUTCDate(nextDate.getUTCDate() + 1);
-            const nextKey = statementDateFor(nextDate.toISOString().slice(0, 10));
-            const future = groupFor(nextKey);
-            future.start = balance;
-            future.paid = carriedPayments.reduce((sum, payment) => sum + payment.amount, 0);
-            future.end = balance + future.paid;
-            future.entries = carriedPayments.map(({ entry, amount }) => ({
-                ...entry, amount,
-                description: amount < Number(entry.amount) ? `${entry.description ?? "Payment"} · statement allocation` : entry.description
-            }));
-            future.entries.sort(newestFirst);
-            result.push(future);
+            const amount = Number(entry.amount);
+            const change = (entry.type === "DEBIT" ? 1 : -1) * amount;
+            balance += change;
+            month.end = balance;
+            // Statement imports date the account's opening balance on its first day: it's where the group starts.
+            // Name must match openingBalanceName in engine-go/internal/statement/service.go.
+            if (entry.description === "Opening balance") month.start += change;
+            else if (entry.type === "CREDIT") month.spent = Math.round((month.spent + amount) * 100) / 100;
+            else month.paid = Math.round((month.paid + amount) * 100) / 100;
+            month.entries.unshift(entry); // newest first within the group
         }
         return result.reverse();
     });
@@ -201,12 +128,7 @@
                                     <span>Spent <span class="font-semibold text-rose-300">{currency.format(month.spent)}</span></span>
                                     <span>Paid <span class="font-semibold text-emerald-300">{currency.format(month.paid)}</span></span>
                                 {/if}
-                                <span>{byStatement ? "After payments" : "End"} <span class="font-semibold text-slate-200">{currency.format(month.end)}</span></span>
-                                {#if byStatement}
-                                    <span class={Math.abs(month.end) < 0.005 ? "font-semibold text-emerald-300" : month.end < 0 ? "font-semibold text-amber-300" : "font-semibold text-blue-300"}>
-                                        {Math.abs(month.end) < 0.005 ? "Paid" : month.end < 0 ? `Still owed ${currency.format(-month.end)}` : `Credit balance ${currency.format(month.end)}`}
-                                    </span>
-                                {/if}
+                                <span>End <span class="font-semibold text-slate-200">{currency.format(month.end)}</span></span>
                             </span>
                         </div>
                     </th>
