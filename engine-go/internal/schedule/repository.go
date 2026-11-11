@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/kaloy/finankal/engine-go/internal/credit"
 	"github.com/shopspring/decimal"
 )
 
@@ -45,17 +44,14 @@ const occurrenceColumns = `
 `
 
 type ScheduleRepository struct {
-	db           *pgxpool.Pool
-	creditService *credit.Service
+	db *pgxpool.Pool
 }
 
 func NewScheduleRepository(
 	db *pgxpool.Pool,
-	creditService *credit.Service,
 ) *ScheduleRepository {
 	return &ScheduleRepository{
-		db:            db,
-		creditService: creditService,
+		db: db,
 	}
 }
 
@@ -494,10 +490,9 @@ func (r *ScheduleRepository) PayCardInstallment(ctx context.Context, userID, occ
 		return uuid.Nil, uuid.Nil, uuid.Nil, err
 	}
 	defer tx.Rollback(ctx)
-	var scheduleID, cardID, sourceID uuid.UUID
-	var scheduledDate time.Time
+	var cardID, sourceID uuid.UUID
 	var amount decimal.Decimal
-	err = tx.QueryRow(ctx, `SELECT s.id,a.id,s.source_account_id,o.scheduled_date,o.amount FROM scheduled_transaction_occurrences o JOIN scheduled_transactions s ON s.id=o.scheduled_transaction_id JOIN accounts a ON a.id=s.destination_account_id JOIN accounts src ON src.id=s.source_account_id WHERE o.id=$1 AND s.user_id=$2 AND s.active AND o.status='PENDING' AND a.user_id=$2 AND src.user_id=$2 AND a.type='CREDIT_CARD' AND src.type='ASSET' FOR UPDATE OF o`, occurrenceID, userID).Scan(&scheduleID, &cardID, &sourceID, &scheduledDate, &amount)
+	err = tx.QueryRow(ctx, `SELECT a.id,s.source_account_id,o.amount FROM scheduled_transaction_occurrences o JOIN scheduled_transactions s ON s.id=o.scheduled_transaction_id JOIN accounts a ON a.id=s.destination_account_id JOIN accounts src ON src.id=s.source_account_id WHERE o.id=$1 AND s.user_id=$2 AND s.active AND o.status='PENDING' AND a.user_id=$2 AND src.user_id=$2 AND a.type='CREDIT_CARD' AND src.type='ASSET' FOR UPDATE OF o`, occurrenceID, userID).Scan(&cardID, &sourceID, &amount)
 	if err != nil {
 		return uuid.Nil, uuid.Nil, uuid.Nil, err
 	}
@@ -505,14 +500,8 @@ func (r *ScheduleRepository) PayCardInstallment(ctx context.Context, userID, occ
 	if err := tx.QueryRow(ctx, `INSERT INTO transactions (user_id,description,created_at) VALUES ($1,$2,$3) RETURNING id`, userID, "Credit card installment payment", at).Scan(&txID); err != nil {
 		return uuid.Nil, uuid.Nil, uuid.Nil, err
 	}
-	var cardEntryID uuid.UUID
-	if err := tx.QueryRow(ctx, `INSERT INTO entries (transaction_id,account_id,amount,type) VALUES ($1,$2,$3,'DEBIT') RETURNING id`, txID, cardID, amount).Scan(&cardEntryID); err != nil {
-		return uuid.Nil, uuid.Nil, uuid.Nil, err
-	}
-	if _, err := tx.Exec(ctx, `INSERT INTO entries (transaction_id,account_id,amount,type) VALUES ($1,$2,$3,'CREDIT')`, txID, sourceID, amount); err != nil {
-		return uuid.Nil, uuid.Nil, uuid.Nil, err
-	}
-	if err := r.creditService.RecordInstallmentTx(ctx, tx, cardID, scheduledDate, cardEntryID, amount); err != nil {
+	// The card DEBIT is the payment; bills pick it up from the ledger, so the statement total is left alone.
+	if _, err := tx.Exec(ctx, `INSERT INTO entries (transaction_id,account_id,amount,type) VALUES ($1,$2,$4,'DEBIT'),($1,$3,$4,'CREDIT')`, txID, cardID, sourceID, amount); err != nil {
 		return uuid.Nil, uuid.Nil, uuid.Nil, err
 	}
 	res, err := tx.Exec(ctx, `UPDATE scheduled_transaction_occurrences SET transaction_id=$2,status='COMPLETED' WHERE id=$1 AND status='PENDING'`, occurrenceID, txID)
@@ -525,6 +514,5 @@ func (r *ScheduleRepository) PayCardInstallment(ctx context.Context, userID, occ
 	if err := tx.Commit(ctx); err != nil {
 		return uuid.Nil, uuid.Nil, uuid.Nil, err
 	}
-	_ = scheduleID
 	return txID, cardID, sourceID, nil
 }

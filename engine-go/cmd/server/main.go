@@ -75,7 +75,7 @@ func main() {
 	// Scheduling
 	// =====================
 
-	scheduleRepo := schedule.NewScheduleRepository(dbConn, creditService)
+	scheduleRepo := schedule.NewScheduleRepository(dbConn)
 
 	scheduleService := schedule.NewService(
 		scheduleRepo,
