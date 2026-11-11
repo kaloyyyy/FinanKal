@@ -53,7 +53,8 @@ export function cardLimits(
         .filter((a) => a.type === "CREDIT_CARD" && a.creditLimit != null)
         .map((card) => {
             const own = payables.filter((p) => p.accountId === card.id);
-            const now = cents(card.creditLimit!) + cents(card.balance) - total(own.filter((p) => p.scheduleId));
+            // The card's dues are its bills (what it owes) plus its unpaid installments, some already on the current bill.
+            const now = cents(card.creditLimit!) - Math.max(-cents(card.balance), total(own));
             const afterThisMonth = now + total(own.filter((p) => until(p, thisMonth)));
             const afterNextMonth = now + total(own.filter((p) => until(p, nextMonth)));
             // In date order, payments before charges on the same day: repay first, then borrow again.

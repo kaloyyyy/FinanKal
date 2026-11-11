@@ -406,8 +406,31 @@ func (s *Server) GetPayables(ctx context.Context, req *finance.GetPayablesReques
 		p.PaikotDueDate = r.DueDate.Format(statementDateFormat)
 		p.PaikotFee = r.Fee.String()
 	}
+	// Card bills still owed, plus each card's current cycle so far, alongside the loan installments.
+	bills, err := s.creditService.OpenBills(ctx, userID, today)
+	if err != nil {
+		return nil, toStatus(err)
+	}
+	current := map[uuid.UUID]*credit.Bill{} // each card's cycle so far
+	for i := range bills {
+		if bills[i].SoFar {
+			current[bills[i].CardID] = &bills[i]
+		}
+	}
+	withInstallments := map[uuid.UUID]bool{}
+
 	resp := &finance.GetPayablesResponse{}
 	for _, p := range payables {
+		// A card installment is billed on the statement its date falls in: one in the current cycle is part
+		// of that bill, an earlier one is already on a statement.
+		// shortcut: from a statement date until that statement is imported, its installments show in neither; fold by imported statements if the gap matters.
+		if b := current[p.AccountID]; b != nil && !p.DueDate.After(b.StatementDate) {
+			if !p.DueDate.Before(b.StartDate) {
+				b.Owed = b.Owed.Add(p.Amount)
+				withInstallments[p.AccountID] = true
+			}
+			continue
+		}
 		dueDate := p.DueDate
 		if p.AccountType == string(ledger.CREDIT_CARD) {
 			card, err := s.creditService.GetCreditCard(ctx, p.AccountID)
@@ -435,15 +458,13 @@ func (s *Server) GetPayables(ctx context.Context, req *finance.GetPayablesReques
 		resp.Payables = append(resp.Payables, payable)
 	}
 
-	// Card bills still owed, plus each card's current cycle so far, alongside the loan installments.
-	bills, err := s.creditService.OpenBills(ctx, userID, today)
-	if err != nil {
-		return nil, toStatus(err)
-	}
 	for _, b := range bills {
 		soFar := ""
 		if b.SoFar {
 			soFar = ", so far"
+			if withInstallments[b.CardID] {
+				soFar = ", so far, with installments"
+			}
 		}
 		payable := &finance.Payable{
 			Name:        fmt.Sprintf("%s bill (%s – %s%s)", b.CardName, b.StartDate.Format("2 Jan"), b.StatementDate.Format("2 Jan"), soFar),
@@ -616,7 +637,8 @@ func (s *Server) UpdateInstallments(ctx context.Context, req *finance.UpdateInst
 			break
 		}
 	}
-	if firstPending == 0 || firstNumber != firstPending {
+	// A card plan's first pending installment can be on the current bill, so the editor starts after it.
+	if firstPending == 0 || firstNumber < firstPending {
 		return nil, status.Error(codes.FailedPrecondition, "refresh the plan before editing its remaining installments")
 	}
 	sourceID, err := parseID(req.GetSourceAccountId(), "source account id")
@@ -636,7 +658,7 @@ func (s *Server) UpdateInstallments(ctx context.Context, req *finance.UpdateInst
 		items = append(items, schedule.Installment{DueDate: due, Amount: amount})
 	}
 	// Payments are taken off the stored amount on every read, so saving what's left would count them twice.
-	if len(items) > 0 && !left.Equal(full) {
+	if len(items) > 0 && firstNumber == firstPending && !left.Equal(full) {
 		if !items[0].Amount.Equal(left) {
 			return nil, status.Error(codes.FailedPrecondition, "the first installment is partly paid; leave its amount as shown")
 		}
