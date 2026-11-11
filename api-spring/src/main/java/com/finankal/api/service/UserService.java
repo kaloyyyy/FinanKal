@@ -67,8 +67,20 @@ public class UserService {
                         p.getInstallments() == 0 ? null : p.getInstallments(),
                         p.getSourceAccountId().isBlank() ? null : p.getSourceAccountId(),
                         p.getScheduleId().isBlank() ? null : p.getScheduleId(),
-                        p.getOccurrenceId().isBlank() ? null : p.getOccurrenceId()))
+                        p.getOccurrenceId().isBlank() ? null : p.getOccurrenceId(),
+                        p.getPaikotCardId().isBlank() ? null : new PayableDto.Paikot(p.getPaikotCardId(), p.getPaikotCardName(),
+                                p.getPaikotPayFrom(), p.getPaikotPayBy(), p.getPaikotDueDate(), new BigDecimal(p.getPaikotFee()))))
                 .toList();
+    }
+
+    public void setPaikotLink(UUID userId, UUID accountId, PayableDto.Link link) {
+        var request = FinanceProtos.SetPaikotLinkRequest.newBuilder()
+                .setUserId(userId.toString()).setAccountId(accountId.toString())
+                .setCardId(link.cardId() == null ? "" : link.cardId())
+                .setFeePercent(link.feePercent() == null ? "" : link.feePercent().toPlainString())
+                .build();
+        try { financeEngineStub.setPaikotLink(request); }
+        catch (StatusRuntimeException e) { throw apiError(e); }
     }
 
     /** Records a loan's repayment schedule and returns its id. Rejected schedules throw IllegalArgumentException (400). */

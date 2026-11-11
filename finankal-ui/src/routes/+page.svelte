@@ -5,7 +5,7 @@
     import NetWorthChart from "$lib/components/dashboard/NetWorthChart.svelte";
     import PayablesCard from "$lib/components/dashboard/PayablesCard.svelte";
 
-    let { data } = $props();
+    let { data, form } = $props();
 </script>
 
 <svelte:head>
@@ -31,7 +31,7 @@
     />
 
     {#if data.netPosition}
-        <PayablesCard {...data.netPosition} accounts={data.accounts} userId={data.userId} />
+        <PayablesCard {...data.netPosition} accounts={data.accounts} userId={data.userId} paikotError={form?.paikotError} />
     {/if}
 
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">

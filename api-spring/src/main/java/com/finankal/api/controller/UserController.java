@@ -135,6 +135,13 @@ public class UserController {
         return ResponseEntity.status(201).body(Map.of("scheduleId", scheduleId));
     }
 
+    /** PUT /api/users/{userId}/paikot/{accountId}: the card that can pay this account's dues (forecast only). */
+    @PutMapping("/{userId}/paikot/{accountId}")
+    public ResponseEntity<Void> setPaikotLink(@PathVariable UUID userId, @PathVariable UUID accountId, @RequestBody PayableDto.Link link) {
+        userService.setPaikotLink(userId, accountId, link);
+        return ResponseEntity.noContent().build();
+    }
+
     @PutMapping("/{userId}/payables/{scheduleId}")
     public ResponseEntity<Void> updateInstallments(@PathVariable UUID userId, @PathVariable UUID scheduleId, @RequestBody CreateInstallmentsRequestDto request) {
         userService.updateInstallments(userId,scheduleId,request); return ResponseEntity.noContent().build();

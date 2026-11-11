@@ -1,6 +1,6 @@
 import { getMoneyFlows } from "$lib/server/api/flows";
 import { getPayables } from "$lib/server/api/payables";
-import { netPositions, summarizePayables } from "$lib/utils/payables";
+import { applyPaikot, netPositions, summarizePayables } from "$lib/utils/payables";
 
 // The income account statement imports file payroll under (BankStatementParser.category).
 const SALARY_ACCOUNT = "Salary Income";
@@ -54,6 +54,10 @@ export async function loadNetPositions(
     return {
         thisMonth: due.thisMonth,
         nextMonth: due.nextMonth,
+        // Next month again, with every linked due moved onto the card that pays it.
+        paikot: summarizePayables(applyPaikot(payables), today).nextMonth,
+        // Every due a link moves, soonest charge first: what to pay with which card, and when.
+        paikotMoves: payables.filter((p) => p.paikot).sort((a, b) => a.paikot!.payBy.localeCompare(b.paikot!.payBy)),
         positions: netPositions(accounts, monthlySalaries, due.thisMonth.total, due.nextMonth.total),
         salaryInto: salaryInto ? { id: salaryInto.id, name: salaryInto.name } : null
     };

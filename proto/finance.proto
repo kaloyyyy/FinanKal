@@ -72,6 +72,7 @@ service FinanceEngine {
   rpc GetLoan(GetLoanRequest) returns (LoanDetails);
   rpc UpdateLoan(UpdateLoanRequest) returns (UpdateLoanResponse);
   rpc DeleteLoan(DeleteLoanRequest) returns (DeleteLoanResponse);
+  rpc SetPaikotLink(SetPaikotLinkRequest) returns (SetPaikotLinkResponse);
 
   // Deletes all of the user's transactions (and card / bank statements built from them); accounts stay.
   rpc ClearUserTransactions(ClearUserTransactionsRequest)
@@ -271,7 +272,22 @@ message Payable {
   string schedule_id = 9;
   string occurrence_id = 10;
   string scheduled_date = 11; // yyyy-MM-dd; retained when due_date is the card's statement deadline
+  // Paikot: set when the account is linked to a card that can pay this due. Dates are yyyy-MM-dd.
+  string paikot_card_id = 12;
+  string paikot_card_name = 13;
+  string paikot_pay_from = 14; // charge the card from this day (after its statement date) ...
+  string paikot_pay_by = 15;   // ... to this one, and it's billed on the card's next statement,
+  string paikot_due_date = 16; // due on this day
+  string paikot_fee = 17;
 }
+
+message SetPaikotLinkRequest {
+  string user_id = 1;
+  string account_id = 2;  // the loan or card whose dues get paid
+  string card_id = 3;     // the card that pays them; empty removes the link
+  string fee_percent = 4; // of the amount paid, e.g. "1.5"
+}
+message SetPaikotLinkResponse {}
 
 message GetPayablesResponse {
   repeated Payable payables = 1; // soonest first

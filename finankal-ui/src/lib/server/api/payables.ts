@@ -7,6 +7,11 @@ export async function getPayables(userId: string): Promise<Payable[]> {
     return payables.map((p) => ({ ...p, amount: Number(p.amount) }));
 }
 
+/** PUT /api/users/{userId}/paikot/{accountId}: the card that can pay this account's dues; a null cardId removes the link. */
+export async function setPaikotLink(userId: string, accountId: string, cardId: string | null, feePercent = 0): Promise<void> {
+    await api(`/api/users/${userId}/paikot/${accountId}`, { method: "PUT", body: JSON.stringify({ cardId, feePercent }) });
+}
+
 export interface NewInstallments {
     name: string;
     sourceAccountId: string;

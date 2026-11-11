@@ -388,6 +388,24 @@ func (s *Server) GetPayables(ctx context.Context, req *finance.GetPayablesReques
 		}
 		return int32(*n)
 	}
+	links, err := s.creditService.PaikotLinks(ctx, userID)
+	if err != nil {
+		return nil, toStatus(err)
+	}
+	// Paikot: where the due lands if the card linked to its account pays it.
+	roll := func(p *finance.Payable, accountID uuid.UUID, due time.Time, amount decimal.Decimal) {
+		link, ok := links[accountID]
+		if !ok {
+			return
+		}
+		r := link.Roll(due, today, amount)
+		p.PaikotCardId = link.Card.CardID.String()
+		p.PaikotCardName = link.CardName
+		p.PaikotPayFrom = r.PayFrom.Format(statementDateFormat)
+		p.PaikotPayBy = r.PayBy.Format(statementDateFormat)
+		p.PaikotDueDate = r.DueDate.Format(statementDateFormat)
+		p.PaikotFee = r.Fee.String()
+	}
 	resp := &finance.GetPayablesResponse{}
 	for _, p := range payables {
 		dueDate := p.DueDate
@@ -413,6 +431,7 @@ func (s *Server) GetPayables(ctx context.Context, req *finance.GetPayablesReques
 		if p.SourceAccountID != nil {
 			payable.SourceAccountId = p.SourceAccountID.String()
 		}
+		roll(payable, p.AccountID, dueDate, p.Amount)
 		resp.Payables = append(resp.Payables, payable)
 	}
 
@@ -426,16 +445,45 @@ func (s *Server) GetPayables(ctx context.Context, req *finance.GetPayablesReques
 		if b.SoFar {
 			soFar = ", so far"
 		}
-		resp.Payables = append(resp.Payables, &finance.Payable{
+		payable := &finance.Payable{
 			Name:        fmt.Sprintf("%s bill (%s – %s%s)", b.CardName, b.StartDate.Format("2 Jan"), b.StatementDate.Format("2 Jan"), soFar),
 			AccountId:   b.CardID.String(),
 			AccountName: b.CardName,
 			DueDate:     b.DueDate.Format(statementDateFormat),
 			Amount:      b.Owed.String(),
-		})
+		}
+		roll(payable, b.CardID, b.DueDate, b.Owed)
+		resp.Payables = append(resp.Payables, payable)
 	}
 	sort.SliceStable(resp.Payables, func(i, j int) bool { return resp.Payables[i].DueDate < resp.Payables[j].DueDate })
 	return resp, nil
+}
+
+func (s *Server) SetPaikotLink(ctx context.Context, req *finance.SetPaikotLinkRequest) (*finance.SetPaikotLinkResponse, error) {
+	userID, err := parseID(req.GetUserId(), "user id")
+	if err != nil {
+		return nil, err
+	}
+	accountID, err := parseID(req.GetAccountId(), "account id")
+	if err != nil {
+		return nil, err
+	}
+	var cardID uuid.UUID // empty removes the link
+	fee := decimal.Zero
+	if req.GetCardId() != "" {
+		if cardID, err = parseID(req.GetCardId(), "card id"); err != nil {
+			return nil, err
+		}
+		if req.GetFeePercent() != "" {
+			if fee, err = parseAmount(req.GetFeePercent(), "fee percent"); err != nil {
+				return nil, err
+			}
+		}
+	}
+	if err := s.creditService.SetPaikotLink(ctx, userID, accountID, cardID, fee); err != nil {
+		return nil, toStatus(err)
+	}
+	return &finance.SetPaikotLinkResponse{}, nil
 }
 
 func (s *Server) ImportLoan(ctx context.Context, req *finance.ImportLoanRequest) (*finance.ImportLoanResponse, error) {

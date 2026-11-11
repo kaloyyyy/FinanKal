@@ -11,7 +11,17 @@ export interface Payable {
     sourceAccountId?: string | null;
     scheduleId?: string | null;
     occurrenceId?: string | null;
+    /** Paikot: set when a card is linked to pay this account's dues. Charge it from payFrom to payBy and the due moves to dueDate. */
+    paikot?: { cardId: string; cardName: string; payFrom: string; payBy: string; dueDate: string; fee: number } | null;
 }
+
+/** Each due where it lands once its linked card pays it: on the card's next due date, with the fee added. */
+export const applyPaikot = (payables: Payable[]): Payable[] =>
+    payables.map((p) =>
+        p.paikot
+            ? { ...p, dueDate: p.paikot.dueDate, amount: Math.round((Number(p.amount) + Number(p.paikot.fee)) * 100) / 100 }
+            : p
+    );
 
 export interface PayableMonth {
     month: string; // yyyy-MM

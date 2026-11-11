@@ -174,3 +174,28 @@ func TestNextStatementDateIsThisMonthOrNext(t *testing.T) {
 		t.Errorf("February cycle starts %s, want Tue 26 Jan 2027", got.Format("Mon 2 Jan 2006"))
 	}
 }
+
+func TestPaikotRoll(t *testing.T) {
+	link := PaikotLink{Card: CreditCard{BillingDay: 15, PaymentDueDays: 20}, FeePercent: decimal.RequireFromString("2")}
+	today := date(2026, 11, 20)
+
+	tests := []struct {
+		name                      string
+		due, payFrom, payBy, want time.Time
+	}{
+		{"due inside the running cycle: charge from today", date(2026, 12, 10), today, date(2026, 12, 10), date(2027, 1, 4)},
+		{"due after the next statement: wait for it to pass", date(2026, 12, 20), date(2026, 12, 16), date(2026, 12, 20), date(2027, 2, 4)},
+		{"overdue: charge today", date(2026, 11, 1), today, today, date(2027, 1, 4)},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := link.Roll(test.due, today, decimal.RequireFromString("1000"))
+			if !got.PayFrom.Equal(test.payFrom) || !got.PayBy.Equal(test.payBy) || !got.DueDate.Equal(test.want) {
+				t.Errorf("got charge %s to %s due %s", got.PayFrom.Format("2 Jan"), got.PayBy.Format("2 Jan"), got.DueDate.Format("2 Jan 2006"))
+			}
+			if !got.Fee.Equal(decimal.RequireFromString("20")) {
+				t.Errorf("fee %s, want 20", got.Fee)
+			}
+		})
+	}
+}

@@ -14,6 +14,14 @@ public record PayableDto(
         Integer installments,
         String sourceAccountId,
         String scheduleId,
-        String occurrenceId
+        String occurrenceId,
+        Paikot paikot
 ) {
+    /** Where the due lands if its account's linked card pays it; null without a link. Dates are yyyy-MM-dd. */
+    public record Paikot(String cardId, String cardName, String payFrom, String payBy, String dueDate, BigDecimal fee) {
+    }
+
+    /** PUT body linking an account's dues to the card that can pay them; a null cardId removes the link. */
+    public record Link(String cardId, BigDecimal feePercent) {
+    }
 }

@@ -6,14 +6,18 @@
     import type { UnionBankInstallmentPlan } from "$lib/utils/unionBankInstallments";
     import type { Account } from "$lib/server/api/accounts";
     import NetPositionTile from "./NetPositionTile.svelte";
+    import PaikotCard from "./PaikotCard.svelte";
 
     let {
         thisMonth,
         nextMonth,
         positions,
+        paikot,
+        paikotMoves,
+        paikotError = "",
         accounts,
         userId
-    }: { thisMonth: PayableMonth; nextMonth: PayableMonth; positions: NetPositions; accounts: Account[]; userId: string } = $props();
+    }: { thisMonth: PayableMonth; nextMonth: PayableMonth; positions: NetPositions; paikot: PayableMonth; paikotMoves: Payable[]; paikotError?: string; accounts: Account[]; userId: string } = $props();
 
     const month = (key: string) => formatMonth(`${key}-01`);
     const plansKey = `finankal-card-installments-v1-${userId}`;
@@ -117,5 +121,6 @@
                 {/if}
             </div>
         {/each}
+        <PaikotCard {paikot} plain={nextMonth} moves={paikotMoves} {accounts} error={paikotError} />
     </div>
 </section>
