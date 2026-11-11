@@ -17,6 +17,7 @@ export interface NewInstallments {
     sourceAccountId: string;
     accountId: string;
     firstInstallmentNumber?: number;
+    monthlyRatePercent?: number; // a card plan's monthly interest rate; only read when updating
     installments: { dueDate: string; amount: string }[]; // yyyy-MM-dd, decimal string; in due-date order
 }
 

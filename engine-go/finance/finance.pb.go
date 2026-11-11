@@ -1509,15 +1509,16 @@ type Payable struct {
 	OccurrenceId      string                 `protobuf:"bytes,10,opt,name=occurrence_id,json=occurrenceId,proto3" json:"occurrence_id,omitempty"`
 	ScheduledDate     string                 `protobuf:"bytes,11,opt,name=scheduled_date,json=scheduledDate,proto3" json:"scheduled_date,omitempty"` // yyyy-MM-dd; retained when due_date is the card's statement deadline
 	// Paikot: set when the account is linked to a card that can pay this due. Dates are yyyy-MM-dd.
-	PaikotCardId   string `protobuf:"bytes,12,opt,name=paikot_card_id,json=paikotCardId,proto3" json:"paikot_card_id,omitempty"`
-	PaikotCardName string `protobuf:"bytes,13,opt,name=paikot_card_name,json=paikotCardName,proto3" json:"paikot_card_name,omitempty"`
-	PaikotPayFrom  string `protobuf:"bytes,14,opt,name=paikot_pay_from,json=paikotPayFrom,proto3" json:"paikot_pay_from,omitempty"` // charge the card from this day (after its statement date) ...
-	PaikotPayBy    string `protobuf:"bytes,15,opt,name=paikot_pay_by,json=paikotPayBy,proto3" json:"paikot_pay_by,omitempty"`       // ... to this one, and it's billed on the card's next statement,
-	PaikotDueDate  string `protobuf:"bytes,16,opt,name=paikot_due_date,json=paikotDueDate,proto3" json:"paikot_due_date,omitempty"` // due on this day
-	PaikotFee      string `protobuf:"bytes,17,opt,name=paikot_fee,json=paikotFee,proto3" json:"paikot_fee,omitempty"`
-	Principal      string `protobuf:"bytes,18,opt,name=principal,proto3" json:"principal,omitempty"` // how much of the amount holds a card's limit until paid; empty = all of it
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	PaikotCardId       string `protobuf:"bytes,12,opt,name=paikot_card_id,json=paikotCardId,proto3" json:"paikot_card_id,omitempty"`
+	PaikotCardName     string `protobuf:"bytes,13,opt,name=paikot_card_name,json=paikotCardName,proto3" json:"paikot_card_name,omitempty"`
+	PaikotPayFrom      string `protobuf:"bytes,14,opt,name=paikot_pay_from,json=paikotPayFrom,proto3" json:"paikot_pay_from,omitempty"` // charge the card from this day (after its statement date) ...
+	PaikotPayBy        string `protobuf:"bytes,15,opt,name=paikot_pay_by,json=paikotPayBy,proto3" json:"paikot_pay_by,omitempty"`       // ... to this one, and it's billed on the card's next statement,
+	PaikotDueDate      string `protobuf:"bytes,16,opt,name=paikot_due_date,json=paikotDueDate,proto3" json:"paikot_due_date,omitempty"` // due on this day
+	PaikotFee          string `protobuf:"bytes,17,opt,name=paikot_fee,json=paikotFee,proto3" json:"paikot_fee,omitempty"`
+	Principal          string `protobuf:"bytes,18,opt,name=principal,proto3" json:"principal,omitempty"`                                               // how much of the amount holds a card's limit until paid; empty = all of it
+	MonthlyRatePercent string `protobuf:"bytes,19,opt,name=monthly_rate_percent,json=monthlyRatePercent,proto3" json:"monthly_rate_percent,omitempty"` // the plan's monthly interest rate, e.g. "1.78805"; empty = none
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *Payable) Reset() {
@@ -1672,6 +1673,13 @@ func (x *Payable) GetPaikotFee() string {
 func (x *Payable) GetPrincipal() string {
 	if x != nil {
 		return x.Principal
+	}
+	return ""
+}
+
+func (x *Payable) GetMonthlyRatePercent() string {
+	if x != nil {
+		return x.MonthlyRatePercent
 	}
 	return ""
 }
@@ -2004,6 +2012,7 @@ type UpdateInstallmentsRequest struct {
 	SourceAccountId        string                 `protobuf:"bytes,4,opt,name=source_account_id,json=sourceAccountId,proto3" json:"source_account_id,omitempty"`
 	Installments           []*Installment         `protobuf:"bytes,5,rep,name=installments,proto3" json:"installments,omitempty"`
 	FirstInstallmentNumber int32                  `protobuf:"varint,6,opt,name=first_installment_number,json=firstInstallmentNumber,proto3" json:"first_installment_number,omitempty"`
+	MonthlyRatePercent     string                 `protobuf:"bytes,7,opt,name=monthly_rate_percent,json=monthlyRatePercent,proto3" json:"monthly_rate_percent,omitempty"` // empty = none
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -2078,6 +2087,13 @@ func (x *UpdateInstallmentsRequest) GetFirstInstallmentNumber() int32 {
 		return x.FirstInstallmentNumber
 	}
 	return 0
+}
+
+func (x *UpdateInstallmentsRequest) GetMonthlyRatePercent() string {
+	if x != nil {
+		return x.MonthlyRatePercent
+	}
+	return ""
 }
 
 type UpdateInstallmentsResponse struct {
@@ -4376,7 +4392,7 @@ const file_finance_proto_rawDesc = "" +
 	"\x15GetMoneyFlowsResponse\x12(\n" +
 	"\x05flows\x18\x01 \x03(\v2\x12.finance.MoneyFlowR\x05flows\"-\n" +
 	"\x12GetPayablesRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"\xff\x04\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"\xb1\x05\n" +
 	"\aPayable\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
 	"\n" +
@@ -4399,7 +4415,8 @@ const file_finance_proto_rawDesc = "" +
 	"\x0fpaikot_due_date\x18\x10 \x01(\tR\rpaikotDueDate\x12\x1d\n" +
 	"\n" +
 	"paikot_fee\x18\x11 \x01(\tR\tpaikotFee\x12\x1c\n" +
-	"\tprincipal\x18\x12 \x01(\tR\tprincipal\"\x88\x01\n" +
+	"\tprincipal\x18\x12 \x01(\tR\tprincipal\x120\n" +
+	"\x14monthly_rate_percent\x18\x13 \x01(\tR\x12monthlyRatePercent\"\x88\x01\n" +
 	"\x14SetPaikotLinkRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1d\n" +
 	"\n" +
@@ -4422,7 +4439,7 @@ const file_finance_proto_rawDesc = "" +
 	"\finstallments\x18\x05 \x03(\v2\x14.finance.InstallmentR\finstallments\"=\n" +
 	"\x1aCreateInstallmentsResponse\x12\x1f\n" +
 	"\vschedule_id\x18\x01 \x01(\tR\n" +
-	"scheduleId\"\x89\x02\n" +
+	"scheduleId\"\xbb\x02\n" +
 	"\x19UpdateInstallmentsRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1f\n" +
 	"\vschedule_id\x18\x02 \x01(\tR\n" +
@@ -4430,7 +4447,8 @@ const file_finance_proto_rawDesc = "" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12*\n" +
 	"\x11source_account_id\x18\x04 \x01(\tR\x0fsourceAccountId\x128\n" +
 	"\finstallments\x18\x05 \x03(\v2\x14.finance.InstallmentR\finstallments\x128\n" +
-	"\x18first_installment_number\x18\x06 \x01(\x05R\x16firstInstallmentNumber\"\x1c\n" +
+	"\x18first_installment_number\x18\x06 \x01(\x05R\x16firstInstallmentNumber\x120\n" +
+	"\x14monthly_rate_percent\x18\a \x01(\tR\x12monthlyRatePercent\"\x1c\n" +
 	"\x1aUpdateInstallmentsResponse\"U\n" +
 	"\x19DeleteInstallmentsRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1f\n" +

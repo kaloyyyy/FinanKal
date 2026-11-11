@@ -70,7 +70,8 @@ public class UserService {
                         p.getOccurrenceId().isBlank() ? null : p.getOccurrenceId(),
                         p.getPaikotCardId().isBlank() ? null : new PayableDto.Paikot(p.getPaikotCardId(), p.getPaikotCardName(),
                                 p.getPaikotPayFrom(), p.getPaikotPayBy(), p.getPaikotDueDate(), new BigDecimal(p.getPaikotFee())),
-                        p.getPrincipal().isBlank() ? null : new BigDecimal(p.getPrincipal())))
+                        p.getPrincipal().isBlank() ? null : new BigDecimal(p.getPrincipal()),
+                        p.getMonthlyRatePercent().isBlank() ? null : new BigDecimal(p.getMonthlyRatePercent())))
                 .toList();
     }
 
@@ -113,7 +114,8 @@ public class UserService {
                 .setUserId(userId.toString()).setScheduleId(scheduleId.toString())
                 .setName(dto.name() == null ? "" : dto.name())
                 .setSourceAccountId(dto.sourceAccountId() == null ? "" : dto.sourceAccountId())
-                .setFirstInstallmentNumber(dto.firstInstallmentNumber());
+                .setFirstInstallmentNumber(dto.firstInstallmentNumber())
+                .setMonthlyRatePercent(dto.monthlyRatePercent() == null ? "" : dto.monthlyRatePercent().toPlainString());
         if (dto.installments() != null) for (var i : dto.installments()) b.addInstallments(FinanceProtos.Installment.newBuilder()
                 .setDueDate(i.dueDate() == null ? "" : i.dueDate()).setAmount(i.amount() == null ? "" : i.amount().toPlainString()));
         try { financeEngineStub.updateInstallments(b.build()); }

@@ -437,7 +437,7 @@ func (r *ScheduleRepository) GetPayables(ctx context.Context, userID uuid.UUID) 
 	})
 }
 
-func (r *ScheduleRepository) UpdateInstallments(ctx context.Context, userID, scheduleID, sourceID uuid.UUID, name string, firstNumber int, installments []Installment) error {
+func (r *ScheduleRepository) UpdateInstallments(ctx context.Context, userID, scheduleID, sourceID uuid.UUID, name string, firstNumber int, monthlyRate decimal.Decimal, installments []Installment) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return err
@@ -461,7 +461,7 @@ func (r *ScheduleRepository) UpdateInstallments(ctx context.Context, userID, sch
 		return err
 	}
 	first, last := installments[0], installments[len(installments)-1]
-	if _, err := tx.Exec(ctx, `UPDATE scheduled_transactions SET name=$3, source_account_id=$4, amount=$5, start_date=$6, end_date=$7, day_of_month=$8, updated_at=now() WHERE id=$1 AND user_id=$2`, scheduleID, userID, name, sourceID, first.Amount, first.DueDate, last.DueDate, first.DueDate.Day()); err != nil {
+	if _, err := tx.Exec(ctx, `UPDATE scheduled_transactions SET name=$3, source_account_id=$4, amount=$5, start_date=$6, end_date=$7, day_of_month=$8, monthly_rate=$9, updated_at=now() WHERE id=$1 AND user_id=$2`, scheduleID, userID, name, sourceID, first.Amount, first.DueDate, last.DueDate, first.DueDate.Day(), monthlyRate); err != nil {
 		return err
 	}
 	for i, in := range installments {

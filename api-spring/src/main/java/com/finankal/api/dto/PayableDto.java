@@ -17,7 +17,9 @@ public record PayableDto(
         String occurrenceId,
         Paikot paikot,
         /** How much of the amount holds a card's limit until paid (installment principal); null = all of it. */
-        BigDecimal principal
+        BigDecimal principal,
+        /** The plan's monthly interest rate, e.g. 1.78805; null = none. */
+        BigDecimal monthlyRatePercent
 ) {
     /** Where the due lands if its account's linked card pays it; null without a link. Dates are yyyy-MM-dd. */
     public record Paikot(String cardId, String cardName, String payFrom, String payBy, String dueDate, BigDecimal fee) {

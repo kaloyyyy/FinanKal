@@ -70,6 +70,9 @@
                         <input type="hidden" name="firstInstallmentNumber" value={plan.items[0].installmentNumber ?? 1} />
                         <label class="block text-xs text-slate-400">Plan name<input name="name" required value={plan.name} class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white" /></label>
                         <label class="block text-xs text-slate-400">Pay from<select name="sourceAccountId" required value={plan.items[0].sourceAccountId} class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white">{#each payFrom as account}<option value={account.id}>{account.name}</option>{/each}</select></label>
+                        {#if isCard}
+                            <label class="block text-xs text-slate-400">Monthly interest rate (%) · with a rate, only the principal holds the card's limit<input name="monthlyRatePercent" type="number" inputmode="decimal" min="0" max="99" step="0.00001" value={plan.items[0].monthlyRatePercent ?? 0} class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white" /></label>
+                        {/if}
                         <label class="block text-xs text-slate-400">Pending installments · one date and amount per line<textarea name="rows" rows={Math.min(5,Math.max(3,plan.items.length))} required class="mt-1 w-full max-h-36 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-white">{plan.items.map((item) => `${item.scheduledDate ?? item.dueDate}, ${item.amount}`).join("\n")}</textarea></label>
                         <button class="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white">Save pending schedule</button>
                     </form>

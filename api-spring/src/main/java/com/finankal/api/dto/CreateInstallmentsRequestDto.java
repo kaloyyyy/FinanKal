@@ -9,7 +9,9 @@ public record CreateInstallmentsRequestDto(
         String sourceAccountId,
         String accountId,
         List<Installment> installments,
-        int firstInstallmentNumber
+        int firstInstallmentNumber,
+        /** A card plan's monthly interest rate, e.g. 1.78805; only read when updating a plan. */
+        BigDecimal monthlyRatePercent
 ) {
     public record Installment(String dueDate, BigDecimal amount) {
     }

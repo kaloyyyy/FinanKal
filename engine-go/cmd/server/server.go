@@ -464,6 +464,9 @@ func (s *Server) GetPayables(ctx context.Context, req *finance.GetPayablesReques
 		if !principal.Equal(p.Amount) {
 			payable.Principal = principal.String()
 		}
+		if p.MonthlyRate.IsPositive() {
+			payable.MonthlyRatePercent = p.MonthlyRate.Mul(decimal.NewFromInt(100)).String()
+		}
 		if p.SourceAccountID != nil {
 			payable.SourceAccountId = p.SourceAccountID.String()
 		}
@@ -680,7 +683,13 @@ func (s *Server) UpdateInstallments(ctx context.Context, req *finance.UpdateInst
 		}
 		items[0].Amount = full
 	}
-	if err := s.scheduleService.UpdateInstallments(ctx, userID, scheduleID, sourceID, req.GetName(), firstNumber, items); err != nil {
+	ratePercent := decimal.Zero // of a card plan, a month; empty = none
+	if req.GetMonthlyRatePercent() != "" {
+		if ratePercent, err = parseAmount(req.GetMonthlyRatePercent(), "monthly rate"); err != nil {
+			return nil, err
+		}
+	}
+	if err := s.scheduleService.UpdateInstallments(ctx, userID, scheduleID, sourceID, req.GetName(), firstNumber, ratePercent.Div(decimal.NewFromInt(100)), items); err != nil {
 		return nil, toStatus(err)
 	}
 	return &finance.UpdateInstallmentsResponse{}, nil

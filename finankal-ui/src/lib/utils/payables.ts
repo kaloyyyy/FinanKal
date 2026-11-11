@@ -13,6 +13,8 @@ export interface Payable {
     occurrenceId?: string | null;
     /** How much of the amount holds a card's limit until paid (installment principal); unset = all of it. */
     principal?: number | null;
+    /** The plan's monthly interest rate, e.g. 1.78805; unset = none. */
+    monthlyRatePercent?: number | null;
     /** Paikot: set when a card is linked to pay this account's dues. Charge it from payFrom to payBy and the due moves to dueDate. */
     paikot?: { cardId: string; cardName: string; payFrom: string; payBy: string; dueDate: string; fee: number } | null;
 }

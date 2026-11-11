@@ -54,15 +54,18 @@ func (s *Service) CreateInstallments(
 	return s.scheduleRepo.CreateInstallments(ctx, userID, name, sourceID, accountID, installments)
 }
 
-func (s *Service) UpdateInstallments(ctx context.Context, userID, scheduleID, sourceID uuid.UUID, name string, firstNumber int, installments []Installment) error {
+func (s *Service) UpdateInstallments(ctx context.Context, userID, scheduleID, sourceID uuid.UUID, name string, firstNumber int, monthlyRate decimal.Decimal, installments []Installment) error {
 	name = strings.TrimSpace(name)
+	if monthlyRate.IsNegative() || !monthlyRate.LessThan(decimal.NewFromInt(1)) {
+		return fmt.Errorf("%w: the monthly rate must be from 0 to under 100 percent", ErrInvalidSchedule)
+	}
 	if firstNumber < 1 || firstNumber+len(installments)-1 > 360 {
 		return fmt.Errorf("%w: the updated schedule must fit within 360 installments", ErrInvalidSchedule)
 	}
 	if err := validateInstallments(name, sourceID, uuid.Nil, installments); err != nil {
 		return err
 	}
-	return s.scheduleRepo.UpdateInstallments(ctx, userID, scheduleID, sourceID, name, firstNumber, installments)
+	return s.scheduleRepo.UpdateInstallments(ctx, userID, scheduleID, sourceID, name, firstNumber, monthlyRate, installments)
 }
 
 func (s *Service) DeleteInstallments(ctx context.Context, userID, scheduleID uuid.UUID) error {

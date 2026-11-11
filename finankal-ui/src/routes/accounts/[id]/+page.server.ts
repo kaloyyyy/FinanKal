@@ -214,7 +214,7 @@ export const actions: Actions = {
                 return { dueDate, amount };
             });
             const firstInstallmentNumber=Number(fields.get("firstInstallmentNumber"));
-            await updateInstallments(USER_ID,scheduleId as string,{name:name as string,sourceAccountId:sourceAccountId as string,accountId:params.id,firstInstallmentNumber,installments});
+            await updateInstallments(USER_ID,scheduleId as string,{name:name as string,sourceAccountId:sourceAccountId as string,accountId:params.id,firstInstallmentNumber,monthlyRatePercent:Number(fields.get("monthlyRatePercent")) || 0,installments});
             return { updated:true };
         } catch(e) { return fail(400,{error:reason(e,"Couldn't update this installment plan.")}); }
     },

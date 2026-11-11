@@ -280,6 +280,7 @@ message Payable {
   string paikot_due_date = 16; // due on this day
   string paikot_fee = 17;
   string principal = 18; // how much of the amount holds a card's limit until paid; empty = all of it
+  string monthly_rate_percent = 19; // the plan's monthly interest rate, e.g. "1.78805"; empty = none
 }
 
 message SetPaikotLinkRequest {
@@ -318,6 +319,7 @@ message UpdateInstallmentsRequest {
   string source_account_id = 4;
   repeated Installment installments = 5;
   int32 first_installment_number = 6;
+  string monthly_rate_percent = 7; // empty = none
 }
 message UpdateInstallmentsResponse {}
 message DeleteInstallmentsRequest { string user_id = 1; string schedule_id = 2; }
