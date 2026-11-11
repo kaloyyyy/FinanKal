@@ -78,7 +78,7 @@
             </div>
 
             {#if data.deadlines.length}
-                <AccountDeadlines deadlines={data.deadlines} />
+                <AccountDeadlines deadlines={data.deadlines} isLoan={data.account.type === "LIABILITY"} isCard={data.account.type === "CREDIT_CARD"} isMayaLoan={data.installmentKind === "MAYA" && !!data.loan} payFrom={data.payFrom} error={form?.payError ?? form?.error ?? form?.loanError} />
             {:else}
                 <div class="rounded-2xl border border-dashed border-slate-700 px-6 py-10 text-center">
                     <p class="font-medium text-white">No installments yet</p>
@@ -96,10 +96,10 @@
 
     <section aria-labelledby="ledger-heading" class="space-y-4">
         <h2 id="ledger-heading" class="text-lg font-semibold text-white">Ledger</h2>
-        <LedgerTable entries={data.entries} />
+        <LedgerTable entries={data.entries} billingDay={data.account.billingDay} statementShift={data.account.statementShift} />
     </section>
 </div>
 
 {#if owed}
-    <InstallmentDialog bind:this={dialog} accountName={data.account.name} payFrom={data.payFrom} error={form?.error} />
+    <InstallmentDialog bind:this={dialog} accountName={data.account.name} payFrom={data.payFrom} defaultPayFromId={data.defaultPayFromId} defaultDisbursedAccountId={data.defaultDisbursedAccountId} feeAccounts={data.feeAccounts} isLoan={data.account.type === "LIABILITY"} disbursementAlreadyRecorded={data.disbursementAlreadyRecorded} installmentKind={data.installmentKind} statementDay={data.account.billingDay} statementShift={data.account.statementShift} error={form?.error} />
 {/if}

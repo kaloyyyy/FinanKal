@@ -390,15 +390,30 @@ func (s *Server) GetPayables(ctx context.Context, req *finance.GetPayablesReques
 	}
 	resp := &finance.GetPayablesResponse{}
 	for _, p := range payables {
-		resp.Payables = append(resp.Payables, &finance.Payable{
+		dueDate := p.DueDate
+		if p.AccountType == string(ledger.CREDIT_CARD) {
+			card, err := s.creditService.GetCreditCard(ctx, p.AccountID)
+			if err != nil {
+				return nil, toStatus(err)
+			}
+			dueDate = credit.CalculateBillingCycle(p.DueDate, *card).DueDate
+		}
+		payable := &finance.Payable{
 			Name:              p.Name,
+			ScheduleId:        p.ScheduleID.String(),
+			OccurrenceId:      p.OccurrenceID.String(),
 			AccountId:         p.AccountID.String(),
 			AccountName:       p.AccountName,
-			DueDate:           p.DueDate.Format(statementDateFormat),
+			DueDate:           dueDate.Format(statementDateFormat),
 			Amount:            p.Amount.String(),
 			InstallmentNumber: deref(p.InstallmentNumber),
 			Installments:      deref(p.Installments),
-		})
+			ScheduledDate:     p.DueDate.Format(statementDateFormat),
+		}
+		if p.SourceAccountID != nil {
+			payable.SourceAccountId = p.SourceAccountID.String()
+		}
+		resp.Payables = append(resp.Payables, payable)
 	}
 
 	// Card bills still owed, plus each card's current cycle so far, alongside the loan installments.
@@ -516,6 +531,159 @@ func (s *Server) CreateInstallments(ctx context.Context, req *finance.CreateInst
 	return &finance.CreateInstallmentsResponse{ScheduleId: id.String()}, nil
 }
 
+func (s *Server) UpdateInstallments(ctx context.Context, req *finance.UpdateInstallmentsRequest) (*finance.UpdateInstallmentsResponse, error) {
+	userID, err := parseID(req.GetUserId(), "user id")
+	if err != nil {
+		return nil, err
+	}
+	scheduleID, err := parseID(req.GetScheduleId(), "schedule id")
+	if err != nil {
+		return nil, err
+	}
+	firstNumber := int(req.GetFirstInstallmentNumber())
+	now := time.Now().In(time.FixedZone("PHT", 8*60*60))
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	if err := s.loanService.Accrue(ctx, userID, today); err != nil {
+		return nil, toStatus(err)
+	}
+	payables, err := s.scheduleService.GetPayables(ctx, userID)
+	if err != nil {
+		return nil, toStatus(err)
+	}
+	payables, err = s.loanService.Settle(ctx, userID, payables)
+	if err != nil {
+		return nil, toStatus(err)
+	}
+	firstPending := 0
+	for _, p := range payables {
+		if p.ScheduleID == scheduleID && p.InstallmentNumber != nil {
+			firstPending = *p.InstallmentNumber
+			break
+		}
+	}
+	if firstPending == 0 || firstNumber != firstPending {
+		return nil, status.Error(codes.FailedPrecondition, "refresh the plan before editing its remaining installments")
+	}
+	sourceID, err := parseID(req.GetSourceAccountId(), "source account id")
+	if err != nil {
+		return nil, err
+	}
+	items := make([]schedule.Installment, 0, len(req.GetInstallments()))
+	for _, in := range req.GetInstallments() {
+		due, e := parseDate(in.GetDueDate(), "installment due date")
+		if e != nil {
+			return nil, e
+		}
+		amount, e := parseAmount(in.GetAmount(), "installment amount")
+		if e != nil {
+			return nil, e
+		}
+		items = append(items, schedule.Installment{DueDate: due, Amount: amount})
+	}
+	if err := s.scheduleService.UpdateInstallments(ctx, userID, scheduleID, sourceID, req.GetName(), firstNumber, items); err != nil {
+		return nil, toStatus(err)
+	}
+	return &finance.UpdateInstallmentsResponse{}, nil
+}
+
+func (s *Server) DeleteInstallments(ctx context.Context, req *finance.DeleteInstallmentsRequest) (*finance.DeleteInstallmentsResponse, error) {
+	userID, err := parseID(req.GetUserId(), "user id")
+	if err != nil {
+		return nil, err
+	}
+	id, err := parseID(req.GetScheduleId(), "schedule id")
+	if err != nil {
+		return nil, err
+	}
+	if err := s.scheduleService.DeleteInstallments(ctx, userID, id); err != nil {
+		return nil, toStatus(err)
+	}
+	return &finance.DeleteInstallmentsResponse{}, nil
+}
+
+func (s *Server) PayInstallment(ctx context.Context, req *finance.PayInstallmentRequest) (*finance.PayInstallmentResponse, error) {
+	userID, err := parseID(req.GetUserId(), "user id")
+	if err != nil {
+		return nil, err
+	}
+	occurrenceID, err := parseID(req.GetOccurrenceId(), "occurrence id")
+	if err != nil {
+		return nil, err
+	}
+	now := time.Now().In(time.FixedZone("PHT", 8*60*60))
+	id, err := s.scheduleService.PayCardInstallment(ctx, userID, occurrenceID, now)
+	if err != nil {
+		return nil, toStatus(err)
+	}
+	return &finance.PayInstallmentResponse{TransactionId: id.String()}, nil
+}
+
+func (s *Server) GetLoan(ctx context.Context, req *finance.GetLoanRequest) (*finance.LoanDetails, error) {
+	userID, err := parseID(req.GetUserId(), "user id")
+	if err != nil {
+		return nil, err
+	}
+	accountID, err := parseID(req.GetAccountId(), "account id")
+	if err != nil {
+		return nil, err
+	}
+	d, err := s.loanService.Get(ctx, userID, accountID)
+	if err != nil {
+		return nil, toStatus(err)
+	}
+	return &finance.LoanDetails{AccountId: d.AccountID.String(), Name: d.Name, BookedOn: d.BookedOn.Format(statementDateFormat), DailyRate: d.DailyRate.String(), PrincipalOn: d.PrincipalOn.Format(statementDateFormat), Principal: d.Principal.String()}, nil
+}
+
+func (s *Server) UpdateLoan(ctx context.Context, req *finance.UpdateLoanRequest) (*finance.UpdateLoanResponse, error) {
+	d := req.GetLoan()
+	if d == nil {
+		return nil, status.Error(codes.InvalidArgument, "loan details are required")
+	}
+	userID, err := parseID(req.GetUserId(), "user id")
+	if err != nil {
+		return nil, err
+	}
+	accountID, err := parseID(d.GetAccountId(), "account id")
+	if err != nil {
+		return nil, err
+	}
+	booked, err := parseDate(d.GetBookedOn(), "booking date")
+	if err != nil {
+		return nil, err
+	}
+	principalOn, err := parseDate(d.GetPrincipalOn(), "principal date")
+	if err != nil {
+		return nil, err
+	}
+	rate, err := parseAmount(d.GetDailyRate(), "daily rate")
+	if err != nil {
+		return nil, err
+	}
+	principal, err := parseAmount(d.GetPrincipal(), "principal")
+	if err != nil {
+		return nil, err
+	}
+	if err := s.loanService.Update(ctx, userID, loan.Details{AccountID: accountID, Name: d.GetName(), BookedOn: booked, DailyRate: rate, PrincipalOn: principalOn, Principal: principal}); err != nil {
+		return nil, toStatus(err)
+	}
+	return &finance.UpdateLoanResponse{}, nil
+}
+
+func (s *Server) DeleteLoan(ctx context.Context, req *finance.DeleteLoanRequest) (*finance.DeleteLoanResponse, error) {
+	userID, err := parseID(req.GetUserId(), "user id")
+	if err != nil {
+		return nil, err
+	}
+	accountID, err := parseID(req.GetAccountId(), "account id")
+	if err != nil {
+		return nil, err
+	}
+	if err := s.loanService.Delete(ctx, userID, accountID); err != nil {
+		return nil, toStatus(err)
+	}
+	return &finance.DeleteLoanResponse{}, nil
+}
+
 func (s *Server) GetMoneyFlows(ctx context.Context, req *finance.GetMoneyFlowsRequest) (*finance.GetMoneyFlowsResponse, error) {
 	userID, err := parseID(req.GetUserId(), "user id")
 	if err != nil {
@@ -568,19 +736,33 @@ func (s *Server) GetUserAccounts(ctx context.Context, req *finance.GetUserAccoun
 	if err != nil {
 		return nil, toStatus(err)
 	}
+	cards, err := s.creditService.ListCreditCards(ctx, userID)
+	if err != nil {
+		return nil, toStatus(err)
+	}
+	cardTerms := make(map[uuid.UUID]credit.CreditCard, len(cards))
+	for _, card := range cards {
+		cardTerms[card.CardID] = card
+	}
 
 	resp := &finance.GetUserAccountsResponse{
 		Accounts: make([]*finance.Account, 0, len(accounts)),
 	}
 
 	for _, account := range accounts {
-		resp.Accounts = append(resp.Accounts, &finance.Account{
+		accountDto := &finance.Account{
 			Id:        account.ID.String(),
 			Name:      account.Name,
 			Type:      account.Type,
 			Balance:   account.Balance.String(),
 			CreatedAt: timestamppb.New(account.CreatedAt),
-		})
+		}
+		if card, ok := cardTerms[account.ID]; ok {
+			accountDto.CreditLimit = card.CreditLimit.String()
+			accountDto.BillingDay = int32(card.BillingDay)
+			accountDto.StatementShift = card.StatementShift
+		}
+		resp.Accounts = append(resp.Accounts, accountDto)
 	}
 
 	return resp, nil

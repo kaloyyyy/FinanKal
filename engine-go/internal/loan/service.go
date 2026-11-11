@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -199,6 +200,77 @@ type loanRow struct {
 	rate        decimal.Decimal
 	principalOn time.Time
 	principal   decimal.Decimal
+}
+
+type Details struct {
+	AccountID   uuid.UUID
+	Name        string
+	BookedOn    time.Time
+	DailyRate   decimal.Decimal
+	PrincipalOn time.Time
+	Principal   decimal.Decimal
+}
+
+func (s *Service) Get(ctx context.Context, userID, accountID uuid.UUID) (Details, error) {
+	var d Details
+	err := s.db.QueryRow(ctx, `SELECT a.id,a.name,l.booked_on,l.daily_rate,l.principal_on,l.principal FROM loans l JOIN accounts a ON a.id=l.account_id WHERE a.user_id=$1 AND a.id=$2`, userID, accountID).Scan(&d.AccountID, &d.Name, &d.BookedOn, &d.DailyRate, &d.PrincipalOn, &d.Principal)
+	return d, err
+}
+
+func (s *Service) Update(ctx context.Context, userID uuid.UUID, d Details) error {
+	if d.AccountID == uuid.Nil || strings.TrimSpace(d.Name) == "" || !d.Principal.IsPositive() || d.DailyRate.IsNegative() || d.BookedOn.IsZero() || d.PrincipalOn.IsZero() || d.PrincipalOn.Before(d.BookedOn) {
+		return fmt.Errorf("%w: provide a name, positive principal, nonnegative rate, and valid dates", ErrInvalidLoan)
+	}
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	res, err := tx.Exec(ctx, `UPDATE loans l SET booked_on=$3,daily_rate=$4,principal_on=$5,principal=$6 FROM accounts a WHERE l.account_id=$1 AND a.id=l.account_id AND a.user_id=$2`, d.AccountID, userID, d.BookedOn, d.DailyRate, d.PrincipalOn, d.Principal)
+	if err != nil {
+		return err
+	}
+	if res.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	if _, err := tx.Exec(ctx, `UPDATE accounts SET name=$3 WHERE id=$1 AND user_id=$2`, d.AccountID, userID, strings.TrimSpace(d.Name)); err != nil {
+		return err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+	cache.InvalidateTransaction(ctx, s.redis, userID, d.AccountID)
+	return nil
+}
+
+// Delete preserves the account and ledger; it removes only loan metadata and cancels future scheduled payments.
+func (s *Service) Delete(ctx context.Context, userID, accountID uuid.UUID) error {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	var exists bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM loans l JOIN accounts a ON a.id=l.account_id WHERE l.account_id=$1 AND a.user_id=$2)`, accountID, userID).Scan(&exists); err != nil {
+		return err
+	}
+	if !exists {
+		return pgx.ErrNoRows
+	}
+	if _, err := tx.Exec(ctx, `UPDATE scheduled_transaction_occurrences o SET status='SKIPPED' FROM scheduled_transactions s WHERE o.scheduled_transaction_id=s.id AND s.destination_account_id=$1 AND s.user_id=$2 AND o.status='PENDING'`, accountID, userID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE scheduled_transactions SET active=false,updated_at=now() WHERE destination_account_id=$1 AND user_id=$2`, accountID, userID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM loans WHERE account_id=$1`, accountID); err != nil {
+		return err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+	cache.InvalidateTransaction(ctx, s.redis, userID, accountID)
+	return nil
 }
 
 // Accrue brings each of the user's loans up to today: the catch-up from the ledger to the principal the

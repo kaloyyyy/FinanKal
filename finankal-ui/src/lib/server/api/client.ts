@@ -16,5 +16,7 @@ export async function api<T>(
         throw new Error(await response.text());
     }
 
+    if (response.status === 204) return undefined as T;
+
     return response.json();
 }

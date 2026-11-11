@@ -2,6 +2,7 @@ package com.finankal.api.service;
 
 import com.finankal.api.dto.AccountDto;
 import com.finankal.api.dto.CreateInstallmentsRequestDto;
+import com.finankal.api.dto.LoanDetailsDto;
 import com.finankal.api.dto.MoneyFlowDto;
 import com.finankal.api.dto.PayableDto;
 import com.finankal.api.dto.RecentTransactionDto;
@@ -60,10 +61,13 @@ public class UserService {
                 .setUserId(userId.toString())
                 .build();
         return financeEngineStub.getPayables(request).getPayablesList().stream()
-                .map(p -> new PayableDto(p.getName(), p.getAccountId(), p.getAccountName(), p.getDueDate(),
+                .map(p -> new PayableDto(p.getName(), p.getAccountId(), p.getAccountName(), p.getDueDate(), p.getScheduledDate(),
                         new BigDecimal(p.getAmount()),
                         p.getInstallmentNumber() == 0 ? null : p.getInstallmentNumber(),
-                        p.getInstallments() == 0 ? null : p.getInstallments()))
+                        p.getInstallments() == 0 ? null : p.getInstallments(),
+                        p.getSourceAccountId().isBlank() ? null : p.getSourceAccountId(),
+                        p.getScheduleId().isBlank() ? null : p.getScheduleId(),
+                        p.getOccurrenceId().isBlank() ? null : p.getOccurrenceId()))
                 .toList();
     }
 
@@ -89,6 +93,55 @@ public class UserService {
             }
             throw e;
         }
+    }
+
+    public void updateInstallments(UUID userId, UUID scheduleId, CreateInstallmentsRequestDto dto) {
+        FinanceProtos.UpdateInstallmentsRequest.Builder b = FinanceProtos.UpdateInstallmentsRequest.newBuilder()
+                .setUserId(userId.toString()).setScheduleId(scheduleId.toString())
+                .setName(dto.name() == null ? "" : dto.name())
+                .setSourceAccountId(dto.sourceAccountId() == null ? "" : dto.sourceAccountId())
+                .setFirstInstallmentNumber(dto.firstInstallmentNumber());
+        if (dto.installments() != null) for (var i : dto.installments()) b.addInstallments(FinanceProtos.Installment.newBuilder()
+                .setDueDate(i.dueDate() == null ? "" : i.dueDate()).setAmount(i.amount() == null ? "" : i.amount().toPlainString()));
+        try { financeEngineStub.updateInstallments(b.build()); }
+        catch (StatusRuntimeException e) { throw apiError(e); }
+    }
+
+    public void deleteInstallments(UUID userId, UUID scheduleId) {
+        try { financeEngineStub.deleteInstallments(FinanceProtos.DeleteInstallmentsRequest.newBuilder().setUserId(userId.toString()).setScheduleId(scheduleId.toString()).build()); }
+        catch (StatusRuntimeException e) { throw apiError(e); }
+    }
+
+    public void payInstallment(UUID userId, UUID occurrenceId) {
+        try { financeEngineStub.payInstallment(FinanceProtos.PayInstallmentRequest.newBuilder().setUserId(userId.toString()).setOccurrenceId(occurrenceId.toString()).build()); }
+        catch (StatusRuntimeException e) { throw apiError(e); }
+    }
+
+    public LoanDetailsDto getLoan(UUID userId, UUID accountId) {
+        FinanceProtos.LoanDetails d;
+        try { d = financeEngineStub.getLoan(FinanceProtos.GetLoanRequest.newBuilder().setUserId(userId.toString()).setAccountId(accountId.toString()).build()); }
+        catch (StatusRuntimeException e) { throw apiError(e); }
+        return new LoanDetailsDto(d.getAccountId(),d.getName(),d.getBookedOn(),new BigDecimal(d.getDailyRate()),d.getPrincipalOn(),new BigDecimal(d.getPrincipal()));
+    }
+
+    public void updateLoan(UUID userId, LoanDetailsDto dto) {
+        var d=FinanceProtos.LoanDetails.newBuilder().setAccountId(dto.accountId()).setName(dto.name())
+                .setBookedOn(dto.bookedOn()).setDailyRate(dto.dailyRate().toPlainString())
+                .setPrincipalOn(dto.principalOn()).setPrincipal(dto.principal().toPlainString()).build();
+        try { financeEngineStub.updateLoan(FinanceProtos.UpdateLoanRequest.newBuilder().setUserId(userId.toString()).setLoan(d).build()); }
+        catch (StatusRuntimeException e) { throw apiError(e); }
+    }
+
+    public void deleteLoan(UUID userId, UUID accountId) {
+        try { financeEngineStub.deleteLoan(FinanceProtos.DeleteLoanRequest.newBuilder().setUserId(userId.toString()).setAccountId(accountId.toString()).build()); }
+        catch (StatusRuntimeException e) { throw apiError(e); }
+    }
+
+    private static RuntimeException apiError(StatusRuntimeException e) {
+        return switch (e.getStatus().getCode()) {
+            case INVALID_ARGUMENT, NOT_FOUND, FAILED_PRECONDITION -> new IllegalArgumentException(e.getStatus().getDescription());
+            default -> e;
+        };
     }
 
     public BigDecimal getUserTotalCredit(String userId) {

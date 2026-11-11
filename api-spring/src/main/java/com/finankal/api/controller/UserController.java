@@ -2,6 +2,7 @@ package com.finankal.api.controller;
 
 import com.finankal.api.dto.AccountDto;
 import com.finankal.api.dto.CreateInstallmentsRequestDto;
+import com.finankal.api.dto.LoanDetailsDto;
 import com.finankal.api.dto.MoneyFlowDto;
 import com.finankal.api.dto.PayableDto;
 import com.finankal.api.dto.RecentTransactionDto;
@@ -132,6 +133,37 @@ public class UserController {
         logger.info("Added {} installments for user {} (schedule {})",
                 request.installments() == null ? 0 : request.installments().size(), userId, scheduleId);
         return ResponseEntity.status(201).body(Map.of("scheduleId", scheduleId));
+    }
+
+    @PutMapping("/{userId}/payables/{scheduleId}")
+    public ResponseEntity<Void> updateInstallments(@PathVariable UUID userId, @PathVariable UUID scheduleId, @RequestBody CreateInstallmentsRequestDto request) {
+        userService.updateInstallments(userId,scheduleId,request); return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{userId}/payables/{scheduleId}")
+    public ResponseEntity<Void> deleteInstallments(@PathVariable UUID userId,@PathVariable UUID scheduleId) {
+        userService.deleteInstallments(userId,scheduleId); return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{userId}/payables/occurrences/{occurrenceId}/pay")
+    public ResponseEntity<Void> payInstallment(@PathVariable UUID userId,@PathVariable UUID occurrenceId) {
+        userService.payInstallment(userId,occurrenceId); return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{userId}/loans/{accountId}")
+    public ResponseEntity<LoanDetailsDto> getLoan(@PathVariable UUID userId,@PathVariable UUID accountId) {
+        return ResponseEntity.ok(userService.getLoan(userId,accountId));
+    }
+
+    @PutMapping("/{userId}/loans/{accountId}")
+    public ResponseEntity<Void> updateLoan(@PathVariable UUID userId,@PathVariable UUID accountId,@RequestBody LoanDetailsDto request) {
+        if (!accountId.toString().equals(request.accountId())) throw new IllegalArgumentException("Loan account does not match URL");
+        userService.updateLoan(userId,request); return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{userId}/loans/{accountId}")
+    public ResponseEntity<Void> deleteLoan(@PathVariable UUID userId,@PathVariable UUID accountId) {
+        userService.deleteLoan(userId,accountId); return ResponseEntity.noContent().build();
     }
 
     /** GET /api/users/{userId}/money-flows?from=yyyy-MM-dd&to=yyyy-MM-dd (both optional, inclusive). */

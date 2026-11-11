@@ -19,9 +19,8 @@ export const load: PageServerLoad = async () => {
 
     // shortcut: no net-worth history endpoint yet, so the chart shows its empty state; fill from the API once it exists.
     const netWorthHistory: { label: string; value: number }[] = [];
-
     return {
-        summary, recentTransactions, accounts, netWorthHistory,
+        summary, recentTransactions, accounts, netWorthHistory, userId: USER_ID,
         netPosition: await loadNetPositions(USER_ID, accounts)
     };
 };

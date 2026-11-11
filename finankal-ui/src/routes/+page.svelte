@@ -31,7 +31,7 @@
     />
 
     {#if data.netPosition}
-        <PayablesCard {...data.netPosition} />
+        <PayablesCard {...data.netPosition} accounts={data.accounts} userId={data.userId} />
     {/if}
 
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">

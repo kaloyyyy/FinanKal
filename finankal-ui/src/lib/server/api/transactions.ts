@@ -12,7 +12,7 @@ export async function createTransaction(payload: {
         amount: number;
         type: "DEBIT" | "CREDIT";
     }[];
-}) {
+}): Promise<{ id: string }> {
     const response = await fetch(
         `${API_URL}/api/transactions`,
         {

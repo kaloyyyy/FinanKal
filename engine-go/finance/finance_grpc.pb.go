@@ -36,6 +36,12 @@ const (
 	FinanceEngine_GetMoneyFlows_FullMethodName               = "/finance.FinanceEngine/GetMoneyFlows"
 	FinanceEngine_GetPayables_FullMethodName                 = "/finance.FinanceEngine/GetPayables"
 	FinanceEngine_CreateInstallments_FullMethodName          = "/finance.FinanceEngine/CreateInstallments"
+	FinanceEngine_UpdateInstallments_FullMethodName          = "/finance.FinanceEngine/UpdateInstallments"
+	FinanceEngine_DeleteInstallments_FullMethodName          = "/finance.FinanceEngine/DeleteInstallments"
+	FinanceEngine_PayInstallment_FullMethodName              = "/finance.FinanceEngine/PayInstallment"
+	FinanceEngine_GetLoan_FullMethodName                     = "/finance.FinanceEngine/GetLoan"
+	FinanceEngine_UpdateLoan_FullMethodName                  = "/finance.FinanceEngine/UpdateLoan"
+	FinanceEngine_DeleteLoan_FullMethodName                  = "/finance.FinanceEngine/DeleteLoan"
 	FinanceEngine_ClearUserTransactions_FullMethodName       = "/finance.FinanceEngine/ClearUserTransactions"
 	FinanceEngine_ListBankStatements_FullMethodName          = "/finance.FinanceEngine/ListBankStatements"
 	FinanceEngine_ImportBankStatement_FullMethodName         = "/finance.FinanceEngine/ImportBankStatement"
@@ -73,6 +79,12 @@ type FinanceEngineClient interface {
 	GetPayables(ctx context.Context, in *GetPayablesRequest, opts ...grpc.CallOption) (*GetPayablesResponse, error)
 	// Records a loan's repayment schedule: one pending installment per row, paid from source into the loan.
 	CreateInstallments(ctx context.Context, in *CreateInstallmentsRequest, opts ...grpc.CallOption) (*CreateInstallmentsResponse, error)
+	UpdateInstallments(ctx context.Context, in *UpdateInstallmentsRequest, opts ...grpc.CallOption) (*UpdateInstallmentsResponse, error)
+	DeleteInstallments(ctx context.Context, in *DeleteInstallmentsRequest, opts ...grpc.CallOption) (*DeleteInstallmentsResponse, error)
+	PayInstallment(ctx context.Context, in *PayInstallmentRequest, opts ...grpc.CallOption) (*PayInstallmentResponse, error)
+	GetLoan(ctx context.Context, in *GetLoanRequest, opts ...grpc.CallOption) (*LoanDetails, error)
+	UpdateLoan(ctx context.Context, in *UpdateLoanRequest, opts ...grpc.CallOption) (*UpdateLoanResponse, error)
+	DeleteLoan(ctx context.Context, in *DeleteLoanRequest, opts ...grpc.CallOption) (*DeleteLoanResponse, error)
 	// Deletes all of the user's transactions (and card / bank statements built from them); accounts stay.
 	ClearUserTransactions(ctx context.Context, in *ClearUserTransactionsRequest, opts ...grpc.CallOption) (*ClearUserTransactionsResponse, error)
 	// Records a parsed statement and its rows atomically, keeps one opening balance per account,
@@ -267,6 +279,66 @@ func (c *financeEngineClient) CreateInstallments(ctx context.Context, in *Create
 	return out, nil
 }
 
+func (c *financeEngineClient) UpdateInstallments(ctx context.Context, in *UpdateInstallmentsRequest, opts ...grpc.CallOption) (*UpdateInstallmentsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateInstallmentsResponse)
+	err := c.cc.Invoke(ctx, FinanceEngine_UpdateInstallments_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *financeEngineClient) DeleteInstallments(ctx context.Context, in *DeleteInstallmentsRequest, opts ...grpc.CallOption) (*DeleteInstallmentsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteInstallmentsResponse)
+	err := c.cc.Invoke(ctx, FinanceEngine_DeleteInstallments_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *financeEngineClient) PayInstallment(ctx context.Context, in *PayInstallmentRequest, opts ...grpc.CallOption) (*PayInstallmentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PayInstallmentResponse)
+	err := c.cc.Invoke(ctx, FinanceEngine_PayInstallment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *financeEngineClient) GetLoan(ctx context.Context, in *GetLoanRequest, opts ...grpc.CallOption) (*LoanDetails, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LoanDetails)
+	err := c.cc.Invoke(ctx, FinanceEngine_GetLoan_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *financeEngineClient) UpdateLoan(ctx context.Context, in *UpdateLoanRequest, opts ...grpc.CallOption) (*UpdateLoanResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateLoanResponse)
+	err := c.cc.Invoke(ctx, FinanceEngine_UpdateLoan_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *financeEngineClient) DeleteLoan(ctx context.Context, in *DeleteLoanRequest, opts ...grpc.CallOption) (*DeleteLoanResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteLoanResponse)
+	err := c.cc.Invoke(ctx, FinanceEngine_DeleteLoan_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *financeEngineClient) ClearUserTransactions(ctx context.Context, in *ClearUserTransactionsRequest, opts ...grpc.CallOption) (*ClearUserTransactionsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ClearUserTransactionsResponse)
@@ -374,6 +446,12 @@ type FinanceEngineServer interface {
 	GetPayables(context.Context, *GetPayablesRequest) (*GetPayablesResponse, error)
 	// Records a loan's repayment schedule: one pending installment per row, paid from source into the loan.
 	CreateInstallments(context.Context, *CreateInstallmentsRequest) (*CreateInstallmentsResponse, error)
+	UpdateInstallments(context.Context, *UpdateInstallmentsRequest) (*UpdateInstallmentsResponse, error)
+	DeleteInstallments(context.Context, *DeleteInstallmentsRequest) (*DeleteInstallmentsResponse, error)
+	PayInstallment(context.Context, *PayInstallmentRequest) (*PayInstallmentResponse, error)
+	GetLoan(context.Context, *GetLoanRequest) (*LoanDetails, error)
+	UpdateLoan(context.Context, *UpdateLoanRequest) (*UpdateLoanResponse, error)
+	DeleteLoan(context.Context, *DeleteLoanRequest) (*DeleteLoanResponse, error)
 	// Deletes all of the user's transactions (and card / bank statements built from them); accounts stay.
 	ClearUserTransactions(context.Context, *ClearUserTransactionsRequest) (*ClearUserTransactionsResponse, error)
 	// Records a parsed statement and its rows atomically, keeps one opening balance per account,
@@ -448,6 +526,24 @@ func (UnimplementedFinanceEngineServer) GetPayables(context.Context, *GetPayable
 }
 func (UnimplementedFinanceEngineServer) CreateInstallments(context.Context, *CreateInstallmentsRequest) (*CreateInstallmentsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateInstallments not implemented")
+}
+func (UnimplementedFinanceEngineServer) UpdateInstallments(context.Context, *UpdateInstallmentsRequest) (*UpdateInstallmentsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateInstallments not implemented")
+}
+func (UnimplementedFinanceEngineServer) DeleteInstallments(context.Context, *DeleteInstallmentsRequest) (*DeleteInstallmentsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteInstallments not implemented")
+}
+func (UnimplementedFinanceEngineServer) PayInstallment(context.Context, *PayInstallmentRequest) (*PayInstallmentResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PayInstallment not implemented")
+}
+func (UnimplementedFinanceEngineServer) GetLoan(context.Context, *GetLoanRequest) (*LoanDetails, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetLoan not implemented")
+}
+func (UnimplementedFinanceEngineServer) UpdateLoan(context.Context, *UpdateLoanRequest) (*UpdateLoanResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateLoan not implemented")
+}
+func (UnimplementedFinanceEngineServer) DeleteLoan(context.Context, *DeleteLoanRequest) (*DeleteLoanResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteLoan not implemented")
 }
 func (UnimplementedFinanceEngineServer) ClearUserTransactions(context.Context, *ClearUserTransactionsRequest) (*ClearUserTransactionsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ClearUserTransactions not implemented")
@@ -800,6 +896,114 @@ func _FinanceEngine_CreateInstallments_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FinanceEngine_UpdateInstallments_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateInstallmentsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FinanceEngineServer).UpdateInstallments(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FinanceEngine_UpdateInstallments_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FinanceEngineServer).UpdateInstallments(ctx, req.(*UpdateInstallmentsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FinanceEngine_DeleteInstallments_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteInstallmentsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FinanceEngineServer).DeleteInstallments(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FinanceEngine_DeleteInstallments_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FinanceEngineServer).DeleteInstallments(ctx, req.(*DeleteInstallmentsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FinanceEngine_PayInstallment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PayInstallmentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FinanceEngineServer).PayInstallment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FinanceEngine_PayInstallment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FinanceEngineServer).PayInstallment(ctx, req.(*PayInstallmentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FinanceEngine_GetLoan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLoanRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FinanceEngineServer).GetLoan(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FinanceEngine_GetLoan_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FinanceEngineServer).GetLoan(ctx, req.(*GetLoanRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FinanceEngine_UpdateLoan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateLoanRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FinanceEngineServer).UpdateLoan(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FinanceEngine_UpdateLoan_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FinanceEngineServer).UpdateLoan(ctx, req.(*UpdateLoanRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FinanceEngine_DeleteLoan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteLoanRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FinanceEngineServer).DeleteLoan(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FinanceEngine_DeleteLoan_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FinanceEngineServer).DeleteLoan(ctx, req.(*DeleteLoanRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _FinanceEngine_ClearUserTransactions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ClearUserTransactionsRequest)
 	if err := dec(in); err != nil {
@@ -1018,6 +1222,30 @@ var FinanceEngine_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateInstallments",
 			Handler:    _FinanceEngine_CreateInstallments_Handler,
+		},
+		{
+			MethodName: "UpdateInstallments",
+			Handler:    _FinanceEngine_UpdateInstallments_Handler,
+		},
+		{
+			MethodName: "DeleteInstallments",
+			Handler:    _FinanceEngine_DeleteInstallments_Handler,
+		},
+		{
+			MethodName: "PayInstallment",
+			Handler:    _FinanceEngine_PayInstallment_Handler,
+		},
+		{
+			MethodName: "GetLoan",
+			Handler:    _FinanceEngine_GetLoan_Handler,
+		},
+		{
+			MethodName: "UpdateLoan",
+			Handler:    _FinanceEngine_UpdateLoan_Handler,
+		},
+		{
+			MethodName: "DeleteLoan",
+			Handler:    _FinanceEngine_DeleteLoan_Handler,
 		},
 		{
 			MethodName: "ClearUserTransactions",

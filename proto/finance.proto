@@ -66,6 +66,13 @@ service FinanceEngine {
   rpc CreateInstallments(CreateInstallmentsRequest)
       returns (CreateInstallmentsResponse);
 
+  rpc UpdateInstallments(UpdateInstallmentsRequest) returns (UpdateInstallmentsResponse);
+  rpc DeleteInstallments(DeleteInstallmentsRequest) returns (DeleteInstallmentsResponse);
+  rpc PayInstallment(PayInstallmentRequest) returns (PayInstallmentResponse);
+  rpc GetLoan(GetLoanRequest) returns (LoanDetails);
+  rpc UpdateLoan(UpdateLoanRequest) returns (UpdateLoanResponse);
+  rpc DeleteLoan(DeleteLoanRequest) returns (DeleteLoanResponse);
+
   // Deletes all of the user's transactions (and card / bank statements built from them); accounts stay.
   rpc ClearUserTransactions(ClearUserTransactionsRequest)
       returns (ClearUserTransactionsResponse);
@@ -151,6 +158,9 @@ message Account {
   string type = 3;
   string balance = 4;
   google.protobuf.Timestamp created_at = 5;
+  string credit_limit = 6;
+  int32 billing_day = 7;
+  string statement_shift = 8;
 }
 
 enum AccountType {
@@ -257,6 +267,10 @@ message Payable {
   string amount = 5;
   int32 installment_number = 6; // 0 when unknown
   int32 installments = 7;       // 0 when unknown
+  string source_account_id = 8; // empty for card bills without a scheduled source
+  string schedule_id = 9;
+  string occurrence_id = 10;
+  string scheduled_date = 11; // yyyy-MM-dd; retained when due_date is the card's statement deadline
 }
 
 message GetPayablesResponse {
@@ -279,6 +293,33 @@ message CreateInstallmentsRequest {
 message CreateInstallmentsResponse {
   string schedule_id = 1;
 }
+
+message UpdateInstallmentsRequest {
+  string user_id = 1;
+  string schedule_id = 2;
+  string name = 3;
+  string source_account_id = 4;
+  repeated Installment installments = 5;
+  int32 first_installment_number = 6;
+}
+message UpdateInstallmentsResponse {}
+message DeleteInstallmentsRequest { string user_id = 1; string schedule_id = 2; }
+message DeleteInstallmentsResponse {}
+message PayInstallmentRequest { string user_id = 1; string occurrence_id = 2; }
+message PayInstallmentResponse { string transaction_id = 1; }
+message GetLoanRequest { string user_id = 1; string account_id = 2; }
+message LoanDetails {
+  string account_id = 1;
+  string name = 2;
+  string booked_on = 3;
+  string daily_rate = 4;
+  string principal_on = 5;
+  string principal = 6;
+}
+message UpdateLoanRequest { string user_id = 1; LoanDetails loan = 2; }
+message UpdateLoanResponse {}
+message DeleteLoanRequest { string user_id = 1; string account_id = 2; }
+message DeleteLoanResponse {}
 
 message UpdateTransactionRequest {
   string user_id = 1;

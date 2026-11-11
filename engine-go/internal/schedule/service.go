@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/kaloy/finankal/engine-go/internal/cache"
 	"github.com/kaloy/finankal/engine-go/internal/ledger"
 	"github.com/redis/go-redis/v9"
 	"github.com/shopspring/decimal"
@@ -51,6 +52,29 @@ func (s *Service) CreateInstallments(
 		return uuid.Nil, err
 	}
 	return s.scheduleRepo.CreateInstallments(ctx, userID, name, sourceID, accountID, installments)
+}
+
+func (s *Service) UpdateInstallments(ctx context.Context, userID, scheduleID, sourceID uuid.UUID, name string, firstNumber int, installments []Installment) error {
+	name = strings.TrimSpace(name)
+	if firstNumber < 1 || firstNumber+len(installments)-1 > 360 {
+		return fmt.Errorf("%w: the updated schedule must fit within 360 installments", ErrInvalidSchedule)
+	}
+	if err := validateInstallments(name, sourceID, uuid.Nil, installments); err != nil {
+		return err
+	}
+	return s.scheduleRepo.UpdateInstallments(ctx, userID, scheduleID, sourceID, name, firstNumber, installments)
+}
+
+func (s *Service) DeleteInstallments(ctx context.Context, userID, scheduleID uuid.UUID) error {
+	return s.scheduleRepo.DeleteInstallments(ctx, userID, scheduleID)
+}
+
+func (s *Service) PayCardInstallment(ctx context.Context, userID, occurrenceID uuid.UUID, at time.Time) (uuid.UUID, error) {
+	txID, cardID, sourceID, err := s.scheduleRepo.PayCardInstallment(ctx, userID, occurrenceID, at)
+	if err == nil {
+		cache.InvalidateCreditCard(ctx, s.redis, cardID, userID, sourceID)
+	}
+	return txID, err
 }
 
 func validateInstallments(name string, sourceID, accountID uuid.UUID, installments []Installment) error {

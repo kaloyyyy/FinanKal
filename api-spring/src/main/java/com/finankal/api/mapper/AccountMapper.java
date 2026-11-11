@@ -23,6 +23,9 @@ public class AccountMapper {
         dto.setName(account.getName());
         dto.setType(account.getType());
         dto.setBalance(new BigDecimal(account.getBalance()));
+        if (!account.getCreditLimit().isEmpty()) dto.setCreditLimit(new BigDecimal(account.getCreditLimit()));
+        if (account.getBillingDay() > 0) dto.setBillingDay(account.getBillingDay());
+        if (!account.getStatementShift().isEmpty()) dto.setStatementShift(account.getStatementShift());
 
         Instant instant = Instant.ofEpochSecond(
                 account.getCreatedAt().getSeconds(),

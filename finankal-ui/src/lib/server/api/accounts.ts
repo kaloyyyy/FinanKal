@@ -1,11 +1,23 @@
 import { api } from './client';
 import type {LedgerEntryDto} from "$lib/types/ledger";
 
+export interface LoanDetails {
+    accountId: string;
+    name: string;
+    bookedOn: string;
+    dailyRate: number;
+    principalOn: string;
+    principal: number;
+}
+
 export interface Account {
     id: string;
     name: string;
     type: string;
     balance: number;
+    creditLimit?: number;
+    billingDay?: number;
+    statementShift?: string;
     createdAt: string;
 }
 
@@ -35,4 +47,14 @@ export function getLedgerEntries(id: string) {
  */
 export async function getUserAccounts(userId: string): Promise<Account[]> {
     return api<Account[]>(`/api/users/${userId}/accounts`);
+}
+
+export async function getLoanDetails(userId: string, accountId: string): Promise<LoanDetails> {
+    return api<LoanDetails>(`/api/users/${userId}/loans/${accountId}`);
+}
+export async function updateLoanDetails(userId: string, details: LoanDetails): Promise<void> {
+    await api<void>(`/api/users/${userId}/loans/${details.accountId}`, { method: "PUT", body: JSON.stringify(details) });
+}
+export async function deleteLoan(userId: string, accountId: string): Promise<void> {
+    await api<void>(`/api/users/${userId}/loans/${accountId}`, { method: "DELETE" });
 }

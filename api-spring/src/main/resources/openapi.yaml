@@ -449,6 +449,19 @@ components:
           format: decimal
           description: Current account balance
           example: 5000.00
+        creditLimit:
+          type: number
+          format: decimal
+          description: Credit limit, present for credit card accounts
+          example: 100000.00
+        billingDay:
+          type: integer
+          description: Monthly statement closing day, present for credit card accounts
+          example: 15
+        statementShift:
+          type: string
+          description: Weekend adjustment for the card statement closing day
+          example: NEXT_BUSINESS_DAY
         createdAt:
           type: string
           format: date-time

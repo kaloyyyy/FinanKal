@@ -8,7 +8,8 @@ public record CreateInstallmentsRequestDto(
         String name,
         String sourceAccountId,
         String accountId,
-        List<Installment> installments
+        List<Installment> installments,
+        int firstInstallmentNumber
 ) {
     public record Installment(String dueDate, BigDecimal amount) {
     }

@@ -10,5 +10,8 @@ public class AccountDto {
     private String name;
     private String type;
     private BigDecimal balance;
+    private BigDecimal creditLimit;
+    private Integer billingDay;
+    private String statementShift;
     private LocalDateTime createdAt;
 }

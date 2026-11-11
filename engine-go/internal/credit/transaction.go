@@ -3,6 +3,7 @@ package credit
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -76,6 +77,24 @@ func (s *Service) RecordCreditCardTransaction(
 	cache.InvalidateCreditCard(ctx, s.redis, card.CardID, userID, card.ClearingAccountId)
 
 	return transactionID, nil
+}
+
+// RecordInstallmentTx adds a card installment entry to the billing cycle for its transaction date.
+func (s *Service) RecordInstallmentTx(ctx context.Context, tx pgx.Tx, cardID uuid.UUID, purchaseDate time.Time, entryID uuid.UUID, amount decimal.Decimal) error {
+	// Serialize statement creation with ordinary card purchases for this card.
+	card, err := scanCard(tx.QueryRow(ctx, `SELECT `+cardColumns+` FROM credit_cards cc WHERE cc.id=$1 FOR UPDATE`, cardID))
+	if err != nil {
+		return err
+	}
+	cycle := CalculateBillingCycle(purchaseDate, card)
+	statementID, err := s.findOrCreateStatementTx(ctx, tx, cardID, cycle)
+	if err != nil {
+		return err
+	}
+	if err := s.entryRepo.CreateEntryMappingTx(ctx, tx, statementID, entryID); err != nil {
+		return err
+	}
+	return s.statementRepo.AddPurchaseToStatementTx(ctx, tx, statementID, amount)
 }
 
 // findOrCreateStatementTx relies on the caller holding the card lock, because

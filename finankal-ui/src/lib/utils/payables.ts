@@ -4,9 +4,13 @@ export interface Payable {
     accountId: string;
     accountName: string;
     dueDate: string;
+    scheduledDate?: string;
     amount: number;
     installmentNumber: number | null;
     installments: number | null;
+    sourceAccountId?: string | null;
+    scheduleId?: string | null;
+    occurrenceId?: string | null;
 }
 
 export interface PayableMonth {
