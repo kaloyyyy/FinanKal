@@ -65,7 +65,7 @@ export const load: PageServerLoad = async ({ params }) => {
             // A card installment can be linked to a payment into the card that's already recorded (newest first).
             linkablePayments: account.type === "CREDIT_CARD"
                 ? entries.filter((e) => e.type === "DEBIT" && e.transactionId).slice(0, 25)
-                    .map((e) => ({ transactionId: e.transactionId as string, label:  }))
+                    .map((e) => ({ transactionId: e.transactionId as string, label: `${(e.createdAt ?? "").slice(0, 10)} · ${e.description ?? "Payment"} · ₱${e.amount.toFixed(2)}` }))
                 : [],
             // Installments are paid from a bank or wallet.
             payFrom: accounts.filter((a) => a.type === "ASSET").map(({ id, name }) => ({ id, name })),
