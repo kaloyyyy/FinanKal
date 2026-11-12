@@ -40,7 +40,8 @@ public final class BankStatementParser {
         // UnionBank credit card statement of account: its first line, and the card's product name.
         // Card statement of account (first line, product name) or card transaction history (its table header).
         UNIONBANK_CARD("UnionBank Credit Card",
-                "statement of account available points|rewards platinum mastercard|transaction date posting date transaction details", true);
+                "statement of account available points|rewards platinum mastercard|transaction date posting date transaction details"
+                + "|card number \\d{16}", true); // the last: the .xlsx statement
 
         public final String label;
         /** A credit card statement: balances are owed, a positive amount is a charge and a negative one a payment. */
@@ -73,7 +74,40 @@ public final class BankStatementParser {
     public record CardSummary(LocalDate statementDate, BigDecimal previousBalance, BigDecimal totalDue,
                               BigDecimal minimumDue, LocalDate dueDate) {}
 
+    // The .xlsx statement lists the same figures as labelled rows: "STATEMENT DATE Jan 23, 2026", "TOTAL AMOUNT DUE PHP 33228.27".
+    private static final String SHEET_DATE = "([A-Za-z]{3,9} \\d{1,2}, \\d{4})";
+    private static final String SHEET_AMOUNT = "(?:PHP\\s*)?(-?[\\d,]+\\.\\d{2})";
+    private static final Pattern SHEET_STATEMENT_DATE = Pattern.compile("(?im)^statement date\\s+" + SHEET_DATE);
+    private static final Pattern SHEET_DUE_DATE = Pattern.compile("(?im)^payment due date\\s+" + SHEET_DATE);
+    private static final Pattern SHEET_TOTAL = Pattern.compile("(?im)^total amount due\\s+" + SHEET_AMOUNT);
+    private static final Pattern SHEET_MINIMUM = Pattern.compile("(?im)^minimum amount due\\s+" + SHEET_AMOUNT);
+    private static final Pattern SHEET_PREVIOUS = Pattern.compile("(?im)^previous balance\\s+" + SHEET_AMOUNT);
+    /** "CARD NUMBER 5292471506951135": the last four digits are what the PDF statements print. */
+    private static final Pattern SHEET_CARD = Pattern.compile("(?im)^card number\\s+\\d*(\\d{4})(?!\\d)");
+
+    private static CardSummary sheetCardSummary(String text) {
+        Matcher date = SHEET_STATEMENT_DATE.matcher(text);
+        Matcher total = SHEET_TOTAL.matcher(text);
+        if (!date.find() || !total.find()) {
+            return null;
+        }
+        Matcher due = SHEET_DUE_DATE.matcher(text);
+        Matcher minimum = SHEET_MINIMUM.matcher(text);
+        Matcher previous = SHEET_PREVIOUS.matcher(text);
+        DateTimeFormatter shortDate = fmt("MMM d, yyyy");
+        return new CardSummary(
+                LocalDate.parse(date.group(1), shortDate),
+                previous.find() ? money(previous.group(1)) : null,
+                money(total.group(1)),
+                minimum.find() ? money(minimum.group(1)) : null,
+                due.find() ? LocalDate.parse(due.group(1), shortDate) : null);
+    }
+
     public static CardSummary cardSummary(String text) {
+        CardSummary sheet = sheetCardSummary(text);
+        if (sheet != null) {
+            return sheet;
+        }
         Matcher date = CARD_STATEMENT_DATE.matcher(text);
         Matcher previous = CARD_PREVIOUS.matcher(text);
         Matcher due = CARD_DUE.matcher(text);
@@ -141,7 +175,7 @@ public final class BankStatementParser {
 
     // Card charges that are the bank's own: interest, and its named fees. "Rent Fees" paid to a landlord isn't one.
     private static final Pattern CARD_INTEREST = Pattern.compile("(?i)\\binterest\\b|finance charge");
-    private static final Pattern CARD_FEE = Pattern.compile("(?i)\\b(processing|annual|membership|late(?: payment)?|service|cash advance|overlimit)\\s+fee\\b");
+    private static final Pattern CARD_FEE = Pattern.compile("(?i)\\b(processing|annual|membership|late(?: payment)?|service|cash advance|quasi-cash|overlimit)\\s+fee\\b");
 
     /**
      * UnionBank payroll credit: an S-reference and the employee's name as "Surname, Given names" (PDF),
@@ -195,6 +229,10 @@ public final class BankStatementParser {
             Matcher virtual = CARD_VIRTUAL.matcher(text);
             if (virtual.find()) {
                 return virtual.group(1);
+            }
+            Matcher sheet = SHEET_CARD.matcher(text);
+            if (sheet.find()) {
+                return sheet.group(1);
             }
             Matcher m = CARD_LAST4.matcher(text);
             return m.find() ? m.group(1).replaceAll("\\D", "") : null;

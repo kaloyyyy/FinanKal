@@ -65,6 +65,46 @@ class StatementXlsxTextTest {
         assertEquals("Cash", BankStatementParser.category(Bank.UNIONBANK, r.lines().get(2)));
     }
 
+    /** UnionBank credit card statement .xlsx: labelled summary rows, then DATE / DESCRIPTION / CURRENCY / AMOUNT (made-up values). */
+    @Test
+    void unionBankCardSheetReadsLikeItsPdf() throws Exception {
+        byte[] file;
+        try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet();
+            row(sheet, 1, null, "ACCOUNT NAME", null, "JUAN DELA CRUZ");
+            row(sheet, 2, null, "CARD NUMBER", null, "5292471506951135");
+            row(sheet, 3, null, "STATEMENT BALANCE", "PHP", 1500.0);
+            row(sheet, 4, null, "MINIMUM AMOUNT DUE", "PHP", 500.0);
+            row(sheet, 5, null, "PAYMENT DUE DATE", null, "Feb 09, 2026");
+            row(sheet, 6, null, "STATEMENT DATE", null, "Jan 23, 2026");
+            row(sheet, 7, null, "PREVIOUS BALANCE", "PHP", 0.0);
+            row(sheet, 10, null, "TOTAL AMOUNT DUE", "PHP", 1500.0);
+            row(sheet, 13, "DATE", "DESCRIPTION", "CURRENCY", "AMOUNT");
+            row(sheet, 14, "01/16/2026", "Quasi-Cash Fee", "PHP", 25.75);
+            row(sheet, 15, "01/15/2026", "Payment via UB Online UB379796", "PHP", -1000.0);
+            row(sheet, 16, "01/14/2026", "SHOPEE PH, MANDALUYONG, PHL", "PHP", 2474.25);
+            workbook.write(out);
+            file = out.toByteArray();
+        }
+
+        String text = StatementXlsxText.extract(file, null);
+        assertEquals(Bank.UNIONBANK_CARD, BankStatementParser.detectBank(text), text);
+        assertEquals("1135", BankStatementParser.accountNumber(text, Bank.UNIONBANK_CARD));
+
+        BankStatementParser.CardSummary card = BankStatementParser.cardSummary(text);
+        assertEquals(LocalDate.of(2026, 1, 23), card.statementDate());
+        assertEquals(LocalDate.of(2026, 2, 9), card.dueDate());
+        assertEquals(new BigDecimal("1500.00"), card.totalDue());
+        assertEquals(new BigDecimal("500.00"), card.minimumDue());
+
+        Result r = BankStatementParser.parse(text, Bank.UNIONBANK_CARD);
+        assertTrue(r.skipped().isEmpty(), text);
+        assertEquals(3, r.lines().size(), text);
+        assertEquals(new Line(LocalDate.of(2026, 1, 16), "Quasi-Cash Fee", new BigDecimal("25.75"), true), r.lines().get(0));
+        assertFalse(r.lines().get(1).debit());
+        assertEquals("Loan Fees", BankStatementParser.category(Bank.UNIONBANK_CARD, r.lines().get(0)));
+    }
+
     private static void row(Sheet sheet, int index, Object... cells) {
         Row row = sheet.createRow(index);
         for (int i = 0; i < cells.length; i++) {
