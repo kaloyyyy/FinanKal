@@ -58,7 +58,8 @@ public class StatementImportService {
             String password,
             Bank bank,
             String userId,
-            String accountId
+            String accountId,
+            boolean replace
     ) {
         if (userId == null || userId.isBlank()) {
             throw new IllegalArgumentException("userId is required");
@@ -90,7 +91,7 @@ public class StatementImportService {
         // Oldest first, so each statement's balance check already includes the months before it.
         ready.sort(Comparator.comparing(Parsed::start));
         for (Parsed parsed : ready) {
-            results.add(send(parsed, userId, accountId));
+            results.add(send(parsed, userId, accountId, replace));
         }
         return results;
     }
@@ -174,7 +175,7 @@ public class StatementImportService {
                 sha256(upload.pdf()), bill);
     }
 
-    private StatementImportResultDto send(Parsed p, String userId, String accountId) {
+    private StatementImportResultDto send(Parsed p, String userId, String accountId, boolean replace) {
         String number = p.accountNumber() == null ? "" : p.accountNumber();
         List<AccountDto> accounts = userService.getUserAccounts(UUID.fromString(userId));
         if (accountId == null && number.isEmpty() && !p.bank().card) {
@@ -204,7 +205,8 @@ public class StatementImportService {
                 .setPeriodEnd(p.end().toString())
                 .setOpeningBalance(amount(p.result().openingBalance()))
                 .setClosingBalance(amount(p.result().closingBalance()))
-                .setFileSha256(p.sha256());
+                .setFileSha256(p.sha256())
+                .setReplace(replace);
         // A payment naming one of the user's loans goes into it (the engine moves money to an own account named
         // by the category), so its interest and deadlines follow. Without that loan it stays an Outgoing Transfer.
         List<String> loans = accounts.stream()

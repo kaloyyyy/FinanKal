@@ -3111,8 +3111,10 @@ type ImportBankStatementRequest struct {
 	ClosingBalance string          `protobuf:"bytes,6,opt,name=closing_balance,json=closingBalance,proto3" json:"closing_balance,omitempty"` // "" when the statement doesn't print one
 	FileSha256     string          `protobuf:"bytes,7,opt,name=file_sha256,json=fileSha256,proto3" json:"file_sha256,omitempty"`             // hex SHA-256 of the uploaded file, to refuse re-imports
 	Rows           []*StatementRow `protobuf:"bytes,8,rep,name=rows,proto3" json:"rows,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// true = replace the account's statement for the same file or period (and its rows) instead of refusing it.
+	Replace       bool `protobuf:"varint,16,opt,name=replace,proto3" json:"replace,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ImportBankStatementRequest) Reset() {
@@ -3248,6 +3250,13 @@ func (x *ImportBankStatementRequest) GetRows() []*StatementRow {
 		return x.Rows
 	}
 	return nil
+}
+
+func (x *ImportBankStatementRequest) GetReplace() bool {
+	if x != nil {
+		return x.Replace
+	}
+	return false
 }
 
 type StatementRow struct {
@@ -4513,7 +4522,7 @@ const file_finance_proto_rawDesc = "" +
 	"\x1aListBankStatementsResponse\x12=\n" +
 	"\n" +
 	"statements\x18\x01 \x03(\v2\x1d.finance.BankStatementSummaryR\n" +
-	"statements\"\x94\x04\n" +
+	"statements\"\xae\x04\n" +
 	"\x1aImportBankStatementRequest\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12\x17\n" +
@@ -4533,7 +4542,8 @@ const file_finance_proto_rawDesc = "" +
 	"\x0fclosing_balance\x18\x06 \x01(\tR\x0eclosingBalance\x12\x1f\n" +
 	"\vfile_sha256\x18\a \x01(\tR\n" +
 	"fileSha256\x12)\n" +
-	"\x04rows\x18\b \x03(\v2\x15.finance.StatementRowR\x04rows\"\x95\x01\n" +
+	"\x04rows\x18\b \x03(\v2\x15.finance.StatementRowR\x04rows\x12\x18\n" +
+	"\areplace\x18\x10 \x01(\bR\areplace\"\x95\x01\n" +
 	"\fStatementRow\x12\x12\n" +
 	"\x04date\x18\x01 \x01(\tR\x04date\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x16\n" +

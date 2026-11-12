@@ -79,6 +79,29 @@ func insertStatement(ctx context.Context, tx pgx.Tx, s Statement) (uuid.UUID, er
 	return id, err
 }
 
+// deleteStatement removes the account's statements with the same file or the same period; their transactions
+// go with them (ON DELETE CASCADE). It returns the other accounts those transactions touched, for cache invalidation.
+func deleteStatement(ctx context.Context, tx pgx.Tx, s Statement) ([]uuid.UUID, error) {
+	const match = `account_id = $1 AND (file_sha256 = $2 OR (period_start = $3 AND period_end = $4))`
+	rows, err := tx.Query(ctx, `
+		SELECT DISTINCT e.account_id
+		FROM entries e
+		JOIN transactions t ON t.id = e.transaction_id
+		JOIN bank_statements b ON b.id = t.statement_id
+		WHERE b.account_id = $1
+		  AND (b.file_sha256 = $2 OR (b.period_start = $3 AND b.period_end = $4))
+	`, s.AccountID, s.FileSHA256, s.PeriodStart, s.PeriodEnd)
+	if err != nil {
+		return nil, err
+	}
+	accounts, err := pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
+	if err != nil {
+		return nil, err
+	}
+	_, err = tx.Exec(ctx, `DELETE FROM bank_statements WHERE `+match, s.AccountID, s.FileSHA256, s.PeriodStart, s.PeriodEnd)
+	return accounts, err
+}
+
 // accountNamed returns the user's oldest account of the type with that name, or uuid.Nil if there is none.
 func accountNamed(ctx context.Context, tx pgx.Tx, userID uuid.UUID, accountType, name string) (uuid.UUID, error) {
 	var id uuid.UUID

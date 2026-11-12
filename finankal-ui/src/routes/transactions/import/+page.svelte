@@ -139,7 +139,7 @@
                                         <span class="text-slate-200">{result.accountName}</span>.
                                         {#if !result.warnings.length}The balance matches the statement.{/if}
                                     {:else if result.status === "ALREADY_IMPORTED"}
-                                        Already imported{result.bank ? ` (${result.bank})` : ""}, so it was skipped.
+                                        Already imported{result.bank ? ` (${result.bank})` : ""}, so it was skipped. To fix a wrong reading, import it again with "Replace statements already imported".
                                     {:else}
                                         Not imported{result.bank ? ` (${result.bank})` : ""}: {result.error}
                                     {/if}
@@ -336,6 +336,16 @@
                         Some banks, like GCash and BDO, lock their statement files. It's tried on every file and only used to open them.
                     </p>
                 </div>
+
+                <label class="mt-5 flex cursor-pointer items-start gap-3 text-sm text-slate-300">
+                    <input type="checkbox" name="replace" class="mt-0.5 h-4 w-4 accent-blue-500" />
+                    <span>
+                        Replace statements already imported
+                        <span class="block text-xs text-slate-500">
+                            For a statement that was read wrong: its old transactions (same file or same period) are deleted and the file is read again.
+                        </span>
+                    </span>
+                </label>
             </div>
 
             <!-- Bank -->

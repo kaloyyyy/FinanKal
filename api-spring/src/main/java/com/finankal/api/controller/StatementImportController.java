@@ -36,7 +36,8 @@ public class StatementImportController {
      * files (repeated), userId,
      * bank (MARIBANK|BDO|MAYA|GCASH|GOTYME|BPI, optional: detected from each statement),
      * sourceAccountId (optional: found by the statement's account number, or created),
-     * password (optional, used for every file)
+     * password (optional, used for every file),
+     * replace (optional, default false: true re-imports a statement already on file, replacing its rows)
      */
     @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<List<StatementImportResultDto>> importStatements(
@@ -44,7 +45,8 @@ public class StatementImportController {
             @RequestParam("userId") String userId,
             @RequestParam(value = "bank", required = false) Bank bank,
             @RequestParam(value = "sourceAccountId", required = false) String sourceAccountId,
-            @RequestParam(value = "password", required = false) String password
+            @RequestParam(value = "password", required = false) String password,
+            @RequestParam(value = "replace", required = false, defaultValue = "false") boolean replace
     ) throws IOException {
         if (files.isEmpty()) {
             throw new IllegalArgumentException("Choose at least one statement file");
@@ -54,6 +56,6 @@ public class StatementImportController {
             uploads.add(new Upload(file.getOriginalFilename(), file.getBytes()));
         }
         String accountId = sourceAccountId == null || sourceAccountId.isBlank() ? null : sourceAccountId;
-        return ResponseEntity.ok(statementImportService.importStatements(uploads, password, bank, userId, accountId));
+        return ResponseEntity.ok(statementImportService.importStatements(uploads, password, bank, userId, accountId, replace));
     }
 }

@@ -304,6 +304,7 @@ func (s *Server) ImportBankStatement(ctx context.Context, req *finance.ImportBan
 		OpeningBalance: opening,
 		ClosingBalance: closing,
 		FileSHA256:     req.GetFileSha256(),
+		Replace:        req.GetReplace(),
 		Rows:           rows,
 	})
 	if err != nil {

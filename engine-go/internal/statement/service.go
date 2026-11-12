@@ -73,6 +73,7 @@ type Statement struct {
 	OpeningBalance decimal.NullDecimal
 	ClosingBalance decimal.NullDecimal
 	FileSHA256     string
+	Replace        bool // delete the account's statement for the same file or period first, rows included
 	Rows           []Row
 }
 
@@ -131,6 +132,18 @@ func (s *Service) Import(ctx context.Context, st Statement) (Result, error) {
 	st.AccountID = acct.ID
 	userID := acct.UserID
 
+	touched := []uuid.UUID{st.AccountID}
+	if st.Replace {
+		// A statement that was read wrong: drop it and its rows, then import the new reading in its place.
+		// shortcut: a row that was joined as a transfer with another bank's statement stays with that statement
+		// and is skipped as a duplicate on re-import; delete the other statement too if that row was wrong.
+		replaced, err := deleteStatement(ctx, tx, st)
+		if err != nil {
+			return Result{}, err
+		}
+		touched = append(touched, replaced...)
+	}
+
 	statementID, err := insertStatement(ctx, tx, st)
 	if err != nil {
 		return Result{}, err
@@ -142,7 +155,6 @@ func (s *Service) Import(ctx context.Context, st Statement) (Result, error) {
 		return Result{}, err
 	}
 
-	touched := []uuid.UUID{st.AccountID}
 	counters := map[string]uuid.UUID{}   // income / expense accounts by type and name, looked up once each
 	cashAccounts := map[uuid.UUID]bool{} // the user's own Cash account, once a withdrawal has found it
 	var duplicates, transfers []string

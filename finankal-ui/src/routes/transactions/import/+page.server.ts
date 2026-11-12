@@ -28,6 +28,7 @@ export const actions: Actions = {
         const bank = String(formData.get("bank") ?? ""); // "" = detect from each statement
         const sourceAccountId = String(formData.get("sourceAccountId") ?? ""); // "" = find by account number
         const password = String(formData.get("password") ?? "");
+        const replace = formData.get("replace") === "on";
 
         if (bank && !BANKS.some((b) => b.value === bank)) {
             return fail(400, { error: "Choose a bank from the list, or let FinanKal detect it." });
@@ -42,7 +43,8 @@ export const actions: Actions = {
                 userId: USER_ID,
                 bank: (bank || undefined) as Bank | undefined,
                 sourceAccountId: sourceAccountId || undefined,
-                password
+                password,
+                replace
             });
             return { success: true, results };
         } catch (error) {

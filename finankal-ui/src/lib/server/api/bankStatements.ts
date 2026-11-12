@@ -62,6 +62,8 @@ export async function importBankStatements(payload: {
     bank?: Bank;
     sourceAccountId?: string;
     password?: string;
+    /** Replace a statement already on file for the same file or period, instead of skipping it. */
+    replace?: boolean;
 }): Promise<StatementImportResult[]> {
     const body = new FormData();
     for (const file of payload.files) {
@@ -76,6 +78,9 @@ export async function importBankStatements(payload: {
     }
     if (payload.password) {
         body.set("password", payload.password);
+    }
+    if (payload.replace) {
+        body.set("replace", "true");
     }
 
     const response = await fetch(`${API_URL}/api/bank-statements/import`, {

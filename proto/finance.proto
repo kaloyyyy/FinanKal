@@ -404,6 +404,8 @@ message ImportBankStatementRequest {
   string closing_balance = 6; // "" when the statement doesn't print one
   string file_sha256 = 7;     // hex SHA-256 of the uploaded file, to refuse re-imports
   repeated StatementRow rows = 8;
+  // true = replace the account's statement for the same file or period (and its rows) instead of refusing it.
+  bool replace = 16;
 }
 
 message StatementRow {
