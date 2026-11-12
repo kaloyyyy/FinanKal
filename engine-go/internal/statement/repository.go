@@ -301,8 +301,12 @@ func transferFee(row Row, other decimal.Decimal, named bool) (decimal.Decimal, b
 // shortcut: matches the bank's short name only; add aliases ("Bank of the Philippine Islands") if real rows use them.
 func names(description, bank string) bool {
 	squash := func(s string) string { return strings.ToLower(strings.ReplaceAll(s, " ", "")) }
-	b := squash(bank)
-	return len(b) >= 3 && strings.Contains(squash(description), b)
+	b, d := squash(bank), squash(description)
+	// UnionBank doesn't name the sender's bank, but a GCash InstaPay reference starts "GXI" ("… FLORES G XI 402554").
+	if b == "gcash" && strings.Contains(d, "gxi") {
+		return true
+	}
+	return len(b) >= 3 && strings.Contains(d, b)
 }
 
 // moveEntry turns the other bank's income / spending row into a transfer by moving its

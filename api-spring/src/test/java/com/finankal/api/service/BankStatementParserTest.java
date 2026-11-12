@@ -365,6 +365,19 @@ class BankStatementParserTest {
     }
 
     @Test
+    void unionBankFirstRowDirectionComesFromItsWording() {
+        // No opening balance, and a balance above the amount: only "Received from" says it's money in.
+        Result r = BankStatementParser.parse("""
+                Date Check No. Ref. No. Description Debit Credit Balance
+                04/05/26 UB100001 Received from JUAN DELA CRUZ PHP 6,600.00 PHP 8,735.75
+                04/06/26 UB100002 Sent to Juan Dela Cruz PHP 100.00 PHP 8,635.75
+                """, Bank.UNIONBANK);
+        assertTrue(r.skipped().isEmpty(), r.skipped().toString());
+        assertFalse(r.lines().get(0).debit());
+        assertTrue(r.lines().get(1).debit());
+    }
+
+    @Test
     void unionBankPayrollIsSalary() {
         LocalDate day = LocalDate.of(2026, 10, 14);
         BigDecimal amount = new BigDecimal("19155.05");

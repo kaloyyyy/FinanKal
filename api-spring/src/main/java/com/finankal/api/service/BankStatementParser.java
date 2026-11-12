@@ -266,7 +266,11 @@ public final class BankStatementParser {
     /** MariBank's monthly interest row has a month but no day ("OCT 21.82"). */
     private static final Pattern MONTH_ONLY = Pattern.compile("^([A-Za-z]{3}) (?=\\(?-?[\\d,]+\\.\\d{2})");
 
-    private static final Pattern TIME = Pattern.compile("^\\d{1,2}:\\d{2}(?::\\d{2})?\\s*(?:[AaPp][Mm])?");
+    // UnionBank: "Received from …" is money in; "Sent to …", "BILLS PAYMENT", "OUTWARD REMITTANCE", "INSTAPAY FEE" are money out.
+    private static final Pattern MONEY_IN_WORDS = Pattern.compile("(?i)\\breceived (?:from|via)\\b");
+    private static final Pattern MONEY_OUT_WORDS = Pattern.compile("(?i)\\bsent to\\b|\\bbills payment\\b|\\boutward remittance\\b|\\binstapay fee\\b");
+
+    private static final Pattern TIME =Pattern.compile("^\\d{1,2}:\\d{2}(?::\\d{2})?\\s*(?:[AaPp][Mm])?");
     // "PHP44,000.00" (BDO) has no space before the amount.
     private static final Pattern CURRENCY = Pattern.compile("(?i)\\bPHP(?![A-Za-z])|₱");
     private static final Pattern NEGATIVE_CURRENCY = Pattern.compile("(?i)-\\s*(?:PHP|₱)\\s*(?=\\d)");
@@ -459,6 +463,11 @@ public final class BankStatementParser {
                     // shortcut: balance = amount is read as the account's first money in (from zero); money out
                     // from twice the amount is possible but rarer. Anything else goes to skipped.
                     debit = false;
+                } else if (MONEY_IN_WORDS.matcher(row.description()).find()) {
+                    // A balance well above the amount can't tell the direction of the history's first row; its wording can.
+                    debit = false;
+                } else if (MONEY_OUT_WORDS.matcher(row.description()).find()) {
+                    debit = true;
                 }
             }
             // GCash's history lists failed attempts as debits and their reversals not at all; its running
