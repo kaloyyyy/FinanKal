@@ -62,6 +62,11 @@ export const load: PageServerLoad = async ({ params }) => {
             disbursementAlreadyRecorded: account.type === "LIABILITY" && entries.some((entry) => isDisbursementFor(entry.description, account.name)),
             // This account's own deadlines (a loan's installments, a card's bills), soonest first.
             deadlines: payables.filter((p) => p.accountId === params.id),
+            // A card installment can be linked to a payment into the card that's already recorded (newest first).
+            linkablePayments: account.type === "CREDIT_CARD"
+                ? entries.filter((e) => e.type === "DEBIT" && e.transactionId).slice(0, 25)
+                    .map((e) => ({ transactionId: e.transactionId as string, label:  }))
+                : [],
             // Installments are paid from a bank or wallet.
             payFrom: accounts.filter((a) => a.type === "ASSET").map(({ id, name }) => ({ id, name })),
             feeAccounts: accounts.filter((a) => a.type === "EXPENSE").map(({ id, name }) => ({ id, name })),
@@ -85,6 +90,7 @@ export const actions: Actions = {
         const scheduleId = fields.get("scheduleId");
         const occurrenceId = fields.get("occurrenceId");
         const paymentAmount = fields.get("paymentAmount");
+        const linkTransactionId = fields.get("linkTransactionId"); // a card payment already in the ledger
         if (typeof name !== "string" || typeof dueDate !== "string" ||
             typeof installmentNumber !== "string" || typeof sourceAccountId !== "string" || typeof scheduleId !== "string" || typeof occurrenceId !== "string") {
             return fail(400, { payError: "This installment is missing payment details. Refresh and try again." });
@@ -122,7 +128,7 @@ export const actions: Actions = {
             }
             const number = oldest.installmentNumber ? ` #${oldest.installmentNumber}` : "";
             const today = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
-            if (account.type === "CREDIT_CARD") await payCardInstallment(USER_ID, oldest.occurrenceId);
+            if (account.type === "CREDIT_CARD") await payCardInstallment(USER_ID, oldest.occurrenceId, typeof linkTransactionId === "string" && linkTransactionId ? linkTransactionId : undefined);
             else await createTransaction({
                     description: `Loan installment payment${number}${amount > Number(oldest.amount) ? " (advance)" : ""}`, date: today,
                     entries: [{ accountId: oldest.accountId, amount, type: "DEBIT" }, { accountId: oldest.sourceAccountId, amount, type: "CREDIT" }]

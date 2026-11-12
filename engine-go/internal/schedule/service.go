@@ -72,8 +72,10 @@ func (s *Service) DeleteInstallments(ctx context.Context, userID, scheduleID uui
 	return s.scheduleRepo.DeleteInstallments(ctx, userID, scheduleID)
 }
 
-func (s *Service) PayCardInstallment(ctx context.Context, userID, occurrenceID uuid.UUID, at time.Time) (uuid.UUID, error) {
-	txID, cardID, sourceID, err := s.scheduleRepo.PayCardInstallment(ctx, userID, occurrenceID, at)
+// PayCardInstallment records the installment as paid: a new payment from its source account, or, with linkTxID,
+// an existing ledger payment into the card (no new transaction, so the money isn't counted twice).
+func (s *Service) PayCardInstallment(ctx context.Context, userID, occurrenceID, linkTxID uuid.UUID, at time.Time) (uuid.UUID, error) {
+	txID, cardID, sourceID, err := s.scheduleRepo.PayCardInstallment(ctx, userID, occurrenceID, linkTxID, at)
 	if err == nil {
 		cache.InvalidateCreditCard(ctx, s.redis, cardID, userID, sourceID)
 	}

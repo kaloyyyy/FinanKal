@@ -4,7 +4,7 @@
     import { formatDate } from "$lib/utils/date";
     import type { Payable } from "$lib/utils/payables";
 
-    let { deadlines, isLoan = false, isCard = false, isMayaLoan = false, payFrom = [], error = "" }: { deadlines: Payable[]; isLoan?: boolean; isCard?: boolean; isMayaLoan?: boolean; payFrom?: { id: string; name: string }[]; error?: string } = $props();
+    let { deadlines, isLoan = false, isCard = false, isMayaLoan = false, payFrom = [], linkable = [], error = "" }: { deadlines: Payable[]; isLoan?: boolean; isCard?: boolean; isMayaLoan?: boolean; payFrom?: { id: string; name: string }[]; linkable?: { transactionId: string; label: string }[]; error?: string } = $props();
     let paying = $state(false);
 
     const SHOWN = 3; // upcoming rows per plan before "show more"
@@ -173,6 +173,30 @@
                         {paying ? "Recording…" : `${isMayaLoan ? "Record payment" : "Mark paid"} · from ${payFrom.find((account) => account.id === d.sourceAccountId)?.name ?? "saved account"}`}
                     </label>
                 </form>
+                {#if isCard && linkable.length}
+                    <!-- Already paid and recorded (a transfer to the card, an imported payment): link it instead of recording another one. -->
+                    <form method="POST" action="?/payInstallment" class="flex max-w-72 flex-col items-end gap-1" use:enhance={() => {
+                        paying = true;
+                        return async ({ update }) => {
+                            paying = false;
+                            await update({ reset: false });
+                        };
+                    }}>
+                        <input type="hidden" name="name" value={d.name} />
+                        <input type="hidden" name="dueDate" value={d.dueDate} />
+                        <input type="hidden" name="installmentNumber" value={d.installmentNumber ?? ""} />
+                        <input type="hidden" name="sourceAccountId" value={d.sourceAccountId} />
+                        <input type="hidden" name="scheduleId" value={d.scheduleId} />
+                        <input type="hidden" name="occurrenceId" value={d.occurrenceId} />
+                        <select name="linkTransactionId" required aria-label="Payment already recorded in the ledger" class="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-300">
+                            <option value="">Already paid? Link a recorded payment…</option>
+                            {#each linkable as payment}
+                                <option value={payment.transactionId}>{payment.label}</option>
+                            {/each}
+                        </select>
+                        <button type="submit" disabled={paying} class="text-xs font-medium text-blue-400 hover:text-blue-300 disabled:opacity-50">Link payment (records nothing new)</button>
+                    </form>
+                {/if}
             {/if}
         </span>
     </li>

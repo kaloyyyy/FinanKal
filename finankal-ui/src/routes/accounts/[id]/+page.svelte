@@ -85,7 +85,7 @@
             </div>
 
             {#if data.deadlines.length}
-                <AccountDeadlines deadlines={data.deadlines} isLoan={data.account.type === "LIABILITY"} isCard={data.account.type === "CREDIT_CARD"} isMayaLoan={data.installmentKind === "MAYA" && !!data.loan} payFrom={data.payFrom} error={form?.payError ?? form?.error ?? form?.loanError} />
+                <AccountDeadlines deadlines={data.deadlines} isLoan={data.account.type === "LIABILITY"} isCard={data.account.type === "CREDIT_CARD"} isMayaLoan={data.installmentKind === "MAYA" && !!data.loan} payFrom={data.payFrom} linkable={data.linkablePayments} error={form?.payError ?? form?.error ?? form?.loanError} />
             {:else}
                 <div class="rounded-2xl border border-dashed border-slate-700 px-6 py-10 text-center">
                     <p class="font-medium text-white">No installments yet</p>

@@ -2220,10 +2220,12 @@ func (*DeleteInstallmentsResponse) Descriptor() ([]byte, []int) {
 	return file_finance_proto_rawDescGZIP(), []int{36}
 }
 
+// transaction_id (optional): link a payment already in the ledger instead of recording a new one.
 type PayInstallmentRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	OccurrenceId  string                 `protobuf:"bytes,2,opt,name=occurrence_id,json=occurrenceId,proto3" json:"occurrence_id,omitempty"`
+	TransactionId string                 `protobuf:"bytes,3,opt,name=transaction_id,json=transactionId,proto3" json:"transaction_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2268,6 +2270,13 @@ func (x *PayInstallmentRequest) GetUserId() string {
 func (x *PayInstallmentRequest) GetOccurrenceId() string {
 	if x != nil {
 		return x.OccurrenceId
+	}
+	return ""
+}
+
+func (x *PayInstallmentRequest) GetTransactionId() string {
+	if x != nil {
+		return x.TransactionId
 	}
 	return ""
 }
@@ -4463,10 +4472,11 @@ const file_finance_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1f\n" +
 	"\vschedule_id\x18\x02 \x01(\tR\n" +
 	"scheduleId\"\x1c\n" +
-	"\x1aDeleteInstallmentsResponse\"U\n" +
+	"\x1aDeleteInstallmentsResponse\"|\n" +
 	"\x15PayInstallmentRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12#\n" +
-	"\roccurrence_id\x18\x02 \x01(\tR\foccurrenceId\"?\n" +
+	"\roccurrence_id\x18\x02 \x01(\tR\foccurrenceId\x12%\n" +
+	"\x0etransaction_id\x18\x03 \x01(\tR\rtransactionId\"?\n" +
 	"\x16PayInstallmentResponse\x12%\n" +
 	"\x0etransaction_id\x18\x01 \x01(\tR\rtransactionId\"H\n" +
 	"\x0eGetLoanRequest\x12\x17\n" +

@@ -491,7 +491,7 @@ func (r *ScheduleRepository) DeleteInstallments(ctx context.Context, userID, sch
 	return tx.Commit(ctx)
 }
 
-func (r *ScheduleRepository) PayCardInstallment(ctx context.Context, userID, occurrenceID uuid.UUID, at time.Time) (uuid.UUID, uuid.UUID, uuid.UUID, error) {
+func (r *ScheduleRepository) PayCardInstallment(ctx context.Context, userID, occurrenceID, linkTxID uuid.UUID, at time.Time) (uuid.UUID, uuid.UUID, uuid.UUID, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return uuid.Nil, uuid.Nil, uuid.Nil, err

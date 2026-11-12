@@ -721,7 +721,13 @@ func (s *Server) PayInstallment(ctx context.Context, req *finance.PayInstallment
 		return nil, err
 	}
 	now := time.Now().In(time.FixedZone("PHT", 8*60*60))
-	id, err := s.scheduleService.PayCardInstallment(ctx, userID, occurrenceID, now)
+	linkID := uuid.Nil
+	if req.GetTransactionId() != "" {
+		if linkID, err = parseID(req.GetTransactionId(), "transaction id"); err != nil {
+			return nil, err
+		}
+	}
+	id, err := s.scheduleService.PayCardInstallment(ctx, userID, occurrenceID, linkID, now)
 	if err != nil {
 		return nil, toStatus(err)
 	}
