@@ -8,12 +8,16 @@
     let {
         paikot,
         plain,
+        paikotNow,
+        plainNow,
         moves,
         accounts,
         error = ""
     }: {
         paikot: PayableMonth; // next month's dues with every linked due moved onto its card
         plain: PayableMonth; // next month's dues as they are
+        paikotNow: PayableMonth; // this month's, moved the same way: the cash needed to miss nothing
+        plainNow: PayableMonth; // this month's dues as they are
         moves: Payable[]; // every due a link moves
         accounts: Account[];
         error?: string;
@@ -29,24 +33,27 @@
     const links = $derived([...new Map(moves.map((m) => [m.accountId, m])).values()]);
     // The moves that change next month: dues from now to the end of it.
     const soon = $derived(moves.filter((m) => m.dueDate.slice(0, 7) <= paikot.month));
-    const less = $derived((cents(plain.total) - cents(paikot.total)) / 100);
+    const months = $derived(
+        [[paikotNow, plainNow], [paikot, plain]].map(([moved, asIs]) => ({ ...moved, less: (cents(asIs.total) - cents(moved.total)) / 100 }))
+    );
     const payWindow = (m: Payable) =>
         m.paikot!.payFrom === m.paikot!.payBy ? `on ${formatDate(m.paikot!.payBy)}` : `${formatDate(m.paikot!.payFrom)} – ${formatDate(m.paikot!.payBy)}`;
 </script>
 
 <div class="p-6">
-    <div class="flex items-baseline justify-between gap-3">
-        <p class="text-sm font-medium text-slate-300">
-            Paikot <span class="text-slate-500">· {formatMonth(`${paikot.month}-01`)}</span>
-        </p>
-        <p class={`text-base font-semibold tabular-nums ${paikot.total > 0 ? "text-amber-400" : "text-emerald-400"}`}>
-            {currency.format(paikot.total)}
-        </p>
-    </div>
-    <p class="mt-1 text-xs text-slate-500">
-        Next month's dues once each linked card pays its debts.
-        {#if less}{currency.format(Math.abs(less))} {less > 0 ? "less" : "more"} than without it.{/if}
-    </p>
+    <p class="text-sm font-medium text-slate-300">Paikot</p>
+    <p class="mt-1 text-xs text-slate-500">The cash you need once each linked card pays its debts.</p>
+    {#each months as m}
+        <div class="mt-2 flex items-baseline justify-between gap-3">
+            <p class="text-sm text-slate-300">
+                {formatMonth(`${m.month}-01`)}
+                {#if m.less}<span class="text-xs text-slate-500">· {currency.format(Math.abs(m.less))} {m.less > 0 ? "less" : "more"}</span>{/if}
+            </p>
+            <p class={`text-base font-semibold tabular-nums ${m.total > 0 ? "text-amber-400" : "text-emerald-400"}`}>
+                {currency.format(m.total)}
+            </p>
+        </div>
+    {/each}
 
     {#if soon.length}
         <ul class="mt-3 space-y-2">

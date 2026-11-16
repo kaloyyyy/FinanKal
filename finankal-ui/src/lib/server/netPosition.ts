@@ -51,11 +51,14 @@ export async function loadNetPositions(
     const salaryAccountId = [...into.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
     const salaryInto = accounts.find((a) => a.id === salaryAccountId);
 
+    // Both months again, with every linked due moved onto the card that pays it: the cash still needed.
+    const moved = summarizePayables(applyPaikot(payables), today);
+
     return {
         thisMonth: due.thisMonth,
         nextMonth: due.nextMonth,
-        // Next month again, with every linked due moved onto the card that pays it.
-        paikot: summarizePayables(applyPaikot(payables), today).nextMonth,
+        paikot: moved.nextMonth,
+        paikotThisMonth: moved.thisMonth,
         // Every due a link moves, soonest charge first: what to pay with which card, and when.
         paikotMoves: payables.filter((p) => p.paikot).sort((a, b) => a.paikot!.payBy.localeCompare(b.paikot!.payBy)),
         cardLimits: cardLimits(accounts, payables, due.thisMonth.month, due.nextMonth.month),
