@@ -10,10 +10,12 @@
         plain,
         paikotNow,
         plainNow,
+        month,
         moves,
         accounts,
         error = ""
     }: {
+        month: string; // yyyy-MM of the next dues: only dues up to it move
         paikot: PayableMonth; // next month's dues with every linked due moved onto its card
         plain: PayableMonth; // next month's dues as they are
         paikotNow: PayableMonth; // this month's, moved the same way: the cash needed to miss nothing
@@ -31,10 +33,13 @@
     const debts = $derived(accounts.filter((a) => a.type === "LIABILITY" || a.type === "CREDIT_CARD"));
     // One link per account whose dues move.
     const links = $derived([...new Map(moves.map((m) => [m.accountId, m])).values()]);
-    // Only this month's dues move (overdue ones included).
-    const soon = $derived(moves.filter((m) => m.dueDate.slice(0, 7) <= paikotNow.month));
+    // Only the next dues move.
+    const soon = $derived(moves.filter((m) => m.dueDate.slice(0, 7) <= month));
+    // A month with nothing due either way (this month, once its dues are paid) is left out.
     const months = $derived(
-        [[paikotNow, plainNow], [paikot, plain]].map(([moved, asIs]) => ({ ...moved, less: (cents(asIs.total) - cents(moved.total)) / 100 }))
+        [[paikotNow, plainNow], [paikot, plain]]
+            .map(([moved, asIs]) => ({ ...moved, less: (cents(asIs.total) - cents(moved.total)) / 100 }))
+            .filter((m) => m.total || m.less)
     );
     const payWindow = (m: Payable) =>
         m.paikot!.payFrom === m.paikot!.payBy ? `on ${formatDate(m.paikot!.payBy)}` : `${formatDate(m.paikot!.payFrom)} – ${formatDate(m.paikot!.payBy)}`;

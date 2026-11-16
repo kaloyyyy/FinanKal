@@ -14,12 +14,13 @@
         positions,
         paikot,
         paikotThisMonth,
+        paikotMonth,
         paikotMoves,
         paikotError = "",
         cardLimits,
         accounts,
         userId
-    }: { thisMonth: PayableMonth; nextMonth: PayableMonth; positions: NetPositions; paikot: PayableMonth; paikotThisMonth: PayableMonth; paikotMoves: Payable[]; paikotError?: string; cardLimits: CardLimit[]; accounts: Account[]; userId: string } = $props();
+    }: { thisMonth: PayableMonth; nextMonth: PayableMonth; positions: NetPositions; paikot: PayableMonth; paikotThisMonth: PayableMonth; paikotMonth: string; paikotMoves: Payable[]; paikotError?: string; cardLimits: CardLimit[]; accounts: Account[]; userId: string } = $props();
     const left = (amount: number) => (amount < 0 ? "text-amber-300" : "text-slate-200");
 
     const month = (key: string) => formatMonth(`${key}-01`);
@@ -124,7 +125,7 @@
                 {/if}
             </div>
         {/each}
-        <PaikotCard {paikot} plain={nextMonth} paikotNow={paikotThisMonth} plainNow={thisMonth} moves={paikotMoves} {accounts} error={paikotError} />
+        <PaikotCard {paikot} plain={nextMonth} paikotNow={paikotThisMonth} plainNow={thisMonth} month={paikotMonth} moves={paikotMoves} {accounts} error={paikotError} />
     </div>
 
     {#if cardLimits.length}
