@@ -31,8 +31,8 @@
     const debts = $derived(accounts.filter((a) => a.type === "LIABILITY" || a.type === "CREDIT_CARD"));
     // One link per account whose dues move.
     const links = $derived([...new Map(moves.map((m) => [m.accountId, m])).values()]);
-    // The moves that change next month: dues from now to the end of it.
-    const soon = $derived(moves.filter((m) => m.dueDate.slice(0, 7) <= paikot.month));
+    // Only this month's dues move (overdue ones included).
+    const soon = $derived(moves.filter((m) => m.dueDate.slice(0, 7) <= paikotNow.month));
     const months = $derived(
         [[paikotNow, plainNow], [paikot, plain]].map(([moved, asIs]) => ({ ...moved, less: (cents(asIs.total) - cents(moved.total)) / 100 }))
     );

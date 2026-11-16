@@ -51,8 +51,10 @@ export async function loadNetPositions(
     const salaryAccountId = [...into.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
     const salaryInto = accounts.find((a) => a.id === salaryAccountId);
 
-    // Both months again, with every linked due moved onto the card that pays it: the cash still needed.
-    const moved = summarizePayables(applyPaikot(payables), today);
+    // Paikot is only for this month's dues (overdue ones included): later dues stay where they are.
+    const current = payables.map((p) => (p.dueDate.slice(0, 7) <= due.thisMonth.month ? p : { ...p, paikot: null }));
+    // Both months again, with each of those moved onto the card that pays it: the cash still needed.
+    const moved = summarizePayables(applyPaikot(current), today);
 
     return {
         thisMonth: due.thisMonth,
@@ -61,7 +63,7 @@ export async function loadNetPositions(
         paikotThisMonth: moved.thisMonth,
         // Every due a link moves, soonest charge first: what to pay with which card, and when.
         paikotMoves: payables.filter((p) => p.paikot).sort((a, b) => a.paikot!.payBy.localeCompare(b.paikot!.payBy)),
-        cardLimits: cardLimits(accounts, payables, due.thisMonth.month, due.nextMonth.month),
+        cardLimits: cardLimits(accounts, current,due.thisMonth.month, due.nextMonth.month),
         positions: netPositions(accounts, monthlySalaries, due.thisMonth.total, due.nextMonth.total),
         salaryInto: salaryInto ? { id: salaryInto.id, name: salaryInto.name } : null
     };
