@@ -1,15 +1,18 @@
 <script lang="ts">
+    import { enhance } from "$app/forms";
     import { ChevronLeft, Plus } from "lucide-svelte";
     import AccountBadge from "$lib/components/accounts/AccountBadge.svelte";
     import AccountDeadlines from "$lib/components/accounts/AccountDeadlines.svelte";
     import InstallmentDialog from "$lib/components/accounts/InstallmentDialog.svelte";
     import LedgerTable from "$lib/components/accounts/LedgerTable.svelte";
     import { currency } from "$lib/utils/currency";
-    import { formatDate } from "$lib/utils/date";
+    import { formatDate, nextStatementDate } from "$lib/utils/date";
+    import { cardLimits } from "$lib/utils/payables";
 
     let { data, form } = $props();
 
     let dialog: ReturnType<typeof InstallmentDialog>;
+    const field = "mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white";
 
     const KIND: Record<string, string> = {
         ASSET: "Bank or wallet",
@@ -31,6 +34,18 @@
         if (!first) return null;
         const cents = data.deadlines.filter((d) => d.dueDate === first.dueDate).reduce((c, d) => c + Math.round(Number(d.amount) * 100), 0);
         return { amount: cents / 100, dueDate: first.dueDate };
+    });
+    // A card's limit, what's left of it (same sum as the dashboard's), and its next statement and due dates.
+    const card = $derived.by(() => {
+        if (data.account.type !== "CREDIT_CARD") return null;
+        const limit = cardLimits([data.account], data.deadlines, "", "")[0];
+        const billingDay = Number(data.account.billingDay);
+        return {
+            limit: limit?.limit,
+            available: limit?.now,
+            statement: billingDay > 0 ? nextStatementDate(billingDay, data.account.statementShift) : null,
+            due: data.deadlines[0]?.dueDate
+        };
     });
 </script>
 
@@ -71,6 +86,64 @@
                 {currency.format(nextBill ? nextBill.amount : owed && balance <= 0 ? -balance : balance)}
             </p>
         </div>
+
+        {#if card}
+            <dl class="grid grid-cols-2 gap-x-6 gap-y-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-5 sm:grid-cols-4">
+                <div>
+                    <dt class="text-sm text-slate-400">Credit limit</dt>
+                    <dd class="mt-1 font-semibold tabular-nums text-white">{card.limit == null ? "—" : currency.format(card.limit)}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-slate-400">Available credit</dt>
+                    <dd class={`mt-1 font-semibold tabular-nums ${Number(card.available) < 0 ? "text-rose-400" : "text-emerald-400"}`}>{card.available == null ? "—" : currency.format(card.available)}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-slate-400">Next statement</dt>
+                    <dd class="mt-1 font-semibold text-white">{formatDate(card.statement)}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-slate-400">Next due date</dt>
+                    <dd class="mt-1 font-semibold text-white">{formatDate(card.due)}</dd>
+                </div>
+            </dl>
+
+            <details class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5" open={!!form?.cardError}>
+                <summary class="cursor-pointer text-sm font-medium text-slate-200">
+                    Edit card details
+                    {#if form?.cardUpdated}<span role="status" class="ml-2 text-emerald-400">Saved</span>{/if}
+                </summary>
+                <form method="POST" action="?/updateCard" use:enhance class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <label class="text-sm text-slate-400">Credit limit
+                        <input name="creditLimit" type="number" min="0" step="0.01" required value={data.account.creditLimit ?? ""} class={field} />
+                    </label>
+                    <label class="text-sm text-slate-400">Statement day (1–28)
+                        <input name="billingDay" type="number" min="1" max="28" required value={data.account.billingDay ?? ""} class={field} />
+                    </label>
+                    <label class="text-sm text-slate-400">If the statement day is a weekend
+                        <select name="statementShift" value={data.account.statementShift ?? "NONE"} class={field}>
+                            <option value="NONE">Keep the day</option>
+                            <option value="NEXT_BUSINESS_DAY">Move to the next weekday</option>
+                            <option value="NEAREST_BUSINESS_DAY">Move to the nearest weekday</option>
+                        </select>
+                    </label>
+                    <label class="text-sm text-slate-400">Due date is
+                        <select name="dueRule" value={data.account.dueRule ?? "DAYS"} class={field}>
+                            <option value="DAYS">N days after the statement</option>
+                            <option value="DAYS_SKIP_WEEKEND">N days after, moved off weekends</option>
+                            <option value="BUSINESS_DAYS">N weekdays after the statement</option>
+                            <option value="DAY_OF_MONTH">The Nth of the month</option>
+                        </select>
+                    </label>
+                    <label class="text-sm text-slate-400">N (1–28)
+                        <input name="paymentDueDays" type="number" min="1" max="28" required value={data.account.paymentDueDays ?? ""} class={field} />
+                    </label>
+                    <div class="flex items-end">
+                        <button type="submit" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500">Save</button>
+                    </div>
+                    {#if form?.cardError}<p role="alert" class="text-sm text-rose-400 sm:col-span-2 lg:col-span-3">{form.cardError}</p>{/if}
+                </form>
+            </details>
+        {/if}
     </header>
 
     {#if owed || data.deadlines.length}

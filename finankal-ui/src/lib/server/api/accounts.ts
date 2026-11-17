@@ -18,7 +18,21 @@ export interface Account {
     creditLimit?: number;
     billingDay?: number;
     statementShift?: string;
+    paymentDueDays?: number;
+    dueRule?: string;
     createdAt: string;
+}
+
+export interface CardTerms {
+    creditLimit: number;
+    billingDay: number;
+    paymentDueDays: number;
+    dueRule: string;
+    statementShift: string;
+}
+
+export async function updateCreditCard(userId: string, accountId: string, terms: CardTerms): Promise<void> {
+    await api<void>(`/api/users/${userId}/credit-cards/${accountId}`, { method: "PUT", body: JSON.stringify(terms) });
 }
 
 /**

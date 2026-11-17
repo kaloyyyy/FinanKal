@@ -2,6 +2,7 @@ package com.finankal.api.service;
 
 import com.finankal.api.dto.AccountDto;
 import com.finankal.api.dto.CreateInstallmentsRequestDto;
+import com.finankal.api.dto.CreditCardTermsDto;
 import com.finankal.api.dto.LoanDetailsDto;
 import com.finankal.api.dto.MoneyFlowDto;
 import com.finankal.api.dto.PayableDto;
@@ -150,6 +151,16 @@ public class UserService {
     public void deleteLoan(UUID userId, UUID accountId) {
         try { financeEngineStub.deleteLoan(FinanceProtos.DeleteLoanRequest.newBuilder().setUserId(userId.toString()).setAccountId(accountId.toString()).build()); }
         catch (StatusRuntimeException e) { throw apiError(e); }
+    }
+
+    public void updateCreditCard(UUID userId, UUID accountId, CreditCardTermsDto dto) {
+        if (dto.creditLimit() == null || dto.dueRule() == null || dto.statementShift() == null) throw new IllegalArgumentException("Card details are incomplete");
+        try {
+            financeEngineStub.updateCreditCard(FinanceProtos.UpdateCreditCardRequest.newBuilder()
+                    .setUserId(userId.toString()).setAccountId(accountId.toString())
+                    .setCreditLimit(dto.creditLimit().toPlainString()).setBillingDay(dto.billingDay())
+                    .setPaymentDueDays(dto.paymentDueDays()).setDueRule(dto.dueRule()).setStatementShift(dto.statementShift()).build());
+        } catch (StatusRuntimeException e) { throw apiError(e); }
     }
 
     private static RuntimeException apiError(StatusRuntimeException e) {

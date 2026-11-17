@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { formatDate, formatMonth } from "$lib/utils/date";
+    import { formatDate, formatMonth, statementDate } from "$lib/utils/date";
     import type {LedgerEntryDto} from "$lib/types/ledger";
     import {currency} from "$lib/utils/currency.ts";
 
@@ -50,17 +50,7 @@
         return `${parts.year}-${parts.month}`;
     }
 
-    function statementClose(year: number, month: number): string {
-        const last = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-        const close = new Date(Date.UTC(year, month, Math.min(Number(billingDay), last)));
-        if (statementShift === "NEXT_BUSINESS_DAY") {
-            while (close.getUTCDay() === 0 || close.getUTCDay() === 6) close.setUTCDate(close.getUTCDate() + 1);
-        } else if (statementShift === "NEAREST_BUSINESS_DAY") {
-            if (close.getUTCDay() === 6) close.setUTCDate(close.getUTCDate() - 1);
-            else if (close.getUTCDay() === 0) close.setUTCDate(close.getUTCDate() + 1);
-        }
-        return close.toISOString().slice(0, 10);
-    }
+    const statementClose = (year: number, month: number) => statementDate(year, month, Number(billingDay), statementShift);
 
     function statementGroup(entry: LedgerEntryDto): string {
         const nextClose = statementDateFor(entry.createdAt);

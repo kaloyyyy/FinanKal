@@ -2,6 +2,7 @@ package com.finankal.api.controller;
 
 import com.finankal.api.dto.AccountDto;
 import com.finankal.api.dto.CreateInstallmentsRequestDto;
+import com.finankal.api.dto.CreditCardTermsDto;
 import com.finankal.api.dto.LoanDetailsDto;
 import com.finankal.api.dto.MoneyFlowDto;
 import com.finankal.api.dto.PayableDto;
@@ -166,6 +167,11 @@ public class UserController {
     public ResponseEntity<Void> updateLoan(@PathVariable UUID userId,@PathVariable UUID accountId,@RequestBody LoanDetailsDto request) {
         if (!accountId.toString().equals(request.accountId())) throw new IllegalArgumentException("Loan account does not match URL");
         userService.updateLoan(userId,request); return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{userId}/credit-cards/{accountId}")
+    public ResponseEntity<Void> updateCreditCard(@PathVariable UUID userId,@PathVariable UUID accountId,@RequestBody CreditCardTermsDto request) {
+        userService.updateCreditCard(userId,accountId,request); return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{userId}/loans/{accountId}")

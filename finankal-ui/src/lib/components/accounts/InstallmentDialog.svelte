@@ -2,7 +2,7 @@
     import { enhance } from "$app/forms";
     import { X } from "lucide-svelte";
     import { currency } from "$lib/utils/currency";
-    import { formatDate } from "$lib/utils/date";
+    import { formatDate, statementDate } from "$lib/utils/date";
 
     interface Props {
         accountName: string;
@@ -65,15 +65,7 @@
 
     function statementDateIn(year: number, month: number): string {
         if (!(Number(statementDay) >= 1 && Number(statementDay) <= 31)) return "";
-        const last = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-        const date = new Date(Date.UTC(year, month, Math.min(Number(statementDay), last)));
-        if (statementShift === "NEXT_BUSINESS_DAY") {
-            while (date.getUTCDay() === 0 || date.getUTCDay() === 6) date.setUTCDate(date.getUTCDate() + 1);
-        } else if (statementShift === "NEAREST_BUSINESS_DAY") {
-            if (date.getUTCDay() === 6) date.setUTCDate(date.getUTCDate() - 1);
-            else if (date.getUTCDay() === 0) date.setUTCDate(date.getUTCDate() + 1);
-        }
-        return date.toISOString().slice(0, 10);
+        return statementDate(year, month, Number(statementDay), statementShift);
     }
 
     function nextStatementAfter(day: string): string {

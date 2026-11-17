@@ -1,5 +1,5 @@
 import { error, fail, redirect } from "@sveltejs/kit";
-import { deleteLoan, getAccount, getLedgerEntries, getLoanDetails, getUserAccounts, updateLoanDetails } from "$lib/server/api/accounts";
+import { deleteLoan, getAccount, getLedgerEntries, getLoanDetails, getUserAccounts, updateCreditCard, updateLoanDetails } from "$lib/server/api/accounts";
 import { createInstallments, deleteInstallments, getPayables, payCardInstallment, updateInstallments } from "$lib/server/api/payables";
 import { createTransaction, deleteTransaction, getTransaction } from "$lib/server/api/transactions";
 import type { Actions, PageServerLoad } from "./$types";
@@ -56,7 +56,7 @@ export const load: PageServerLoad = async ({ params }) => {
         const card = accounts.find((account) => account.id === params.id && account.type === "CREDIT_CARD");
 
         return {
-            account: card ? { ...account, creditLimit: card.creditLimit, billingDay: card.billingDay, statementShift: card.statementShift } : account,
+            account: card ? { ...account, creditLimit: card.creditLimit, billingDay: card.billingDay, statementShift: card.statementShift, paymentDueDays: card.paymentDueDays, dueRule: card.dueRule } : account,
             entries,
             loan,
             disbursementAlreadyRecorded: account.type === "LIABILITY" && entries.some((entry) => isDisbursementFor(entry.description, account.name)),
@@ -238,6 +238,16 @@ export const actions: Actions = {
             return { loanUpdated:true };
         } catch(e) { return fail(400,{loanError:reason(e,"Couldn't update loan details.")}); }
     },
+    updateCard: async ({ request, params }) => {
+        const f = await request.formData();
+        try {
+            await updateCreditCard(USER_ID, params.id, {
+                creditLimit: Number(f.get("creditLimit")), billingDay: Number(f.get("billingDay")), paymentDueDays: Number(f.get("paymentDueDays")),
+                dueRule: String(f.get("dueRule") ?? ""), statementShift: String(f.get("statementShift") ?? "")
+            });
+            return { cardUpdated: true };
+        } catch (e) { return fail(400, { cardError: reason(e, "Couldn't update this card's details.") }); }
+    },
     deleteLoan: async ({ params }) => {
         try { await deleteLoan(USER_ID,params.id); throw redirect(303,"/accounts"); }
         catch(e) { if ((e as {status?:number}).status===303) throw e; return fail(400,{loanError:reason(e,"Couldn't delete this loan.")}); }
@@ -249,7 +259,7 @@ function reason(e: unknown, fallback = "Couldn't save the installments. Check th
     try {
         const message = (e as Error).message;
         const body = JSON.parse(message.slice(message.indexOf("{")));
-        if (body.status === 400 && body.message) return String(body.message).replace(/^invalid (?:schedule|transaction): /, "");
+        if (body.status === 400 && body.message) return String(body.message).replace(/^invalid (?:schedule|transaction|request): /, "");
     } catch {
         // not a JSON error body
     }

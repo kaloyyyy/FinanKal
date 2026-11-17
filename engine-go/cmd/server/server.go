@@ -785,6 +785,25 @@ func (s *Server) UpdateLoan(ctx context.Context, req *finance.UpdateLoanRequest)
 	return &finance.UpdateLoanResponse{}, nil
 }
 
+func (s *Server) UpdateCreditCard(ctx context.Context, req *finance.UpdateCreditCardRequest) (*finance.UpdateCreditCardResponse, error) {
+	userID, err := parseID(req.GetUserId(), "user id")
+	if err != nil {
+		return nil, err
+	}
+	accountID, err := parseID(req.GetAccountId(), "account id")
+	if err != nil {
+		return nil, err
+	}
+	limit, err := parseAmount(req.GetCreditLimit(), "credit limit")
+	if err != nil {
+		return nil, err
+	}
+	if err := s.creditService.UpdateCreditCard(ctx, userID, accountID, limit, int(req.GetBillingDay()), int(req.GetPaymentDueDays()), req.GetDueRule(), req.GetStatementShift()); err != nil {
+		return nil, toStatus(err)
+	}
+	return &finance.UpdateCreditCardResponse{}, nil
+}
+
 func (s *Server) DeleteLoan(ctx context.Context, req *finance.DeleteLoanRequest) (*finance.DeleteLoanResponse, error) {
 	userID, err := parseID(req.GetUserId(), "user id")
 	if err != nil {
@@ -877,6 +896,8 @@ func (s *Server) GetUserAccounts(ctx context.Context, req *finance.GetUserAccoun
 			accountDto.CreditLimit = card.CreditLimit.String()
 			accountDto.BillingDay = int32(card.BillingDay)
 			accountDto.StatementShift = card.StatementShift
+			accountDto.PaymentDueDays = int32(card.PaymentDueDays)
+			accountDto.DueRule = card.DueRule
 		}
 		resp.Accounts = append(resp.Accounts, accountDto)
 	}

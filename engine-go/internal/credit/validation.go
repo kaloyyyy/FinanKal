@@ -43,6 +43,20 @@ func validateCardTerms(creditLimit decimal.Decimal, billingDay, paymentDueDays i
 	return nil
 }
 
+func validateCardRules(dueRule, statementShift string) error {
+	switch dueRule {
+	case DueDays, DueDayOfMonth, DueBusinessDays, DueDaysSkipWeekend:
+	default:
+		return fmt.Errorf("%w: unknown due rule", ErrInvalidRequest)
+	}
+	switch statementShift {
+	case ShiftNone, ShiftNextBusinessDay, ShiftNearestBusinessDay:
+	default:
+		return fmt.Errorf("%w: unknown statement shift", ErrInvalidRequest)
+	}
+	return nil
+}
+
 // ValidateCreditCardTransaction checks the amount and that the card's accounts have the right types.
 func (s *Service) ValidateCreditCardTransaction(
 	ctx context.Context,

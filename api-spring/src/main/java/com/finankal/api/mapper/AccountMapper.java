@@ -26,6 +26,8 @@ public class AccountMapper {
         if (!account.getCreditLimit().isEmpty()) dto.setCreditLimit(new BigDecimal(account.getCreditLimit()));
         if (account.getBillingDay() > 0) dto.setBillingDay(account.getBillingDay());
         if (!account.getStatementShift().isEmpty()) dto.setStatementShift(account.getStatementShift());
+        if (account.getPaymentDueDays() > 0) dto.setPaymentDueDays(account.getPaymentDueDays());
+        if (!account.getDueRule().isEmpty()) dto.setDueRule(account.getDueRule());
 
         Instant instant = Instant.ofEpochSecond(
                 account.getCreatedAt().getSeconds(),

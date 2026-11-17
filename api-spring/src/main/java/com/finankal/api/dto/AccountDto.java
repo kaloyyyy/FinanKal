@@ -13,5 +13,7 @@ public class AccountDto {
     private BigDecimal creditLimit;
     private Integer billingDay;
     private String statementShift;
+    private Integer paymentDueDays;
+    private String dueRule;
     private LocalDateTime createdAt;
 }

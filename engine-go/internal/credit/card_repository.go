@@ -125,14 +125,18 @@ func (r *CardRepository) UpdateCreditCard(
 	creditLimit decimal.Decimal,
 	billingDay int,
 	paymentDueDays int,
+	dueRule string,
+	statementShift string,
 ) error {
 
-	_, err := r.db.Exec(ctx, `
+	tag, err := r.db.Exec(ctx, `
 		UPDATE credit_cards
 		SET
 			credit_limit = $2,
 			billing_day = $3,
 			payment_due_days = $4,
+			due_rule = $5,
+			statement_shift = $6,
 			updated_at = NOW()
 		WHERE id = $1
 	`,
@@ -140,7 +144,12 @@ func (r *CardRepository) UpdateCreditCard(
 		creditLimit,
 		billingDay,
 		paymentDueDays,
+		dueRule,
+		statementShift,
 	)
+	if err == nil && tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows // the account isn't a card
+	}
 
 	return err
 }

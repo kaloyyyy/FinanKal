@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/kaloy/finankal/engine-go/internal/cache"
 	"github.com/kaloy/finankal/engine-go/internal/ledger"
 	"github.com/redis/go-redis/v9"
@@ -130,22 +131,31 @@ func (s *Service) ListCreditCards(ctx context.Context, userID uuid.UUID) ([]Cred
 
 func (s *Service) UpdateCreditCard(
 	ctx context.Context,
+	userID uuid.UUID,
 	cardID uuid.UUID,
 	creditLimit decimal.Decimal,
 	billingDay int,
 	paymentDueDays int,
+	dueRule string,
+	statementShift string,
 ) error {
 
 	if err := validateCardTerms(creditLimit, billingDay, paymentDueDays); err != nil {
 		return err
 	}
-
-	userID, err := s.ledgerRepo.GetUserIDFromAccount(ctx, cardID)
-	if err != nil {
+	if err := validateCardRules(dueRule, statementShift); err != nil {
 		return err
 	}
 
-	if err := s.cardRepo.UpdateCreditCard(ctx, cardID, creditLimit, billingDay, paymentDueDays); err != nil {
+	owner, err := s.ledgerRepo.GetUserIDFromAccount(ctx, cardID)
+	if err != nil {
+		return err
+	}
+	if owner != userID {
+		return pgx.ErrNoRows
+	}
+
+	if err := s.cardRepo.UpdateCreditCard(ctx, cardID, creditLimit, billingDay, paymentDueDays, dueRule, statementShift); err != nil {
 		return err
 	}
 

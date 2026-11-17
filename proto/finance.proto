@@ -72,6 +72,7 @@ service FinanceEngine {
   rpc GetLoan(GetLoanRequest) returns (LoanDetails);
   rpc UpdateLoan(UpdateLoanRequest) returns (UpdateLoanResponse);
   rpc DeleteLoan(DeleteLoanRequest) returns (DeleteLoanResponse);
+  rpc UpdateCreditCard(UpdateCreditCardRequest) returns (UpdateCreditCardResponse);
   rpc SetPaikotLink(SetPaikotLinkRequest) returns (SetPaikotLinkResponse);
 
   // Deletes all of the user's transactions (and card / bank statements built from them); accounts stay.
@@ -162,7 +163,22 @@ message Account {
   string credit_limit = 6;
   int32 billing_day = 7;
   string statement_shift = 8;
+  int32 payment_due_days = 9; // cards only, read with due_rule
+  string due_rule = 10;
 }
+
+// A card's editable terms. due_rule: DAYS, DAY_OF_MONTH, BUSINESS_DAYS or DAYS_SKIP_WEEKEND;
+// statement_shift: NONE, NEXT_BUSINESS_DAY or NEAREST_BUSINESS_DAY.
+message UpdateCreditCardRequest {
+  string user_id = 1;
+  string account_id = 2;
+  string credit_limit = 3;
+  int32 billing_day = 4;
+  int32 payment_due_days = 5;
+  string due_rule = 6;
+  string statement_shift = 7;
+}
+message UpdateCreditCardResponse {}
 
 enum AccountType {
   ACCOUNT_TYPE_UNSPECIFIED = 0;
