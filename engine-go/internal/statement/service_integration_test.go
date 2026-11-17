@@ -558,7 +558,21 @@ func TestCreditCardStatement(t *testing.T) {
 			{Date: date(2026, time.October, 23), Description: "Instalment Interest", Amount: decimal.RequireFromString("4247.65"), MoneyOut: true, Category: "Loan Interest"},
 		},
 	}
+	due := date(2026, time.November, 9)
+	card.Bill = &statement.Bill{StatementDate: date(2026, time.October, 23), DueDate: &due,
+		TotalDue: decimal.RequireFromString("21247.65"), CreditLimit: decimal.RequireFromString("50000")}
 	result := f.importOK(card)
+
+	// The card the statement created gets settings from its bill, so the bill is tracked.
+	var billingDay, dueDays, bills int
+	if err := f.pool.QueryRow(f.ctx, `
+		SELECT cc.billing_day, cc.payment_due_days, (SELECT count(*) FROM credit_card_statements s WHERE s.credit_card_id = cc.id)
+		FROM credit_cards cc WHERE cc.id = $1`, result.AccountID).Scan(&billingDay, &dueDays, &bills); err != nil {
+		t.Fatal(err)
+	}
+	if billingDay != 23 || dueDays != 17 || bills != 1 {
+		t.Fatalf("billing day %d, due days %d, bills %d; want 23, 17, 1", billingDay, dueDays, bills)
+	}
 
 	if len(result.Transfers) != 1 || result.Imported != 2 || len(result.Warnings) != 0 {
 		t.Fatalf("transfers %v, imported %d, warnings %v; want the payment joined, 2 charges, balances matching",

@@ -434,6 +434,67 @@ class BankStatementParserTest {
         assertEquals("Loan Fees", BankStatementParser.category(Bank.UNIONBANK_CARD, r.lines().get(2)));
     }
 
+    /** MariBank credit card e-statement: name above, posted + transaction date, type below; "+" repays, "-" charges (made-up figures). */
+    @Test
+    void mariBankCreditCardStatement() {
+        String text = """
+                MARICARD CREDIT STATEMENT
+                S/N S04-000000
+                16 NOV 2026
+                JUAN DELA CRUZ Statement Period  : 16 OCT 2026 to 15 NOV 2026
+                Minimum Amount Due  : PHP 50.00
+                Total Amount Due  : PHP 1,208.00
+                Payment Due Date  : 07 DEC 2026
+                ACCOUNT SUMMARY
+                CARD NUMBER: 529416****4321
+                MARICARD CREDIT 15 NOV 2026 35,000.00 1,208.00 50.00 07 DEC 2026
+                (A) (B) (C) (D) (E) (F) (G) (A-B-C+D+E-F+G)
+                1,000.00 1,000.00 0.00 1,218.00 0.00 10.00 0.00 1,208.00
+                TRANSACTION DETAILS
+                POSTED DATE TRANSACTION DATE DESCRIPTION AMOUNT (PHP)
+                Bill Payments
+                MariBank Credit Card
+                20 OCT 20 OCT +1,000.00
+                Bill Repayment
+                page 1 of 2
+                MARICARD CREDIT STATEMENT
+                S/N S04-000000
+                16 NOV 2026
+                POSTED DATE TRANSACTION DATE DESCRIPTION AMOUNT (PHP)
+                Purchases
+                DOTr-MRT3
+                15 NOV 12 NOV -8.00
+                Credit Card Transaction
+                ANGKAS
+                16 OCT 14 OCT -1,210.00
+                Credit Card Transaction
+                Cashback Applied
+                Cashback Credit
+                15 NOV 15 NOV +10.00
+                Cashback
+                Important Information
+                """;
+        assertEquals(Bank.MARIBANK_CARD, BankStatementParser.detectBank(text));
+        assertEquals("4321", BankStatementParser.accountNumber(text, Bank.MARIBANK_CARD));
+
+        Result r = BankStatementParser.parse(text, Bank.MARIBANK_CARD);
+        assertTrue(r.skipped().isEmpty());
+        assertEquals(4, r.lines().size());
+        // Rows carry the posted date; a repayment is money in, a purchase money out.
+        assertEquals(new Line(LocalDate.of(2026, 10, 20), "MariBank Credit Card (Bill Repayment)", new BigDecimal("1000.00"), false), r.lines().get(0));
+        assertEquals(new Line(LocalDate.of(2026, 11, 15), "DOTr-MRT3 (Credit Card Transaction)", new BigDecimal("8.00"), true), r.lines().get(1));
+        assertFalse(r.lines().get(3).debit());
+        assertEquals(new BigDecimal("-1000.00"), r.openingBalance());
+        assertEquals(new BigDecimal("-1208.00"), r.closingBalance());
+        assertEquals(LocalDate.of(2026, 10, 16), r.periodStart());
+        assertEquals(LocalDate.of(2026, 11, 15), r.periodEnd());
+
+        BankStatementParser.CardSummary card = BankStatementParser.cardSummary(text);
+        assertEquals(new BigDecimal("35000.00"), card.creditLimit());
+        assertEquals(LocalDate.of(2026, 12, 7), card.dueDate());
+        assertEquals(new BigDecimal("50.00"), card.minimumDue());
+    }
+
     /** UnionBank credit card transaction history: two dates per row, two cards, no balances (names and numbers made up). */
     @Test
     void unionBankCreditCardHistory() {

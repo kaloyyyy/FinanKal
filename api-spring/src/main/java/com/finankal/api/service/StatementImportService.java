@@ -200,6 +200,7 @@ public class StatementImportService {
                 .setStatementDate(p.bill() == null ? "" : p.bill().statementDate().toString())
                 .setDueDate(p.bill() == null || p.bill().dueDate() == null ? "" : p.bill().dueDate().toString())
                 .setTotalDue(p.bill() == null ? "" : p.bill().totalDue().toPlainString())
+                .setCreditLimit(p.bill() == null ? "" : amount(p.bill().creditLimit()))
                 .setBank(p.bank().name())
                 .setPeriodStart(p.start().toString())
                 .setPeriodEnd(p.end().toString())

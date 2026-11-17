@@ -282,6 +282,11 @@ func (s *Server) ImportBankStatement(ctx context.Context, req *finance.ImportBan
 			return nil, err
 		}
 		bill = &statement.Bill{StatementDate: statementDate, TotalDue: totalDue}
+		if req.GetCreditLimit() != "" {
+			if bill.CreditLimit, err = parseAmount(req.GetCreditLimit(), "credit limit"); err != nil {
+				return nil, err
+			}
+		}
 		if req.GetDueDate() != "" {
 			dueDate, err := parseDate(req.GetDueDate(), "due date")
 			if err != nil {

@@ -41,10 +41,15 @@ public final class BankStatementParser {
         // Card statement of account (first line, product name) or card transaction history (its table header).
         UNIONBANK_CARD("UnionBank Credit Card",
                 "statement of account available points|rewards platinum mastercard|transaction date posting date transaction details"
-                + "|card number \\d{16}", true); // the last: the .xlsx statement
+                + "|card number \\d{16}", true), // the last: the .xlsx statement
+        // MariBank credit card e-statement: its title, printed first on every page.
+        MARIBANK_CARD("MariBank Credit Card", "maricard credit statement", true);
 
         public final String label;
-        /** A credit card statement: balances are owed, a positive amount is a charge and a negative one a payment. */
+        /**
+         * A credit card statement: balances are owed, a positive amount is a charge and a negative one a payment
+         * (MariBank's card prints the signs the other way round).
+         */
         public final boolean card;
         private final Pattern mark;
 
@@ -72,7 +77,12 @@ public final class BankStatementParser {
 
     /** What a credit card statement says is owed and when, or null when the text isn't a card statement. */
     public record CardSummary(LocalDate statementDate, BigDecimal previousBalance, BigDecimal totalDue,
-                              BigDecimal minimumDue, LocalDate dueDate) {}
+                              BigDecimal minimumDue, LocalDate dueDate, BigDecimal creditLimit) {
+        /** For statements that don't print the credit limit. */
+        CardSummary(LocalDate statementDate, BigDecimal previousBalance, BigDecimal totalDue, BigDecimal minimumDue, LocalDate dueDate) {
+            this(statementDate, previousBalance, totalDue, minimumDue, dueDate, null);
+        }
+    }
 
     // The .xlsx statement lists the same figures as labelled rows: "STATEMENT DATE Jan 23, 2026", "TOTAL AMOUNT DUE PHP 33228.27".
     private static final String SHEET_DATE = "([A-Za-z]{3,9} \\d{1,2}, \\d{4})";
@@ -103,7 +113,27 @@ public final class BankStatementParser {
                 due.find() ? LocalDate.parse(due.group(1), shortDate) : null);
     }
 
+    // MariBank card: "MARICARD CREDIT 15 NOV 2026 35,000.00 34,425.44 1,032.77 07 DEC 2026" is the statement date,
+    // credit limit, total due, minimum due and due date; the previous balance is the first figure under "(A) (B) …".
+    private static final Pattern MARI_CARD_ROW = Pattern.compile(
+            "(?im)^maricard credit +(\\d{1,2} [A-Za-z]{3} \\d{4}) +([\\d,]+\\.\\d{2}) +(-?[\\d,]+\\.\\d{2}) +([\\d,]+\\.\\d{2}) +(\\d{1,2} [A-Za-z]{3} \\d{4})");
+    private static final Pattern MARI_CARD_PREVIOUS = Pattern.compile("\\(A-B-C\\+D\\+E-F\\+G\\)\\s+(-?[\\d,]+\\.\\d{2})");
+    /** "CARD NUMBER: 529416****0609". */
+    private static final Pattern MARI_CARD_NUMBER = Pattern.compile("(?i)card number:\\s*\\d+\\*+(\\d{4})\\b");
+
     public static CardSummary cardSummary(String text) {
+        Matcher mari = MARI_CARD_ROW.matcher(text);
+        if (mari.find()) {
+            Matcher previous = MARI_CARD_PREVIOUS.matcher(text);
+            DateTimeFormatter day = fmt("d MMM yyyy");
+            return new CardSummary(
+                    LocalDate.parse(mari.group(1), day),
+                    previous.find() ? money(previous.group(1)) : null,
+                    money(mari.group(3)),
+                    money(mari.group(4)),
+                    LocalDate.parse(mari.group(5), day),
+                    money(mari.group(2)));
+        }
         CardSummary sheet = sheetCardSummary(text);
         if (sheet != null) {
             return sheet;
@@ -234,6 +264,10 @@ public final class BankStatementParser {
             if (sheet.find()) {
                 return sheet.group(1);
             }
+            Matcher mari = MARI_CARD_NUMBER.matcher(text);
+            if (mari.find()) {
+                return mari.group(1);
+            }
             Matcher m = CARD_LAST4.matcher(text);
             return m.find() ? m.group(1).replaceAll("\\D", "") : null;
         }
@@ -313,7 +347,7 @@ public final class BankStatementParser {
     private static final Pattern CURRENCY = Pattern.compile("(?i)\\bPHP(?![A-Za-z])|₱");
     private static final Pattern NEGATIVE_CURRENCY = Pattern.compile("(?i)-\\s*(?:PHP|₱)\\s*(?=\\d)");
     private static final Pattern AMOUNT = Pattern.compile(
-            "^(\\()?(-)?((?:\\d{1,3}(?:,\\d{3})+|\\d+)\\.\\d{2})\\)?(-)?(DR|CR)?$",
+            "^(\\()?(?:\\+|(-))?((?:\\d{1,3}(?:,\\d{3})+|\\d+)\\.\\d{2})\\)?(-)?(DR|CR)?$",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern YEAR = Pattern.compile("\\b(20\\d{2})\\b");
     private static final Pattern OPENING = Pattern.compile(
@@ -327,7 +361,7 @@ public final class BankStatementParser {
     public static Result parse(String text, Bank bank) {
         YearRule years = yearRule(text);
         // MariBank prints the counterparty on the line above the date/amount and the type on the line below.
-        boolean nameAboveTypeBelow = bank == Bank.MARIBANK;
+        boolean nameAboveTypeBelow = bank == Bank.MARIBANK || bank == Bank.MARIBANK_CARD;
         // UnionBank and BDO wrap long descriptions onto the line below the row.
         boolean wrapsBelow = bank == Bank.UNIONBANK || bank == Bank.BDO;
         // Maya puts the time and the transaction's details on the line below ("11:08:52 PM Credit via InstaPay").
@@ -458,7 +492,9 @@ public final class BankStatementParser {
             Amount first = amounts.get(0);
             BigDecimal balance = amounts.size() >= 2 ? amounts.get(amounts.size() - 1).signed() : null;
             // On a card statement a positive amount is a charge (money out: you owe more), a negative one a payment.
-            Boolean debit = bank.card ? Boolean.valueOf(first.signed().signum() > 0) : first.debit();
+            // MariBank's card prints it the other way round: "-8.00" is a purchase, "+250.00" a repayment.
+            Boolean debit = bank == Bank.MARIBANK_CARD ? Boolean.valueOf(first.signed().signum() < 0)
+                    : bank.card ? Boolean.valueOf(first.signed().signum() > 0) : first.debit();
             if (debit == null && balance == null && bank == Bank.BDO) {
                 debit = false; // BDO prints money out as "-PHP…" and money in unsigned, with no balance column.
             }
@@ -548,7 +584,9 @@ public final class BankStatementParser {
                 return new Result(lines, skipped,
                         card.previousBalance() == null ? null : card.previousBalance().negate(),
                         card.totalDue().negate(),
-                        card.statementDate().minusMonths(1).plusDays(1),
+                        // MariBank prints the period; its first statement is shorter than a month (9–15 Sep).
+                        bank == Bank.MARIBANK_CARD && years.periodStart() != null ? years.periodStart()
+                                : card.statementDate().minusMonths(1).plusDays(1),
                         card.statementDate());
             }
         }

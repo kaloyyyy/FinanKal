@@ -253,7 +253,7 @@ func (r *StatementRepository) userCardPayments(ctx context.Context, userID uuid.
 
 // UpsertBillTx records the bill a card statement prints (one per card per statement date; re-importing
 // updates it), replacing the engine's estimate for that cycle. Cards without settings (no credit_cards
-// row) aren't tracked, so it does nothing for them.
+// row) aren't tracked, so it does nothing for them; the statement import creates the settings first.
 func UpsertBillTx(ctx context.Context, tx pgx.Tx, cardID uuid.UUID, start, statementDate time.Time, dueDate *time.Time, total decimal.Decimal) error {
 	// The estimate may have guessed the statement date a few days off (a weekend rule, a holiday).
 	if _, err := tx.Exec(ctx, `

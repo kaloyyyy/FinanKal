@@ -82,6 +82,7 @@ type Bill struct {
 	StatementDate time.Time
 	DueDate       *time.Time
 	TotalDue      decimal.Decimal
+	CreditLimit   decimal.Decimal // zero when the statement doesn't print it
 }
 
 type Result struct {
@@ -278,7 +279,11 @@ func (s *Service) Import(ctx context.Context, st Statement) (Result, error) {
 	}
 
 	// A card statement's bill: its due date goes into payables, and payments reaching the card settle it.
+	cardClearing := uuid.Nil
 	if st.Bill != nil && acct.Type == string(ledger.CREDIT_CARD) {
+		if cardClearing, err = s.ensureCard(ctx, tx, acct, st.Bank, *st.Bill); err != nil {
+			return Result{}, err
+		}
 		if err := credit.UpsertBillTx(ctx, tx, st.AccountID, st.PeriodStart, st.Bill.StatementDate, st.Bill.DueDate, st.Bill.TotalDue); err != nil {
 			return Result{}, err
 		}
@@ -301,6 +306,9 @@ func (s *Service) Import(ctx context.Context, st Statement) (Result, error) {
 		return Result{}, err
 	}
 	cache.InvalidateTransaction(ctx, s.redis, userID, touched...)
+	if cardClearing != uuid.Nil {
+		cache.InvalidateCreditCard(ctx, s.redis, acct.ID, userID, cardClearing)
+	}
 
 	return Result{StatementID: statementID, AccountID: acct.ID, AccountName: acct.Name, Imported: len(st.Rows) - len(duplicates) - len(transfers),
 		Duplicates: duplicates, Transfers: transfers, Warnings: warnings}, nil
@@ -360,6 +368,41 @@ func (s *Service) resolveAccount(ctx context.Context, tx pgx.Tx, st Statement) (
 			ErrInvalidStatement, last4(st.AccountNumber), acct.Name, last4(acct.Number))
 	}
 	return acct, nil
+}
+
+// ensureCard gives a card that has no settings yet (one a statement created) settings read off its bill,
+// because bills and next month's estimate are only tracked for cards with settings: the billing day is
+// the statement's day, and the due date is that many days after it. Returns the clearing account it
+// created, or uuid.Nil when the card already had settings or the bill prints no due date.
+// shortcut: for other banks one statement can't tell "22 days after" from "every 7th", or a weekend shift;
+// the next estimate may be a day or two off until its statement replaces it. Add the bank's rule here when known.
+func (s *Service) ensureCard(ctx context.Context, tx pgx.Tx, acct account, bank string, bill Bill) (uuid.UUID, error) {
+	var exists bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM credit_cards WHERE id = $1)`, acct.ID).Scan(&exists); err != nil {
+		return uuid.Nil, err
+	}
+	if exists || bill.DueDate == nil {
+		return uuid.Nil, nil
+	}
+	// credit_cards allows 1–28 for both.
+	dueDays, rule := daysApart(*bill.DueDate, bill.StatementDate), credit.DueDays
+	if dueDays > 28 {
+		dueDays, rule = min(bill.DueDate.Day(), 28), credit.DueDayOfMonth
+	}
+	// MariBank's card has its own rule, unlike UnionBank's (business days) or Atome's (a day of the month):
+	// 20 days after the statement, or the Monday after (15 Sep → 5 Oct, 15 Oct → 4 Nov, 15 Nov → Mon 7 Dec 2026).
+	if bank == "MARIBANK_CARD" {
+		dueDays, rule = 20, credit.DueDaysSkipWeekend
+	}
+	clearing, err := s.ledgerRepo.CreateClearingAccountTx(ctx, tx, acct.UserID, acct.Name)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	_, err = tx.Exec(ctx, `
+		INSERT INTO credit_cards (id, clearing_account_id, credit_limit, billing_day, payment_due_days, due_rule, statement_shift)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+	`, acct.ID, clearing, bill.CreditLimit, min(bill.StatementDate.Day(), 28), max(dueDays, 1), rule, credit.ShiftNone)
+	return clearing, err
 }
 
 func last4(number string) string {

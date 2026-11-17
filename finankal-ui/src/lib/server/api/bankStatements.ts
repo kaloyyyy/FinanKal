@@ -8,7 +8,8 @@ export const BANKS = [
     { value: "GOTYME", label: "GoTyme" },
     { value: "MARIBANK", label: "MariBank" },
     { value: "UNIONBANK", label: "UnionBank" },
-    { value: "UNIONBANK_CARD", label: "UnionBank Credit Card" }
+    { value: "UNIONBANK_CARD", label: "UnionBank Credit Card" },
+    { value: "MARIBANK_CARD", label: "MariBank Credit Card" }
 ] as const;
 
 export type Bank = (typeof BANKS)[number]["value"];

@@ -414,6 +414,7 @@ message ImportBankStatementRequest {
   string statement_date = 13; // yyyy-MM-dd
   string due_date = 14;       // yyyy-MM-dd, "" = work it out from the card's rule
   string total_due = 15;      // amount owed on the bill
+  string credit_limit = 17;   // printed on the statement, "" when not; used when the card's settings are created from it
   string bank = 2;
   string period_start = 3;
   string period_end = 4;
