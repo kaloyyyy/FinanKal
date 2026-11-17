@@ -19,6 +19,8 @@ const (
 	DueDays         = "DAYS"
 	DueDayOfMonth   = "DAY_OF_MONTH"
 	DueBusinessDays = "BUSINESS_DAYS"
+	// DueDaysSkipWeekend is DueDays, moved to the Monday after when it lands on a weekend (MariBank's card).
+	DueDaysSkipWeekend = "DAYS_SKIP_WEEKEND"
 )
 
 // Where a statement date goes when the billing day is a weekend (see StatementDateIn). Unset = NONE.

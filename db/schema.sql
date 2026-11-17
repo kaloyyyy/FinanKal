@@ -199,7 +199,7 @@ create unique index accounts_user_account_number_unique
 -- 003_card_bills.sql
 alter table credit_cards
     add column due_rule varchar(20) default 'DAYS' not null,
-    add constraint credit_cards_due_rule_check check (due_rule in ('DAYS', 'DAY_OF_MONTH', 'BUSINESS_DAYS'));
+    add constraint credit_cards_due_rule_check check (due_rule in ('DAYS', 'DAY_OF_MONTH', 'BUSINESS_DAYS', 'DAYS_SKIP_WEEKEND')); -- the last: 009_due_days_skip_weekend.sql
 
 alter table credit_card_statements
     alter column due_date drop not null;

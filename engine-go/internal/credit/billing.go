@@ -75,6 +75,7 @@ func isWeekend(t time.Time) bool {
 //   - DAYS: PaymentDueDays calendar days after the statement date.
 //   - DAY_OF_MONTH: the next PaymentDueDays-th of a month after the statement date (the 5th, say).
 //   - BUSINESS_DAYS: PaymentDueDays weekdays after the statement date.
+//   - DAYS_SKIP_WEEKEND: as DAYS, or the Monday after when that's a weekend.
 //
 // shortcut: business days skip weekends only, not public holidays; add a holiday calendar if a due date lands on one.
 func CalculateDueDate(statementDate time.Time, card CreditCard) time.Time {
@@ -96,6 +97,12 @@ func CalculateDueDate(statementDate time.Time, card CreditCard) time.Time {
 			if !isWeekend(due) {
 				left--
 			}
+		}
+		return due
+	case DueDaysSkipWeekend:
+		due := statementDate.AddDate(0, 0, card.PaymentDueDays)
+		for isWeekend(due) {
+			due = due.AddDate(0, 0, 1)
 		}
 		return due
 	default:

@@ -54,6 +54,8 @@ func TestCalculateDueDateRules(t *testing.T) {
 		{"day of month across the year", CreditCard{DueRule: DueDayOfMonth, PaymentDueDays: 5}, date(2026, 12, 24), date(2027, 1, 5)},
 		// Fri 23 Oct + 11 weekdays = Mon 9 Nov (UnionBank's printed due date).
 		{"business days skip weekends", CreditCard{DueRule: DueBusinessDays, PaymentDueDays: 11}, date(2026, 10, 23), date(2026, 11, 9)},
+		{"days, on a weekday", CreditCard{DueRule: DueDaysSkipWeekend, PaymentDueDays: 20}, date(2026, 10, 15), date(2026, 11, 4)},
+		{"days, off a Saturday to Monday", CreditCard{DueRule: DueDaysSkipWeekend, PaymentDueDays: 20}, date(2026, 11, 15), date(2026, 12, 7)},
 		{"business days from a Saturday", CreditCard{DueRule: DueBusinessDays, PaymentDueDays: 1}, date(2026, 10, 24), date(2026, 10, 26)},
 	}
 	for _, test := range tests {
