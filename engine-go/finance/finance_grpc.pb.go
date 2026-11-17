@@ -42,6 +42,7 @@ const (
 	FinanceEngine_GetLoan_FullMethodName                     = "/finance.FinanceEngine/GetLoan"
 	FinanceEngine_UpdateLoan_FullMethodName                  = "/finance.FinanceEngine/UpdateLoan"
 	FinanceEngine_DeleteLoan_FullMethodName                  = "/finance.FinanceEngine/DeleteLoan"
+	FinanceEngine_UpdateCreditCard_FullMethodName            = "/finance.FinanceEngine/UpdateCreditCard"
 	FinanceEngine_SetPaikotLink_FullMethodName               = "/finance.FinanceEngine/SetPaikotLink"
 	FinanceEngine_ClearUserTransactions_FullMethodName       = "/finance.FinanceEngine/ClearUserTransactions"
 	FinanceEngine_ListBankStatements_FullMethodName          = "/finance.FinanceEngine/ListBankStatements"
@@ -86,6 +87,7 @@ type FinanceEngineClient interface {
 	GetLoan(ctx context.Context, in *GetLoanRequest, opts ...grpc.CallOption) (*LoanDetails, error)
 	UpdateLoan(ctx context.Context, in *UpdateLoanRequest, opts ...grpc.CallOption) (*UpdateLoanResponse, error)
 	DeleteLoan(ctx context.Context, in *DeleteLoanRequest, opts ...grpc.CallOption) (*DeleteLoanResponse, error)
+	UpdateCreditCard(ctx context.Context, in *UpdateCreditCardRequest, opts ...grpc.CallOption) (*UpdateCreditCardResponse, error)
 	SetPaikotLink(ctx context.Context, in *SetPaikotLinkRequest, opts ...grpc.CallOption) (*SetPaikotLinkResponse, error)
 	// Deletes all of the user's transactions (and card / bank statements built from them); accounts stay.
 	ClearUserTransactions(ctx context.Context, in *ClearUserTransactionsRequest, opts ...grpc.CallOption) (*ClearUserTransactionsResponse, error)
@@ -341,6 +343,16 @@ func (c *financeEngineClient) DeleteLoan(ctx context.Context, in *DeleteLoanRequ
 	return out, nil
 }
 
+func (c *financeEngineClient) UpdateCreditCard(ctx context.Context, in *UpdateCreditCardRequest, opts ...grpc.CallOption) (*UpdateCreditCardResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateCreditCardResponse)
+	err := c.cc.Invoke(ctx, FinanceEngine_UpdateCreditCard_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *financeEngineClient) SetPaikotLink(ctx context.Context, in *SetPaikotLinkRequest, opts ...grpc.CallOption) (*SetPaikotLinkResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SetPaikotLinkResponse)
@@ -464,6 +476,7 @@ type FinanceEngineServer interface {
 	GetLoan(context.Context, *GetLoanRequest) (*LoanDetails, error)
 	UpdateLoan(context.Context, *UpdateLoanRequest) (*UpdateLoanResponse, error)
 	DeleteLoan(context.Context, *DeleteLoanRequest) (*DeleteLoanResponse, error)
+	UpdateCreditCard(context.Context, *UpdateCreditCardRequest) (*UpdateCreditCardResponse, error)
 	SetPaikotLink(context.Context, *SetPaikotLinkRequest) (*SetPaikotLinkResponse, error)
 	// Deletes all of the user's transactions (and card / bank statements built from them); accounts stay.
 	ClearUserTransactions(context.Context, *ClearUserTransactionsRequest) (*ClearUserTransactionsResponse, error)
@@ -557,6 +570,9 @@ func (UnimplementedFinanceEngineServer) UpdateLoan(context.Context, *UpdateLoanR
 }
 func (UnimplementedFinanceEngineServer) DeleteLoan(context.Context, *DeleteLoanRequest) (*DeleteLoanResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteLoan not implemented")
+}
+func (UnimplementedFinanceEngineServer) UpdateCreditCard(context.Context, *UpdateCreditCardRequest) (*UpdateCreditCardResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateCreditCard not implemented")
 }
 func (UnimplementedFinanceEngineServer) SetPaikotLink(context.Context, *SetPaikotLinkRequest) (*SetPaikotLinkResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetPaikotLink not implemented")
@@ -1020,6 +1036,24 @@ func _FinanceEngine_DeleteLoan_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FinanceEngine_UpdateCreditCard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateCreditCardRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FinanceEngineServer).UpdateCreditCard(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FinanceEngine_UpdateCreditCard_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FinanceEngineServer).UpdateCreditCard(ctx, req.(*UpdateCreditCardRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _FinanceEngine_SetPaikotLink_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SetPaikotLinkRequest)
 	if err := dec(in); err != nil {
@@ -1280,6 +1314,10 @@ var FinanceEngine_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteLoan",
 			Handler:    _FinanceEngine_DeleteLoan_Handler,
+		},
+		{
+			MethodName: "UpdateCreditCard",
+			Handler:    _FinanceEngine_UpdateCreditCard_Handler,
 		},
 		{
 			MethodName: "SetPaikotLink",
